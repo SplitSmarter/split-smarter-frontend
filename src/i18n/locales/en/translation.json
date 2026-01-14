@@ -1,0 +1,39 @@
+{
+  "greeting": "Hello",
+  "welcome": "Welcome to the app",
+  "expense": {
+    "add": {
+      "details": "Details",
+      "distribution": "Distribution",
+      "components": "Components",
+      "hideAdvanced": "Hide Advanced",
+      "showAdvanced": "Show Advanced",
+      "input": {
+        "description": "Enter description",
+        "group": "Enter group",
+        "title": "Enter title"
+      }
+    }
+  },
+  "api": {
+    "auth": {
+      "messages": {
+        "username_taken": "Username is taken",
+        "AlreadyRegistered": "You are already registered",
+        "": ""
+      }
+    }
+  },
+  "onboarding": {
+    "dreamLives": "Dream Lives",
+    "learnLanguages": "Learn Languages",
+    "achieveGoals": "Achieve Your Goals"
+  },
+  "common": {
+    "getStarted": "Get Started",
+    "next": "Next",
+    "alreadyHaveAccount": "I already have an account",
+    "agreeTerms": "By continuing, you agree to our",
+    "termsConditions": "Terms & Conditions"
+  }
+}

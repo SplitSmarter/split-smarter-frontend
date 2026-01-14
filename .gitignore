@@ -3,8 +3,16 @@
 # dependencies
 node_modules/
 
-# Expo
+# build
 .expo/
+android/
+ios/
+
+# ide
+.vscode/
+.idea
+
+# Expo
 dist/
 web-build/
 expo-env.d.ts
@@ -31,9 +39,14 @@ yarn-error.*
 *.pem
 
 # local env files
-.env*.local
-
+.env
 # typescript
 *.tsbuildinfo
 
-app-example
+# OS generated files
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
