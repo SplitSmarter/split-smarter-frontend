@@ -1,4 +1,6 @@
 {
   "greeting": "Hallo",
-  "welcome": "Willkommen in der App"
+  "welcome": "Willkommen in der App",
+  "language.name.self": "Deutsch",
+  "language.name.english": "German"
 }

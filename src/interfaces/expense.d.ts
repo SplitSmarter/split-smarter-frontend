@@ -7,7 +7,7 @@ import {
     ExpenseItemType
 } from '@/src/constants/expense'
 import {IconIdentifierType} from "@/src/constants/icons";
-import {ImageHostType} from "@/src/constants/images";
+import {ImageHostType} from "@/src/constants/images_old";
 
 export interface UserPaidByDto {
     user_id: number;

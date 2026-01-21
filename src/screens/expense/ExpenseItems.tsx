@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import { View, FlatList, ActivityIndicator } from "react-native";
 import { useTranslation } from "react-i18next";
 import CustomText from "@/src/components/common/CustomText";
-import { useTheme } from "@/src/context/themeContext";
+import { useThemeStore } from "@/src/store/useThemeStore";
+
 import { getExpenseItemsApi } from "@/src/api/expense/items"; // You need to create this file if not already
 import { ExpenseItem } from "@/src/interfaces/expense";
 import { useRouter } from "expo-router";
@@ -12,7 +13,7 @@ import CustomIcon from "@/src/components/common/CustomIcon";
 const ExpenseItemsScreen = () => {
     const { t } = useTranslation();
     const router = useRouter();
-    const { theme } = useTheme();
+    const { theme } = useThemeStore();
     const isDark = theme === "dark";
 
     const [items, setItems] = useState<ExpenseItem[]>([]);

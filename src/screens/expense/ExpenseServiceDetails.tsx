@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { View, Image, ActivityIndicator, ScrollView } from "react-native";
 import { useTranslation } from "react-i18next";
 import CustomText from "@/src/components/common/CustomText";
-import { useTheme } from "@/src/context/themeContext";
+import { useThemeStore } from "@/src/store/useThemeStore";
 import { getIcon } from "@/src/utils/icons";
 import { useLocalSearchParams } from "expo-router";
 import { getExpenseServiceByIdApi } from "@/src/api/expense/services";
@@ -11,7 +11,7 @@ import CustomIcon from "@/src/components/common/CustomIcon";
 
 const ExpenseServiceDetailsScreen = () => {
     const { t } = useTranslation();
-    const { theme } = useTheme();
+    const { theme } = useThemeStore();
     const isDark = theme === "dark";
     const { serviceId } = useLocalSearchParams();
 

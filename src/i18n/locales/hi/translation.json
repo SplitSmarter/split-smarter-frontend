@@ -1,4 +1,6 @@
 {
   "greeting": "नमस्ते",
-  "welcome": "ऐप में आपका स्वागत है"
+  "welcome": "ऐप में आपका स्वागत है",
+  "language.name.self": "हिन्दी",
+  "language.name.english": "Hindi"
 }

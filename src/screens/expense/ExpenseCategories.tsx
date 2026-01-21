@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import CustomText from "@/src/components/common/CustomText";
 import { getExpenseCategoriesApi } from "@/src/api/expense/categories";
 import { ExpenseCategory } from "@/src/interfaces/expense";
-import { useTheme } from "@/src/context/themeContext";
+import { useThemeStore } from "@/src/store/useThemeStore";
 import { useRouter } from "expo-router";
 import {ROUTES} from "@/src/constants/routes";
 import CustomIcon from "@/src/components/common/CustomIcon";
@@ -12,7 +12,7 @@ import CustomIcon from "@/src/components/common/CustomIcon";
 const ExpenseCategoriesScreen = () => {
     const { t } = useTranslation();
     const router = useRouter();
-    const { theme } = useTheme();
+    const { theme } = useThemeStore();
     const isDark = theme === "dark";
 
     const [categories, setCategories] = useState<ExpenseCategory[]>([]);

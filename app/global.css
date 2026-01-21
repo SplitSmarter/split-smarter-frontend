@@ -1,3 +1,81 @@
+/* global.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+    /* LIGHT THEME (Default) */
+    :root {
+        --color-bg-primary: 242 242 242;     /* F2F2F2 */
+        --color-bg-primary-lighter: 255 255 255;     /* F2F2F2 */
+        --color-bg-primary-darker: 230 230 230;/* E6E6E6 (Used to be bg-primary-dark) */
+        --color-bg-canvas: 255 255 255;      /* FFFFFF (Used to be bg-primary-light/bg-canvas) */
+        --color-bg-secondary: 43 135 97;     /* 2B8761 (Brand Green) */
+        --color-bg-secondary-lighter: 85 159 129; /* 559F81 (Used to be bg-secondary-light) */
+        --color-bg-secondary-darker: 34 108 78; /* 226C4E (Used to be bg-secondary-dark) */
+        --color-bg-overlay: 255 255 255;        /* FFFFFF */
+
+        --color-text-primary: 77 77 77;      /* 4D4D4D */
+        --color-text-primary-placeholder: 77 77 77;      /* 4D4D4D */
+        --color-text-primary-lighter: 0 0 0; /* 000000 (Used to be text-primary-light) */
+        --color-text-primary-darker: 13 13 13; /* 0D0D0D (Used to be text-primary-dark) */
+        --color-text-canvas: 255 255 255;      /* FFFFFF (Used to be bg-primary-light/bg-canvas) */
+        --color-text-secondary: 255 255 255;    /* F2F2F2 */
+        --color-text-secondary-lighter: 255 255 255; /* FFFFFF (Used to be text-secondary-light) */
+        --color-text-secondary-darker: 230 230 230; /* E6E6E6 (Used to be text-secondary-dark) */
+        --color-text-overlay: 255 255 255;        /* FFFFFF */
+        --color-text-link: 255 255 255;         /* FFFFFF */
+
+        --color-icon-primary: 77 77 77;         /* 4D4D4D */
+        --color-icon-primary-lighter: 0 0 0;    /* 000000 */
+        --color-icon-primary-darker: 0 0 0;     /* 000000 */
+
+        --color-icon-secondary: 77 77 77;         /* 4D4D4D */
+        --color-icon-secondary-lighter: 0 0 0;    /* 000000 */
+        --color-icon-secondary-darker: 0 0 0;     /* 000000 */
+
+
+        /* Utility/Status Colors */
+        --color-green-increase: 40 159 50;   /* 289F32 */
+        --color-red-decrease: 209 46 52;     /* D12E34 */
+        --color-golden: 181 175 152;         /* B5AF98 */
+
+        /* Standard Mappings for default Tailwind classes */
+        --bg-background: var(--color-bg-primary);
+        --text-foreground: var(--color-text-primary);
+    }
+
+    /* DARK THEME (Activated by .dark class) */
+    .dark {
+        --color-bg-primary: 34 34 34;
+        --color-bg-primary-lighter: 0 0 0;
+        --color-bg-primary-darker: 51 51 51;
+        --color-bg-canvas: 17 17 17;
+        --color-bg-secondary: 50 150 110;
+        --color-bg-secondary-lighter: 100 180 150;
+        --color-bg-secondary-darker: 40 120 90;
+        --color-bg-overlay: 30 30 30;
+
+        --color-text-primary: 230 230 230;
+        --color-text-primary-placeholder: 230 230 230;
+        --color-text-primary-lighter: 240 240 240;
+        --color-text-primary-darker: 255 255 255;
+        --color-text-secondary: 255 255 255;
+        --color-text-secondary-lighter: 255 255 255;
+        --color-text-secondary-darker: 51 51 51;
+        --color-text-overlay: 30 30 30;
+        --color-text-link: 50 150 250;
+
+        --color-icon-primary: 200 200 200;
+        --color-icon-primary-lighter: 255 255 255;
+        --color-icon-primary-darker: 255 255 255;
+
+        --color-icon-secondary: 200 200 200;
+        --color-icon-secondary-lighter: 255 255 255;
+        --color-icon-secondary-darker: 255 255 255;
+
+
+        --bg-background: var(--color-bg-canvas);
+        --text-foreground: var(--color-text-primary);
+    }
+}

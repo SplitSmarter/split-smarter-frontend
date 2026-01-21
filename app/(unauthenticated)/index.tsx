@@ -1,7 +1,8 @@
-import OnboardingScreen from "@/src/screens/OnBoarding";
+import Onboarding from "@/src/screens/Onboarding/Onboarding";
+import DashboardScreen from "@/src/components/DashboardCard";
 
-export default function SplashScreen() {
+export default function onboardingScreen() {
     return (
-        <OnboardingScreen/>
+        <Onboarding/>
     );
 }

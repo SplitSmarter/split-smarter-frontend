@@ -7,5 +7,5 @@ export interface AlertData {
 
 export interface AlertContextType {
     alert: AlertData | null;
-    showAlert: (message: string, severity?: AlertSeverity) => void;
+    showAlert: (message: string, severity?: AlertSeverity, status_codes?: number) => void;
 }

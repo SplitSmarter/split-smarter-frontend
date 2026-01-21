@@ -4,13 +4,13 @@ import { useTranslation } from "react-i18next";
 import CustomText from "@/src/components/common/CustomText";
 import { getExpenseCategoryByIdApi } from "@/src/api/expense/categories";
 import { ExpenseCategory } from "@/src/interfaces/expense";
-import { useTheme } from "@/src/context/themeContext";
+import { useThemeStore } from "@/src/store/useThemeStore";
 import { useLocalSearchParams } from "expo-router";
 import CustomIcon from "@/src/components/common/CustomIcon";
 
 const ExpenseCategoryDetailsScreen = () => {
     const { t } = useTranslation();
-    const { theme } = useTheme();
+    const { theme } = useThemeStore();
     const isDark = theme === "dark";
 
     const { categoryId } = useLocalSearchParams();

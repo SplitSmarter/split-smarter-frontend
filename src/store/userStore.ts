@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { CurrencyType } from "@/src/constants/expense";
-import {ImageHostType} from "@/src/constants/images";
+import {ImageHostType} from "@/src/constants/images_old";
 import {GetMyDetailsApi} from "@/src/api/user/user";
 
 // Your user type

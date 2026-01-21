@@ -1,10 +1,10 @@
 import React from 'react';
 import { View, TouchableOpacity, Animated, StyleSheet } from 'react-native';
-import { useTheme } from '@/src/context/themeContext';
+import { useThemeStore } from '@/src/store/useThemeStore';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const ThemeToggle = () => {
-    const { theme, toggleTheme } = useTheme();
+    const { theme, toggleTheme } = useThemeStore();
     const isDarkMode = theme === 'dark';
 
     // Animation for sliding the ball

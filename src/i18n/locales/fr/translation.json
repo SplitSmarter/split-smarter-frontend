@@ -1,4 +1,4 @@
 {
-  "greeting": "Bonjour",
-  "welcome": "Bienvenue dans l'application"
+  "language.name.self": "Français",
+  "language.name.english": "French",
 }

@@ -1,15 +1,23 @@
-import bg from "@/assets/images/bg.png";
-import highlight from "@/assets/images/highlight.png";
-import rankingGradient from "@/assets/images/rankingGradient.png";
+// /src/constants/images.ts
+import Onboarding1 from "@/assets/images/onboarding1.webp";
+import Onboarding2 from "@/assets/images/onboarding2.webp";
+import Onboarding3 from "@/assets/images/onboarding3.webp";
+import US from "@/assets/images/flags/us.webp";
+import IN from "@/assets/images/flags/in.webp";
+import FR from "@/assets/images/flags/fr.webp";
+import DE from "@/assets/images/flags/de.webp";
+import Logo from "@/assets/images/logo.png";
 
 export const images = {
-  bg,
-  highlight,
-  rankingGradient,
-};
+    Onboarding1,
+    Onboarding2,
+    Onboarding3,
+    Logo,
+    flags: {
+        US,
+        IN,
+        FR,
+        DE
+    }
+}
 
-export const ImageHostType = {
-  local: "LOCAL",
-  cloud: "CLOUD",
-} as const;
-export type ImageHostType = typeof ImageHostType[keyof typeof ImageHostType];

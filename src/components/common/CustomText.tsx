@@ -1,7 +1,7 @@
 // src/components/CustomText.tsx
 import React from "react";
 import { Text, TextProps, TextStyle } from "react-native";
-import { useI18n } from "@/src/context/i18nContext";
+import { useI18nStore } from "@/src/store/useI18nStore";
 
 interface Props extends TextProps {
     variant?: "primary" | "secondary";
@@ -18,7 +18,7 @@ const CustomText: React.FC<Props> = ({
      lines,
      ...rest
 }) => {
-    const { font } = useI18n();
+    const { font } = useI18nStore();
 
     const textStyle: TextStyle = {
         fontFamily: variant === "primary" ? font.primary : font.secondary,

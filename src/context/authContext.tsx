@@ -1,7 +1,7 @@
 // import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 // // import {googleSignIn} from "@/src/utils/googleAuth";
 // import AsyncStorage from "@react-native-async-storage/async-storage";
-import {User} from "@/src/types/auth";
+import {User} from "@/src/types/auth/auth";
 // import {setupInterceptor} from "@/src/api/tokenInterceptor";
 // import axiosUserServiceInstance from "@/src/api/axiosUserServiceInstance";
 // import axiosInternalInstance from "@/src/api/axiosInternalInstance";

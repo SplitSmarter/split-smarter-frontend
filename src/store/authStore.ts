@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { User } from "@/src/types/auth";
+import { User } from "@/src/types/auth/auth";
 import { useUserStore } from "@/src/store/userStore";
 import {GetMyDetailsApi} from "@/src/api/user/user";
 

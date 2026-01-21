@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { User } from "@/src/types/auth";
+import { User } from "@/src/types/auth/auth";
 import {USER_STORAGE_KEY} from "@/src/store/authStore";
 
 export async function getAccessToken(): Promise<string | null> {

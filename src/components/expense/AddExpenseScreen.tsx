@@ -5,15 +5,15 @@ import ExpenseDetailsSection from "@/src/components/expense/ExpenseDetailsSectio
 import ExpenseComponentsSection from "@/src/components/expense/ExpenseComponentSection";
 import ExpenseDistributionSection from "@/src/components/expense/ExpenseDistributionSection";
 import CustomText from "@/src/components/common/CustomText";
-import { useI18n } from "@/src/context/i18nContext";
-import { useTheme } from "@/src/context/themeContext";
-import { AddExpenseForm } from "@/src/interfaces/expense";
+import { useI18nStore } from "@/src/store/useI18nStore";
+import { useThemeStore } from "@/src/store/useThemeStore";
+import {AddExpenseForm, ServiceComponentDto} from "@/src/interfaces/expense";
 import {ExpenseComponentType, CurrencyType} from "@/src/constants/expense";
 import { useTranslation } from "react-i18next";
 
 const ExpenseForm = () => {
     const { t } = useTranslation();
-    const { theme } = useTheme();
+    const { theme } = useThemeStore();
     const isDark = theme === "dark";
 
     const [form, setForm] = useState<AddExpenseForm>({

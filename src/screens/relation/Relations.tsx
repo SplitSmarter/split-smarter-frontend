@@ -11,7 +11,7 @@ import { getRelationsApi } from "@/src/api/relations/relation";
 import { RelationItem } from "@/src/interfaces/relation";
 import CustomText from "@/src/components/common/CustomText";
 import CustomAvatar from "@/src/components/common/CustomAvatar";
-import {ImageHostType} from "@/src/constants/images";
+import {ImageHostType} from "@/src/constants/images_old";
 
 const RelationsScreen = () => {
     const router = useRouter();

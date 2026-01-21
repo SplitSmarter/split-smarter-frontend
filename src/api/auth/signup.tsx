@@ -1,5 +1,5 @@
 import axiosAuthInstance from "@/src/api/axiosAuthInstance";
-import {CredentialSignupForm, GoogleSignupForm} from "@/src/types/auth";
+import {CredentialSignupForm, GoogleSignupForm} from "@/src/types/auth/auth";
 import * as Keychain from 'react-native-keychain';
 
 export const CredentialSignupApi = async (data: CredentialSignupForm) => {

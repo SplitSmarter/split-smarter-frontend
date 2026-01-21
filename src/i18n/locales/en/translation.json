@@ -1,39 +1,63 @@
 {
-  "greeting": "Hello",
-  "welcome": "Welcome to the app",
-  "expense": {
-    "add": {
-      "details": "Details",
-      "distribution": "Distribution",
-      "components": "Components",
-      "hideAdvanced": "Hide Advanced",
-      "showAdvanced": "Show Advanced",
-      "input": {
-        "description": "Enter description",
-        "group": "Enter group",
-        "title": "Enter title"
-      }
-    }
-  },
-  "api": {
-    "auth": {
-      "messages": {
-        "username_taken": "Username is taken",
-        "AlreadyRegistered": "You are already registered",
-        "": ""
-      }
+  "language": {
+    "name": {
+      "self": "English",
+      "english": "English"
     }
   },
   "onboarding": {
-    "dreamLives": "Dream Lives",
-    "learnLanguages": "Learn Languages",
-    "achieveGoals": "Achieve Your Goals"
+    "images": {
+      "step1": {
+        "title": "Social & Collaborative",
+        "description": "Helps track your expense across friends or strangers"
+      },
+      "step2": {
+        "title": "Real-time Tracking",
+        "description": "Stay updated with your group spending instantly"
+      },
+      "step3": {
+        "title": "Easy Settlement",
+        "description": "Settle up with just a few taps and clear your debts"
+      }
+    }
   },
   "common": {
-    "getStarted": "Get Started",
-    "next": "Next",
-    "alreadyHaveAccount": "I already have an account",
-    "agreeTerms": "By continuing, you agree to our",
-    "termsConditions": "Terms & Conditions"
+    "language": {
+      "select": "Select Language",
+      "description": "This is English Language"
+    },
+    "auth": {
+      "login": "Login",
+      "signup": "Signup",
+      "loginGoogle": "Login with Google",
+      "emailLabel": "E-mail",
+      "emailPlaceholder": "Enter your email",
+      "loginIdentifierLabel": "E-mail or Username",
+      "loginIdentifierPlaceholder": "Enter your email or username...",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Enter password...",
+      "forgotPassword": "Forgot Password?",
+      "verifyEmail": "Verify Email",
+      "continueGuest": "Continue as Guest",
+      "alreadyMember": "if already a member login below",
+      "newUserInfo": "for new user signup below",
+      "verifyAccount": "Verify Account",
+      "otpSentMessage": "A {{count}} digit code has been sent to {{email}}. Enter the code to verify your account.",
+      "verifyOtp": "Verify Code",
+      "didNotReceiveCode": "Didn't Receive Code?",
+      "resendCode": "Resend Code",
+      "resendTimer": "Resend Code in 0:{{seconds}}",
+      "otpResent": "OTP has been resent successfully"
+    },
+    "error": {
+      "unknown_error": "An unknown error occurred",
+      "field": {
+        "email": {
+          "empty": "Email is empty"
+        }
+      }
+    },
+    "letsGo": "Lets go!",
+    "continue": "Continue"
   }
 }

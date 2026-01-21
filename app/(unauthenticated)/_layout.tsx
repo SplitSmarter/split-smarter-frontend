@@ -6,5 +6,9 @@ export default function UnauthenticatedLayout() {
     if (isLoading) return null;
     if (isAuthenticated) return <Redirect href="/(authenticated)" />;
 
-    return <Stack />;
+    return <Stack
+        screenOptions={{
+            headerShown: false, // This hides the header for ALL screens in this stack
+        }}
+    />;
 }

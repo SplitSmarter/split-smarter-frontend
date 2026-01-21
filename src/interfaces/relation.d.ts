@@ -1,5 +1,5 @@
 import { RelationWithUserType } from "@/src/constants/expense";
-import {ImageHostType} from "@/src/constants/images";
+import {ImageHostType} from "@/src/constants/images_old";
 
 export interface RelationUser {
     id: number;

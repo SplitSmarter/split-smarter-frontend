@@ -2,13 +2,13 @@ import React, { useState } from "react";
 import { View, Image, TouchableOpacity, ActivityIndicator } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useTranslation } from "react-i18next";
-import { useTheme } from "@/src/context/themeContext";
+import { useThemeStore } from "@/src/store/useThemeStore";
 import CustomText from "@/src/components/common/CustomText";
 import { Ionicons } from "@expo/vector-icons";
 
 export const ImageUploadScreen = () => {
     const { t } = useTranslation();
-    const { theme } = useTheme();
+    const { theme } = useThemeStore();
     const isDark = theme === "dark";
 
     const [image, setImage] = useState<string | null>(null);

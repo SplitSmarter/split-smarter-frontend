@@ -57,4 +57,4 @@ export const I18nProvider: React.FC<Props> = ({ children }) => {
     );
 };
 
-export const useI18n = () => useContext(I18nContext);
+export const useI18nStore = () => useContext(I18nContext);

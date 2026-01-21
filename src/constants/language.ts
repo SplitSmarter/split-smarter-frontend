@@ -4,12 +4,6 @@ import translationHi from "@/src/i18n/locales/hi/translation.json";
 import translationG from "@/src/i18n/locales/g/translation.json";
 import {LanguageTag, FontConfig} from "@/src/types/language";
 
-export const languages = {
-    "English": "en",
-    "Hindi": "hi",
-    "French": "fr",
-    "Germany": "g",
-}
 
 export const resources = {
     "en": { translation: translationEn },
@@ -75,4 +69,15 @@ export const fontMap: Record<LanguageTag | "default", FontConfig> = {
 };
 
 
+export interface LanguageInfo {
+    tag: LanguageTag;
+    countryName: string;
+    countryCode: string; // Used to match: images.flags[countryCode]
+}
 
+export const languages: Record<string, LanguageInfo> = {
+    "English": { tag: "en", countryName: "United States", countryCode: "US" },
+    "Hindi": { tag: "hi", countryName: "India", countryCode: "IN" },
+    "French": { tag: "fr", countryName: "France", countryCode: "FR" },
+    "Germany": { tag: "g", countryName: "Germany", countryCode: "DE" },
+};

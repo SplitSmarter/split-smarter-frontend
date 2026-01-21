@@ -8,7 +8,7 @@ import {
     Text,
     Image as RNImage,
 } from "react-native";
-import { ImageHostType } from "@/src/constants/images";
+import { ImageHostType } from "@/src/constants/images_old";
 import { localAvatars } from "@/src/constants/avatar";
 
 type CustomAvatarProps = {

@@ -1,5 +1,5 @@
 import axiosAuthInstance from "@/src/api/axiosAuthInstance";
-import {CredentialsLoginForm, GoogleLoginForm} from "@/src/types/auth";
+import {CredentialsLoginForm, GoogleLoginForm} from "@/src/types/auth/auth";
 
 export const CredentialLoginApi = async (data: CredentialsLoginForm) => {
     try {
