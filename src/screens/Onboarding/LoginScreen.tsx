@@ -1,6 +1,5 @@
-// /src/screens/Login.tsx
-import React, { useState } from 'react';
-import { View, Pressable, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import React, {useRef, useState} from 'react';
+import {View, Pressable, KeyboardAvoidingView, ScrollView, TextInput} from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
 import { Iconify } from "react-native-iconify";
@@ -12,6 +11,11 @@ import {AppInput} from "@/src/components/common/AppInput";
 import {COLORS} from "@/src/constants/colors";
 import {useThemeStore} from "@/src/store/useThemeStore";
 import {useDeviceStore} from "@/src/store/deviceStore";
+import {useAuthStore} from "@/src/store/authStore";
+import {useAlert} from "@/src/context/alertContext";
+import {CredentialLoginApi} from "@/src/api/auth/login";
+import {validateIdentifier, validatePassword} from "@/src/utils/validation";
+import {useUserStore} from "@/src/store/userStore";
 
 const LoginScreen = () => {
     // Pass instance explicitly to fix the warning you had
@@ -23,9 +27,67 @@ const LoginScreen = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+    const passwordRef = useRef<TextInput>(null);
+    const { login: authLogin } = useAuthStore();
+    const { showAlert } = useAlert();
+    const [loading, setLoading] = useState(false);
+    const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
-    const handleLogin = () => {
-        console.log("Logging in with:", email);
+    const handleLogin = async () => {
+        if(loading) return;
+        const emailValidation = validateIdentifier(email);
+        const passwordValidation = validatePassword(password);
+
+        setErrors({
+            email: emailValidation.isValid ? undefined : t(emailValidation.error!),
+            password: passwordValidation.isValid ? undefined : t(passwordValidation.error!),
+        });
+
+        if (!emailValidation.isValid || !passwordValidation.isValid) {
+            return; // Stop if client-side validation fails
+        }
+
+        setLoading(true);
+        try {
+            const res = await CredentialLoginApi({
+                emailOrUsername: email.trim(),
+                password: password,
+            });
+
+            // Check if the response contains the expected meta-data (token)
+            if (res && res.meta?.access_token) {
+                const { profile, access_token, username } = res.meta;
+
+                // 1. Log in to AuthStore (Persists the token)
+                await authLogin({
+                    access_token: access_token,
+                    username: username,
+                    email: profile.email
+                });
+                useUserStore.getState().setUser({
+                    name: profile.name,
+                    email: profile.email,
+                    phone_number: profile.phone_number,
+                    city: profile.city,
+                    region: profile.region,
+                    country: profile.country,
+                    currency: profile.currency as any,
+                    avatar_id: profile.avatar?.asset_id || "",
+                    avatar_url: profile.avatar?.asset_url,
+                    language: profile.language,
+                    registered_on: profile.registered_on,
+                });
+
+                showAlert(res?.message || t('common.auth.loginSuccess'), "success");
+                router.replace("/(authenticated)/(tabs)");
+            } else {
+                showAlert(res?.message || t('common.error.unknown_error'), "error");
+            }
+        } catch (error: any) {
+            showAlert(error?.message || t('common.error.loginFailed'), "error");
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleBack = () => {
@@ -56,21 +118,38 @@ const LoginScreen = () => {
                     {/* 1. Form Inputs Section */}
                     <View className="gap-y-6">
                         <AppInput
-                            label={t('common.auth.emailLabel')}
-                            placeholder={t('common.auth.emailPlaceholder')}
+                            label={t('common.auth.loginIdentifierLabel')}
+                            placeholder={t('common.auth.loginIdentifierPlaceholder')}
+                            keyboardType="email-address" // Suggests email keyboard
+                            returnKeyType="next"
+                            onSubmitEditing={() => passwordRef.current?.focus()}
+                            blurOnSubmit={false}
                             value={email}
-                            onChangeText={setEmail}
+                            error={errors.email}
                             autoCapitalize="none"
+                            onChangeText={(text) => {
+                                setEmail(text);
+                                if (errors.email) setErrors(prev => ({ ...prev, email: undefined }));
+                            }}
+                            renderLeftIcon={(color) => <Iconify icon="heroicons:user" size={20} color={color} />}
                         />
 
                         <View className="gap-y-2">
                             <AppInput
+                                ref={passwordRef}
                                 label={t('common.auth.passwordLabel')}
                                 required
                                 placeholder={t('common.auth.passwordPlaceholder')}
                                 value={password}
-                                onChangeText={setPassword}
+                                returnKeyType="go"           // Shows "Go" (or "Done")
+                                onSubmitEditing={handleLogin}
+                                onChangeText={(text) => {
+                                    setPassword(text);
+                                    if (errors.password) setErrors(prev => ({ ...prev, password: undefined }));
+                                }}
+                                error={errors.password}
                                 secureTextEntry={!isPasswordVisible}
+                                renderLeftIcon={(color) => <Iconify icon="heroicons:lock-closed" size={20} color={color} />}
                                 renderRightIcon={(color) => (
                                     <Pressable onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
                                         {isPasswordVisible ? (
@@ -98,6 +177,8 @@ const LoginScreen = () => {
                             size="lg"
                             className="w-full"
                             hasShadow={true}
+                            loading={loading}
+                            loadingText={t('common.auth.loggingIn', 'Logging in...')}
                         >
                             {t('common.letsGo', 'Lets go!')}
                         </AppButton>

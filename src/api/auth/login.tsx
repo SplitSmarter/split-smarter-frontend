@@ -1,82 +1,53 @@
 import axiosAuthInstance from "@/src/api/axiosAuthInstance";
-import {CredentialsLoginForm, GoogleLoginForm} from "@/src/types/auth/auth";
+import {CredentialsLoginRequest, CredentialsLoginResponse, GoogleLoginRequest} from "@/src/api/dto/auth/login";
+import {SuccessResponse} from "@/src/api/dto/ApiResponse";
+import {handleApiError} from "@/src/api/utils/mapper";
 
-export const CredentialLoginApi = async (data: CredentialsLoginForm) => {
+export const CredentialLoginApi = async (data: CredentialsLoginRequest) => {
     try {
-        const res = await axiosAuthInstance.post("/login/credentials", data);
-        if (res.status === 200) {
+        const res = await axiosAuthInstance.post<SuccessResponse<CredentialsLoginResponse>>(
+            "/login/credentials",
+            data
+        );
+
+        if (res.data && res.data.success) {
             const rawHeader = res.headers.authorization || "";
             const access_token = rawHeader.replace(/^Bearer\s+/i, "");
-            return {message: "Logged in successfully",
-                    tag: "UserLoggedIn",
-                    username: res.data.username,
+
+            // This is the LoginResponse object from your Java code
+            const loginData = res.data.data;
+
+            return {
+                message: res.data.message,
+                meta: {
                     access_token: access_token,
-                    email: res.data.email};
-        }
-        return Promise.reject({message: "Unexcepted error", status: res.status, tag: "Unexpected"});
-    } catch (error: any) {
-        if (error.response) {
-            const {status, data} = error.response;
-            if (status === 204 && data?.tag === "UserDeleted") {
-                return Promise.reject({message: "User deleted", tag: "UserDeleted"});
-            } else if (status === 403) {
-                if (data?.field === "InvalidField" && data?.field === "password") {
-                    return Promise.reject({
-                        message: "Password did not match",
-                        tag: "InvalidField",
-                        field: "password"
-                    });
-                } else if (data?.tag === "UserBlocked") {
-                    return Promise.reject({message: "User is blocked", tag: "UserBlocked"});
+                    username: loginData.username,
+                    profile: loginData.profile, // RemoteUserProfileResponse
                 }
-            } else if (status === 404 && data?.tag === "InvalidField" && data?.field === "emailOrUsername") {
-                return Promise.reject({
-                    message: "Invalid username or email",
-                    tag: "InvalidField",
-                    field: "emailOrUsername"
-                });
-            } else if (status === 422) {
-                return Promise.reject({message: data?.message || "Invalid input", tag: "InvalidField"});
-            }
-            return Promise.reject({message: data?.message || "Something went wrong", status, tag: "Unexpected"});
+            };
         }
-        return Promise.reject({message: error.message || "Network error", "tag": "NetworkError"});
+        throw new Error("Invalid Schema");
+    } catch (error: any) {
+        return handleApiError(error);
     }
 };
-
-export const GoogleLoginApi = async (data: GoogleLoginForm) => {
+export const GoogleLoginApi = async (data: GoogleLoginRequest) => {
     try {
-        const res = await axiosAuthInstance.post("/login/google", data);
-        if (res.status === 200) {
-            return {message: "Logged in successfully", tag: "UserLoggedIn"};
-        }
-        return Promise.reject({message: "Unexcepted error", status: res.status, tag: "Unexpected"});
-    } catch (error: any) {
-        if (error.response) {
-            const {status, data} = error.response;
-            if (status === 204 && data?.tag === "UserDeleted") {
-                return Promise.reject({message: "User deleted", tag: "UserDeleted"});
-            } else if (status === 403) {
-                if (data?.field === "InvalidField" && data?.field === "idToken") {
-                    return Promise.reject({
-                        message: "Google login is invalid",
-                        tag: "InvalidField",
-                        field: "idToken"
-                    });
-                } else if (data?.tag === "UserBlocked") {
-                    return Promise.reject({
-                        message: "User is blocked", tag: "UserBlocked"
-                    });
+        const res = await axiosAuthInstance.post<SuccessResponse>("/login/google", data);
+
+        if (res.data && res.data.success) {
+            const rawHeader = res.headers.authorization || "";
+            const access_token = rawHeader.replace(/^Bearer\s+/i, "");
+            return {
+                message: res.data.message,
+                tag: (res.data.data as any)?.tag || "GoogleLoggedIn",
+                meta: {
+                    access_token: access_token,
                 }
-            } else if (status === 404 && data?.tag === "UserNotFound") {
-                return Promise.reject({
-                    message: "User does not found", tag: "UserNotFound",
-                });
-            } else if (status === 422) {
-                return Promise.reject({message: data?.message || "Invalid input", tag: "InvalidField"});
-            }
-            return Promise.reject({message: data?.message || "Something went wrong", status, tag: "Unexpected"});
+            };
         }
-        return Promise.reject({message: error.message || "Network error", "tag": "NetworkError"});
+        throw new Error("Invalid Schema");
+    } catch (error: any) {
+        return handleApiError(error);
     }
 };

@@ -7,7 +7,6 @@ import {GetMyDetailsApi} from "@/src/api/user/user";
 
 // Your user type
 export interface UserDetails {
-    id: number;
     name: string;
     email?: string;
     phone_number?: string;
@@ -15,11 +14,8 @@ export interface UserDetails {
     region?: string;
     country: string;
     currency: CurrencyType;
-    avatar_name: string;
-    avatar_title: string;
+    avatar_id: string;
     avatar_url?: string;
-    avatar_host?: string;
-    avatar_host_type: ImageHostType;
     language: string;
     registered_on: string;
 }

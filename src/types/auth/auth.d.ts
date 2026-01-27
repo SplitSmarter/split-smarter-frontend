@@ -40,7 +40,7 @@ export interface ResendOtpForm {
 
 export type User = {
     username: string;
-    email: string;
+    email: string | undefined;
     access_token: string;
 };
 

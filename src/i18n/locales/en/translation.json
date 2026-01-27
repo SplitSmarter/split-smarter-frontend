@@ -22,6 +22,26 @@
     }
   },
   "common": {
+    "currencies": {
+      "USD": {
+        "name": "US Dollar"
+      },
+      "INR": {
+        "name": "Indian Rupee"
+      },
+      "EUR": {
+        "name": "Euro"
+      },
+      "GBP": {
+        "name": "British Pound"
+      },
+      "JPY": {
+        "name": "Japanese Yen"
+      },
+      "AED": {
+        "name": "UAE Dirham"
+      }
+    },
     "language": {
       "select": "Select Language",
       "description": "This is English Language"
@@ -51,6 +71,7 @@
     },
     "error": {
       "unknown_error": "An unknown error occurred",
+      "fillAllFields":"Please fill all the fields",
       "field": {
         "email": {
           "empty": "Email is empty"

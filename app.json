@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "split-smarter",
-    "slug": "split-smarter",
+    "slug": "my-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/logo.png",
@@ -19,7 +19,10 @@
         "backgroundColor": "#ffffff"
       },
       "minSdkVersion": 26,
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -72,6 +75,7 @@
       "eas": {
         "projectId": "c76e9509-6486-420a-b02a-fb68cdffeb86"
       }
-    }
+    },
+    "owner": "xertz"
   }
 }

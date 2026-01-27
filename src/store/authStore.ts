@@ -3,7 +3,6 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { User } from "@/src/types/auth/auth";
 import { useUserStore } from "@/src/store/userStore";
-import {GetMyDetailsApi} from "@/src/api/user/user";
 
 export const USER_STORAGE_KEY = "@auth_user";
 
@@ -28,12 +27,6 @@ export const useAuthStore = create<AuthState>()(
 
             login: async (user: User) => {
                 set({ user, isAuthenticated: true, isLoading: false });
-                try {
-                    const data = await GetMyDetailsApi();
-                    useUserStore.getState().setUser(data);
-                } catch (err) {
-                    console.error("Failed to fetch profile on login:", err);
-                }
             },
 
             logout: async () => {

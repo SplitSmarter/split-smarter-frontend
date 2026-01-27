@@ -11,7 +11,12 @@ import {useDeviceStore} from '@/src/store/deviceStore';
 import {ScreenWrapper} from "@/src/components/common/ScreenWrapper";
 import {useRouter} from "expo-router";
 import {useThemeStore} from "@/src/store/useThemeStore";
+import {useAlert} from "@/src/context/alertContext";
+import {GoogleLoginApi} from "@/src/api/auth/login";
+import {ErrorCode} from "@/src/api/dto/defaults/gateway/ErrorCode";
 import {COLORS} from "@/src/constants/colors";
+import { googleSignIn } from "@/src/utils/googleAuth";
+import {GoogleSignin} from "@react-native-google-signin/google-signin";
 
 const ONBOARDING_DATA = [
     {
@@ -34,12 +39,13 @@ const ONBOARDING_DATA = [
     },
 ];
 
-const Onboarding = () => {
+const OnboardingScreen = () => {
     const [isLangVisible, setIsLangVisible] = useState(false);
     const {t} = useTranslation();
     const router = useRouter();
+    const {showAlert} = useAlert();
     const [activeIndex, setActiveIndex] = useState(0);
-    const { theme, toggleTheme } = useThemeStore();
+    const {theme, toggleTheme} = useThemeStore();
     const isDark = theme === 'dark';
     const {screen, isTablet} = useDeviceStore();
     const {width, height} = screen;
@@ -48,7 +54,9 @@ const Onboarding = () => {
 
     React.useEffect(() => {
         isMounted.current = true;
-        return () => { isMounted.current = false; };
+        return () => {
+            isMounted.current = false;
+        };
     }, []);
 
     const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -62,9 +70,44 @@ const Onboarding = () => {
         }
     };
 
-    const handleGoogleLogin = () => {
-        console.log("Google Login Placeholder triggered");
-        // Logic for Google Sign-In will go here later
+    const handleGoogleLogin = async () => {
+        try {
+            // 1. Trigger Google Native UI
+            const googleRes = await googleSignIn();
+            const idToken = googleRes.userInfo.idToken;
+
+            if (!idToken) {
+                showAlert("Google sign-in failed: No ID Token found", "error");
+                return;
+            }
+
+            // 2. Call Backend API
+            const apiRes = await GoogleLoginApi({idToken});
+
+            showAlert(t('common.auth.loginSuccess'), "success");
+
+            router.replace("/(authenticated)/(tabs)");
+
+        } catch (error: any) {
+            const errorTag = error?.tag;
+
+            // 3. Handle specific New User case
+            if (errorTag === ErrorCode.RESOURCE_USER_GOOGLE_UNLINKED) {
+                const currentUser = await GoogleSignin.getCurrentUser();
+
+                router.push({
+                    pathname: "/(unauthenticated)/signup",
+                    params: {
+                        name: currentUser?.user.name || "",
+                        email: currentUser?.user.email || "",
+                        googleToken: currentUser?.idToken || "",
+                        auth_type: "google"
+                    }
+                });
+            } else {
+                showAlert(error?.message || "Login Failed", "error");
+            }
+        }
     };
 
     const renderItem = ({item}: { item: typeof ONBOARDING_DATA[0] }) => (
@@ -211,4 +254,4 @@ const Onboarding = () => {
     );
 };
 
-export default Onboarding;
+export default OnboardingScreen;

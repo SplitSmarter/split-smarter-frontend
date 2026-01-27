@@ -2,7 +2,7 @@ import axiosUserServiceInstance from "@/src/api/axiosUserServiceInstance";
 
 export const GetMyDetailsApi = async () => {
     try {
-        const res = await axiosUserServiceInstance.get("/user/me");
+        const res = await axiosUserServiceInstance.get("/user/");
 
         if (res.status === 200 && res.data.success) {
             return res.data.data.user;

@@ -1,49 +1,57 @@
 // /src/screens/SendOtp.tsx
-import React, { useState } from 'react';
-import { View, Pressable, KeyboardAvoidingView, ScrollView } from 'react-native';
-import { useTranslation } from 'react-i18next';
-import { useRouter } from 'expo-router';
-import { Iconify } from "react-native-iconify";
-import { AppText } from '@/src/components/common/AppText';
-import { AppButton } from '@/src/components/common/AppButton';
-import { ScreenWrapper } from "@/src/components/common/ScreenWrapper";
-import { AppInput } from "@/src/components/common/AppInput";
-import { i18n as i18nInstance } from "@/src/i18n/index";
-import { useThemeStore } from "@/src/store/useThemeStore";
-import { COLORS } from "@/src/constants/colors";
-import { OtpSendApi } from "@/src/api/auth/otp";
-import { useAlert } from "@/src/context/alertContext";
+import React, {useRef, useState} from 'react';
+import {View, Pressable, KeyboardAvoidingView, ScrollView, TextInput} from 'react-native';
+import {useTranslation} from 'react-i18next';
+import {useRouter} from 'expo-router';
+import {Iconify} from "react-native-iconify";
+import {AppText} from '@/src/components/common/AppText';
+import {AppButton} from '@/src/components/common/AppButton';
+import {ScreenWrapper} from "@/src/components/common/ScreenWrapper";
+import {AppInput} from "@/src/components/common/AppInput";
+import {i18n as i18nInstance} from "@/src/i18n/index";
+import {useThemeStore} from "@/src/store/useThemeStore";
+import {COLORS} from "@/src/constants/colors";
+import {OtpSendApi} from "@/src/api/auth/otp";
+import {useAlert} from "@/src/context/alertContext";
 import {ErrorCode} from "@/src/api/dto/defaults/gateway/ErrorCode";
 import {useDeviceStore} from "@/src/store/deviceStore";
+import {validateEmail, validateIdentifier} from "@/src/utils/validation";
 
 const SendOtpScreen = () => {
-    const { t } = useTranslation('translation', { i18n: i18nInstance });
-    const { showAlert } = useAlert();
+    const {t} = useTranslation('translation', {i18n: i18nInstance});
+    const {showAlert} = useAlert();
     const router = useRouter();
-    const { theme } = useThemeStore();
+    const {theme} = useThemeStore();
     const platform = useDeviceStore((state) => state.platform);
     const isDark = theme === 'dark';
 
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState("");
+    const emailRef = useRef<TextInput>(null);
+    const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
     const handleBack = () => router.back();
 
     const handleSendCode = async () => {
-        if (!email.trim()) {
-            showAlert(t('common.error.field.email.empty'), "error");
+        if(loading) return;
+        const emailValidation = validateEmail(email);
+        setErrors({
+            email: emailValidation.isValid ? undefined : t(emailValidation.error!),
+        });
+
+        if (!emailValidation.isValid) {
             return;
         }
 
         setLoading(true);
         try {
-            const res = await OtpSendApi({ email: email.trim() });
+            const res = await OtpSendApi({email: email.trim()});
 
             if (res) {
                 showAlert(t(res.message), "success");
                 router.push({
                     pathname: "/(unauthenticated)/verifyOtp",
-                    params: { email: email.trim() },
+                    params: {email: email.trim()},
                 });
             }
         } catch (err: any) {
@@ -54,7 +62,7 @@ const SendOtpScreen = () => {
                 case ErrorCode.RESOURCE_USER_CONFLICT:
                     // User already exists in DB
                     showAlert(t(errorMessage || "error"), "error");
-                    router.push({ pathname: "/(unauthenticated)/login" });
+                    router.push({pathname: "/(unauthenticated)/login"});
                     break;
                 case ErrorCode.FIELD_OTP_VERIFIED:
                     // OTP already verified, but profile not finished
@@ -93,8 +101,8 @@ const SendOtpScreen = () => {
         router.push({
             pathname: "/(unauthenticated)/signup",
             params: {
-                email: "",
-                user_type: "GUEST",
+                email: undefined,
+                auth_type: 'credentials'
             }
         });
     };
@@ -106,7 +114,7 @@ const SendOtpScreen = () => {
                 className="flex-1"
             >
                 <ScrollView
-                    contentContainerStyle={{ flexGrow: 1 }}
+                    contentContainerStyle={{flexGrow: 1}}
                     showsVerticalScrollIndicator={false}
                 >
                     {/* Header */}
@@ -134,18 +142,28 @@ const SendOtpScreen = () => {
                         {/* Input Section */}
                         <View className="gap-y-4">
                             <AppInput
-                                label={t('common.auth.emailLabel', 'E-mail')}
+                                ref={emailRef}
+                                label={t('common.auth.emailLabel')}
                                 required
-                                placeholder={t('common.auth.emailPlaceholder', 'Enter your email')}
+                                placeholder={t('common.auth.emailPlaceholder')}
                                 value={email}
-                                onChangeText={setEmail}
+                                returnKeyType="go"
+                                onSubmitEditing={handleSendCode}
+                                blurOnSubmit={false}
+                                onChangeText={(text) => {
+                                    setEmail(text);
+                                    if (errors.email) setErrors(prev => ({...prev, email: undefined}));
+                                }}
                                 keyboardType="email-address"
+                                error={errors.email}
                                 autoCapitalize="none"
+                                renderLeftIcon={(color) => <Iconify icon="heroicons:lock-closed" size={20}
+                                                                    color={color}/>}
                             />
                         </View>
                     </View>
 
-                    <View className="flex-1" />
+                    <View className="flex-1"/>
 
                     {/* Actions Section */}
                     <View className="gap-y-6 pb-10">
@@ -180,7 +198,7 @@ const SendOtpScreen = () => {
                                     hasBorder={true}
                                     className="flex-1 border-bg-primary-darker"
                                     renderIcon={(color) => (
-                                        <Iconify icon="logos:google-icon" size={18} />
+                                        <Iconify icon="logos:google-icon" size={18}/>
                                     )}
                                 >
                                     Google

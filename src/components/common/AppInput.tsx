@@ -1,5 +1,5 @@
 // /src/components/common/AppInput.tsx
-import React, { useState } from 'react';
+import React, {forwardRef, useState} from 'react';
 import { View, TextInput, TextInputProps } from 'react-native';
 import { AppText } from "@/src/components/common/AppText";
 import { useThemeStore } from "@/src/store/useThemeStore";
@@ -13,18 +13,19 @@ interface AppInputProps extends TextInputProps {
     renderRightIcon?: (color: string) => React.ReactNode;
 }
 
-export const AppInput = ({
-                             label,
-                             error,
-                             required,
-                             renderLeftIcon, // Destructure new prop
-                             renderRightIcon,
-                             onFocus,
-                             onBlur,
-                             ...props
-                         }: AppInputProps) => {
+export const AppInput = forwardRef<TextInput, AppInputProps>((props, ref) => {
+    const {
+        label,
+        error,
+        required,
+        renderLeftIcon,
+        renderRightIcon,
+        onFocus,
+        onBlur,
+        ...rest // Use 'rest' to ensure all TextInputProps are passed
+    } = props;
     const [isFocused, setIsFocused] = useState(false);
-    const { theme } = useThemeStore();
+    const {theme} = useThemeStore();
     const isDark = theme === 'dark';
 
     const getBorderClass = () => {
@@ -36,7 +37,7 @@ export const AppInput = ({
     const iconColor = error
         ? '#EF4444'
         : isFocused
-            ? 'bg-secondary'
+            ? isDark ? COLORS.icon_secondary_dark : COLORS.icon_secondary_light
             : isDark ? COLORS.icon_primary_dark : COLORS.icon_primary_light;
 
     return (
@@ -63,6 +64,7 @@ export const AppInput = ({
                 )}
 
                 <TextInput
+                    ref={ref}
                     className={`flex-1 text-base h-full ${isDark ? 'text-white' : 'text-gray-900'}`}
                     placeholderTextColor={isDark ? '#71717a' : '#a1a1aa'} // Updated to a hex string for better reliability
                     onFocus={(e) => {
@@ -91,4 +93,6 @@ export const AppInput = ({
             )}
         </View>
     );
-};
+});
+
+AppInput.displayName = 'AppInput';

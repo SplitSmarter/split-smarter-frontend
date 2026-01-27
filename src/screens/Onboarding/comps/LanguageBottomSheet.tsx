@@ -108,7 +108,7 @@ export const LanguageBottomSheet = React.memo(({ isVisible, onClose }: LanguageB
             backgroundStyle={{ backgroundColor: isDark ? '#121212' : '#FFFFFF' }}
             handleIndicatorStyle={{ backgroundColor: isDark ? '#333' : '#E5E5E5', width: 40 }}
         >
-            <View style={{ flex: 1 }} className="px-6 pt-2 pb-10">
+            <View className="flex-1 px-6 pt-2 pb-10">
                 <View className="relative items-center mb-6">
                     <Pressable
                         onPress={onClose}

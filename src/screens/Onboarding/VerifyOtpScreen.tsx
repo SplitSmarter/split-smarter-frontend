@@ -1,30 +1,29 @@
-import React, { useState, useEffect } from 'react';
-import { View, Pressable, KeyboardAvoidingView, ScrollView, TextInput } from 'react-native';
-import { useTranslation } from 'react-i18next';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Iconify } from "react-native-iconify";
-import * as Haptics from 'expo-haptics';
+import React, {useState, useEffect} from 'react';
+import {View, Pressable, KeyboardAvoidingView, ScrollView, TextInput} from 'react-native';
+import {useTranslation} from 'react-i18next';
+import {useRouter, useLocalSearchParams} from 'expo-router';
+import {Iconify} from "react-native-iconify";
 
-import { AppText } from '@/src/components/common/AppText';
-import { AppButton } from '@/src/components/common/AppButton';
-import { ScreenWrapper } from "@/src/components/common/ScreenWrapper";
-import { i18n as i18nInstance } from "@/src/i18n/index";
-import { useThemeStore } from "@/src/store/useThemeStore";
-import { COLORS } from "@/src/constants/colors";
-import { useAlert } from "@/src/context/alertContext";
-import { OtpVerifyApi, OtpSendApi } from "@/src/api/auth/otp";
-import { ErrorCode } from "@/src/api/dto/defaults/gateway/ErrorCode";
+import {AppText} from '@/src/components/common/AppText';
+import {AppButton} from '@/src/components/common/AppButton';
+import {ScreenWrapper} from "@/src/components/common/ScreenWrapper";
+import {i18n as i18nInstance} from "@/src/i18n/index";
+import {useThemeStore} from "@/src/store/useThemeStore";
+import {COLORS} from "@/src/constants/colors";
+import {useAlert} from "@/src/context/alertContext";
+import {OtpVerifyApi, OtpSendApi, OtpResendApi} from "@/src/api/auth/otp";
+import {ErrorCode} from "@/src/api/dto/defaults/gateway/ErrorCode";
 import {useDeviceStore} from "@/src/store/deviceStore";
 
 const OTP_COUNT = 6;
 
 const VerifyOtpScreen = () => {
-    const { t } = useTranslation('translation', { i18n: i18nInstance });
-    const { showAlert } = useAlert();
+    const {t} = useTranslation('translation', {i18n: i18nInstance});
+    const {showAlert} = useAlert();
     const router = useRouter();
-    const { email } = useLocalSearchParams<{ email: string }>();
+    const {email} = useLocalSearchParams<{ email: string }>();
     const platform = useDeviceStore((state) => state.platform);
-    const { theme } = useThemeStore();
+    const {theme} = useThemeStore();
     const isDark = theme === 'dark';
 
     const [loading, setLoading] = useState(false);
@@ -34,7 +33,7 @@ const VerifyOtpScreen = () => {
 
     // Timer logic for Resend Button
     useEffect(() => {
-        let interval: NodeJS.Timeout;
+        let interval: any;
         if (timer > 0) {
             interval = setInterval(() => setTimer((prev) => prev - 1), 1000);
         } else {
@@ -46,6 +45,8 @@ const VerifyOtpScreen = () => {
     const handleBack = () => router.back();
 
     const handleVerify = async () => {
+        if(loading) return;
+
         if (otpCode.length !== OTP_COUNT) {
             showAlert(t('common.auth.invalidOtp'), "error");
             return;
@@ -53,10 +54,10 @@ const VerifyOtpScreen = () => {
 
         setLoading(true);
         try {
-            await OtpVerifyApi({ email: email!, otpCode });
+            await OtpVerifyApi({email: email!, otpCode});
             router.push({
                 pathname: "/(unauthenticated)/signup",
-                params: { email, user_type: "USER" }
+                params: {email, user_type: "USER"}
             });
         } catch (err: any) {
             setOtpCode("");
@@ -70,7 +71,7 @@ const VerifyOtpScreen = () => {
         setOtpCode('');
         setLoading(true);
         try {
-            await OtpSendApi({ email: email as string });
+            await OtpResendApi({email: email as string});
             setTimer(59);
             setIsResendDisabled(true);
             showAlert(t('common.auth.otpResent'), "success");
@@ -105,17 +106,17 @@ const VerifyOtpScreen = () => {
                     </View>
                 </View>
 
-                <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="px-6" showsVerticalScrollIndicator={false}>
+                <ScrollView contentContainerStyle={{flexGrow: 1}} className="px-6" showsVerticalScrollIndicator={false}>
                     {/* Message Section */}
                     <View className="items-center mt-4 mb-8">
                         <AppText variant="body-small" className="text-center text-text-primary-lighter opacity-60">
-                            {t('common.auth.otpSentMessage', { count: OTP_COUNT, email: email })}
+                            {t('common.auth.otpSentMessage', {count: OTP_COUNT, email: email})}
                         </AppText>
                     </View>
 
                     {/* OTP Input Container */}
                     <View className="flex-row justify-center gap-x-2 mb-10">
-                        {Array.from({ length: OTP_COUNT }).map((_, index) => (
+                        {Array.from({length: OTP_COUNT}).map((_, index) => (
                             <View
                                 key={index}
                                 className="w-12 h-16 rounded-2xl items-center justify-center bg-bg-primary-darker"
@@ -130,7 +131,7 @@ const VerifyOtpScreen = () => {
                             onChangeText={(val) => val.length <= OTP_COUNT && setOtpCode(val)}
                             keyboardType="number-pad"
                             maxLength={OTP_COUNT}
-                            style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%' }}
+                            style={{position: 'absolute', opacity: 0, width: '100%', height: '100%'}}
                             autoFocus={true}
                         />
                     </View>
@@ -164,7 +165,7 @@ const VerifyOtpScreen = () => {
 
                         {isResendDisabled && (
                             <AppText variant="caption-xs" className="opacity-50">
-                                {t('common.auth.resendTimer', { seconds: timer.toString().padStart(2, '0') })}
+                                {t('common.auth.resendTimer', {seconds: timer.toString().padStart(2, '0')})}
                             </AppText>
                         )}
                     </View>

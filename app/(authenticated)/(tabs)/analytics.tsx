@@ -9,11 +9,12 @@ import AddExpenseScreen from "@/src/screens/expense/AddExpenseScreen";
 import AddCustomUserScreen from "@/src/screens/AddCustomUser";
 import RelationsScreen from "@/src/screens/relation/Relations";
 import MyProfileScreen from "@/src/screens/MyProfile";
+import MapScreen from "@/src/screens/MapScreen";
 
 const AnalyticsScreen = () => {
 
     return (
-        <AddExpenseScreen />
+        <MapScreen />
     );
 };
 

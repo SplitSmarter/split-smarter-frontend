@@ -1,12 +1,12 @@
 import axios from "axios";
 import {BACKEND_HOSTNAME} from "@/src/config/config"
-import { getAccessToken, setAccessToken } from "@/src/utils/token";
+import {getAccessToken, setAccessToken} from "@/src/utils/token";
 import {refreshAccessTokenApi} from "@/src/api/auth/token";
 import {useAuthStore} from "@/src/store/authStore";
 
 
 export const getLogoutHandler = () => {
-    const { logout } = useAuthStore.getState();
+    const {logout} = useAuthStore.getState();
     return logout;
 };
 
@@ -25,12 +25,11 @@ axiosUserInstance.interceptors.request.use(
         if (accessToken) {
             config.headers.Authorization = `Bearer ${accessToken}`;
         }
-        config.headers["X-Time-Zone"] = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
         const fullUrl = `${config.baseURL || ''}${config.url || ''}`;
         console.info("User Request URL:", fullUrl);
         if (config.data) console.info("User Request Payload:", config.data);
-        if (config.headers["Authorization"])console.info("User Request Authorization:", config.headers["Authorization"]);
+        if (config.headers["Authorization"]) console.info("User Request Authorization:", config.headers["Authorization"]);
 
         return config;
     },
@@ -56,7 +55,7 @@ axiosUserInstance.interceptors.response.use(
 
         console.info(`User Response Status: ${response.status} `);
         if (response.data) console.info("User Response Payload:", response.data);
-        if (response.headers["Authorization"])console.info("User Response Authorization:", response.headers["Authorization"]);
+        if (response.headers["Authorization"]) console.info("User Response Authorization:", response.headers["Authorization"]);
 
         return response;
     },
@@ -69,8 +68,8 @@ axiosUserInstance.interceptors.response.use(
             if (isRefreshing) {
                 // if first request is fetching the updated token then this is for subsequent requests
                 return await new Promise((resolve, reject) => {
-                        failedQueue.push({ resolve, reject });
-                    })
+                    failedQueue.push({resolve, reject});
+                })
                     .then((token) => {
                         originalRequest.headers['Authorization'] = `Bearer ${token}`;
                         return axiosUserInstance(originalRequest); // Retry with updated token
@@ -78,10 +77,13 @@ axiosUserInstance.interceptors.response.use(
                     .catch(async (err) => {
                         const logout = getLogoutHandler();
                         if (logout) await logout();
-                        return Promise.reject({"success": false, "message": "Session Expired", "tag": "session expired"});
+                        return Promise.reject({
+                            "success": false,
+                            "message": "Session Expired",
+                            "tag": "session expired"
+                        });
                     });
-            }
-            else{
+            } else {
 
                 originalRequest._retry = true; // keeps track of original request
                 isRefreshing = true; // so subsequent request hits queue
@@ -89,7 +91,7 @@ axiosUserInstance.interceptors.response.use(
                 try {
                     const result = await refreshAccessTokenApi();
                     if (result.success && result.access_token) {
-                        const { access_token } = result;
+                        const {access_token} = result;
                         await setAccessToken(access_token);
                         processQueue(null, access_token);
                         originalRequest.headers['Authorization'] = `Bearer ${access_token}`;
@@ -106,10 +108,10 @@ axiosUserInstance.interceptors.response.use(
 
                     if (typeof err === "object" && err !== null && "tag" in err && "message" in err) {
                         const knownErr = err as { tag: string; message: string };
-                        return Promise.reject({ success: false, tag: knownErr.tag, message: knownErr.message });
+                        return Promise.reject({success: false, tag: knownErr.tag, message: knownErr.message});
                     }
 
-                    return Promise.reject({ success: false, tag: "Unknown", message: "Unexpected error" });
+                    return Promise.reject({success: false, tag: "Unknown", message: "Unexpected error"});
                 } finally {
                     isRefreshing = false;
                 }

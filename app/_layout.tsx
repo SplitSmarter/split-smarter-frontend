@@ -18,6 +18,8 @@ import { CustomErrorBoundary } from "@/src/components/global/CustomErrorBoundary
 import { useNetworkStore } from "@/src/store/useNetworkStore";
 import { GlobalLayerController } from "@/src/components/GlobalLayerController";
 import {ImageCacheManager} from "@/src/utils/system/ImageCacheManager";
+import {GoogleSignin} from "@react-native-google-signin/google-signin";
+import {GOOGLE_IOS_CLIENT_ID, GOOGLE_WEB_CLIENT_ID} from "@/src/config/config";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -57,6 +59,14 @@ export default function RootLayout() {
         async function initializeApp() {
             if (hasHydrated) {
                 try {
+                    GoogleSignin.configure({
+                        webClientId: GOOGLE_WEB_CLIENT_ID,
+                        iosClientId: GOOGLE_IOS_CLIENT_ID,
+                        offlineAccess: true,
+                        scopes: ['https://www.googleapis.com/auth/drive.readonly'],
+                        forceCodeForRefreshToken: true,
+                    });
+
                     await setupI18n();
                     // NetInfo might fail if native module isn't linked, wrap in try/catch
                     try {

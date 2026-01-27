@@ -6,6 +6,7 @@ import axios from 'axios';
 interface ConfigState {
     ip: string | null;
     country: string | null;
+    countryCode: string | null;
     currency: string | null;
     cityName: string | null;
     region: string | null;
@@ -17,18 +18,20 @@ interface ConfigState {
     fetchPublicInfo: () => Promise<void>;
 }
 
+// this information is fetched dynamically unlike similar data in user store which comes from backend
 export const useConfigStore = create<ConfigState>()(
     persist(
         (set) => ({
             ip: null,
             country: null,
+            countryCode: null,
             currency: null,
             cityName: null,
             region: null,
             timezone: null,
             isProxy: false,
             isOnline: true,
-            isMaintenance: true,
+            isMaintenance: false,
             appVersion: "1.0.0",
 
             fetchPublicInfo: async () => {
@@ -56,6 +59,7 @@ export const useConfigStore = create<ConfigState>()(
                         let normalizedData = {
                             ip: null as string | null,
                             country: null as string | null,
+                            countryCode: null as string | null,
                             currency: null as string | null,
                             cityName: null as string | null,
                             region: null as string | null,
@@ -67,6 +71,7 @@ export const useConfigStore = create<ConfigState>()(
                             normalizedData = {
                                 ip: data.ip,
                                 country: data.country_name,
+                                countryCode: data.country,
                                 currency: data.currency,
                                 cityName: data.city,
                                 region: data.region,
@@ -77,6 +82,7 @@ export const useConfigStore = create<ConfigState>()(
                             normalizedData = {
                                 ip: data.ipAddress,
                                 country: data.countryName,
+                                countryCode: data.countryCode,
                                 currency: data.currencies?.[0],
                                 cityName: data.cityName,
                                 region: data.regionName,
@@ -87,6 +93,7 @@ export const useConfigStore = create<ConfigState>()(
                             normalizedData = {
                                 ip: data.query,
                                 country: data.country,
+                                countryCode: data.countryCode,
                                 currency: null,
                                 cityName: data.city,
                                 region: data.regionName,
@@ -114,6 +121,7 @@ export const useConfigStore = create<ConfigState>()(
             partialize: (state) => ({
                 ip: state.ip,
                 country: state.country,
+                countryCode: state.countryCode,
                 currency: state.currency,
                 cityName: state.cityName,
                 region: state.region,

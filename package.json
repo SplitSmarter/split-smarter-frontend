@@ -15,6 +15,7 @@
     "@expo/vector-icons": "^14.1.0",
     "@gorhom/bottom-sheet": "^5.2.8",
     "@hookform/resolvers": "^5.2.1",
+    "@maplibre/maplibre-react-native": "^10.4.2",
     "@react-native-async-storage/async-storage": "2.1.2",
     "@react-native-community/datetimepicker": "8.4.1",
     "@react-native-community/netinfo": "11.4.1",
@@ -38,6 +39,7 @@
     "expo-haptics": "~14.1.4",
     "expo-image": "~2.3.0",
     "expo-image-picker": "~16.1.4",
+    "expo-linear-gradient": "~14.1.5",
     "expo-linking": "~7.1.5",
     "expo-localization": "~16.1.5",
     "expo-location": "~18.1.6",
@@ -74,8 +76,7 @@
     "react-native-webview": "13.13.5",
     "tailwindcss": "^3.4.17",
     "zod": "^4.0.15",
-    "zustand": "^5.0.7",
-    "expo-linear-gradient": "~14.1.5"
+    "zustand": "^5.0.7"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
