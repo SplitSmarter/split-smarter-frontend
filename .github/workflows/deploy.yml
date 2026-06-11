@@ -1,0 +1,17 @@
+name: Trigger App Deployment
+
+on:
+  push:
+    branches:
+      - release
+      - main
+      - develop
+
+jobs:
+  call-central-workflow:
+    # Syntax: <owner>/<repo>/.github/workflows/<file>@<ref-branch-or-tag>
+    uses: Nilesh-11/splitsmarter/ci-cd-workflows/.github/workflows/reusable-expo-deploy.yml@main
+    with:
+      branch_name: ${{ github.ref }}
+    secrets:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
