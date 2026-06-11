@@ -5,14 +5,23 @@ on:
     branches:
       - release
       - main
+      - qa
+      - test
       - develop
   workflow_dispatch:
+    inputs:
+      should_publish:
+        description: 'Publish app store submission/updates instantly?'
+        required: true
+        type: boolean
+        default: false
 
 jobs:
   call-central-workflow:
-    # Format: <organization>/<repository-name>/.github/workflows/<file-name>@<branch-or-tag>
     uses: SplitSmarter/ci-cd-workflows/.github/workflows/expo-deploy.yml@main
     with:
       branch_name: ${{ github.ref }}
+      # Defaults to true on automated git push events, or reads manual checkbox choice
+      publish_artifact: ${{ github.event.inputs.should_publish || 'true' }}
     secrets:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
