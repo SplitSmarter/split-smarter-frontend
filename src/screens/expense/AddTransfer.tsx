@@ -65,7 +65,7 @@ const AddTransfer = () => {
             <View className="bg-bg-secondary-lighter p-4 rounded-2xl flex-row items-start">
                 <Iconify icon="heroicons:information-circle" size={20} className="text-icon-primary-lighter mt-0.5" />
                 <AppText variant="body-small" className="text-text-primary-lighter ml-3 flex-1">
-                    This transfer will record money moving from your wallet to Alisa. It won't affect the total group balance.
+                    This transfer will record money moving from your wallet to Alisa. It won&#39;t affect the total group balance.
                 </AppText>
             </View>
 

@@ -1,4 +1,3 @@
-// /src/screens/OnBoarding.tsx
 import React, { useCallback } from 'react';
 import { View, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { useTranslation } from 'react-i18next';
