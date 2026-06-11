@@ -15,4 +15,4 @@ jobs:
     with:
       branch_name: ${{ github.ref }}
     secrets:
-      token: ${{ secrets.EXPO_TOKEN }}
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
