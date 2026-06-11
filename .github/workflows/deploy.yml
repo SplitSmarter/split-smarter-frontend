@@ -6,11 +6,12 @@ on:
       - release
       - main
       - develop
-  workflow_dispatch: # ◄ Allows you to trigger the build manually from the GitHub UI
+  workflow_dispatch:
 
 jobs:
   call-central-workflow:
-    uses: Nilesh-11/splitsmarter/ci-cd-workflows/.github/workflows/reusable-expo-deploy.yml@main
+    # Uses a relative path to reference a local workflow in the same repo
+    uses: ./ci-cd-workflows/.github/workflows/reusable-expo-deploy.yml
     with:
       branch_name: ${{ github.ref }}
     secrets:
