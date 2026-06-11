@@ -64,3 +64,5 @@ const SuggestionsSection = memo(({ loading, allUsers, onToggleUser, onAddNewUser
 });
 
 export default SuggestionsSection;
+
+SuggestionsSection.displayName = 'SuggestionsSection';

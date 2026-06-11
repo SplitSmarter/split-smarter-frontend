@@ -231,3 +231,5 @@ const styles = StyleSheet.create({
 });
 
 export default ParticipantRow;
+
+ParticipantRow.displayName = "ParticipantRow";

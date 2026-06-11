@@ -57,3 +57,5 @@ const ModeTabBar = memo(({ splitMode, isDark, onChangeMode }: ModeTabBarProps) =
 });
 
 export default ModeTabBar;
+
+ModeTabBar.displayName = 'ModeTabBar';
