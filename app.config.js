@@ -1,4 +1,6 @@
-{
+require('dotenv').config();
+
+module.exports = {
   "expo": {
     "name": "split-smarter",
     "slug": "my-app",
@@ -9,10 +11,18 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
+      "config": {
+        "googleMapsApiKey": process.env.GOOGLE_MAPS_API_KEY_IOS
+      },
       "supportsTablet": true,
       "bundleIdentifier": "com.onewordmax.splitsmart"
     },
     "android": {
+      "config": {
+        "googleMaps": {
+          "apiKey": process.env.GOOGLE_MAPS_API_KEY_ANDROID
+        }
+      },
       "package": "com.onewordmax.splitsmart",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/logo.png",
@@ -20,9 +30,8 @@
       },
       "minSdkVersion": 26,
       "edgeToEdgeEnabled": true,
-      "permissions": [
-        "android.permission.RECORD_AUDIO"
-      ]
+      "softwareKeyboardLayoutMode": "resize",
+      "permissions": []
     },
     "web": {
       "bundler": "metro",
@@ -63,7 +72,8 @@
         "expo-image-picker",
         {
           "photosPermission": "Allow $(PRODUCT_NAME) to access your photos.",
-          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera."
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera.",
+          "microphonePermission": false
         }
       ]
     ],

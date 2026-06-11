@@ -9,10 +9,25 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "channel": "staging",
+      "env": {
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "676636300164-puccof707oskko5ieprqdd8jjdi3psci.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "676636300164-goi11orp5fhpuvgk33lksoun3aq91el1.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "676636300164-ddmcgt9nhjgreh53oj7o56a2meisatsv.apps.googleusercontent.com",
+        "EXPO_PUBLIC_BACKEND_HOSTNAME": "https://splitsmarter.com"
+      }
     },
     "production": {
-      "autoIncrement": true
+      "distribution": "store",
+      "channel": "production",
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "676636300164-puccof707oskko5ieprqdd8jjdi3psci.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "676636300164-goi11orp5fhpuvgk33lksoun3aq91el1.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "676636300164-ddmcgt9nhjgreh53oj7o56a2meisatsv.apps.googleusercontent.com",
+        "EXPO_PUBLIC_BACKEND_HOSTNAME": "https://splitsmarter.com"
+      }
     }
   },
   "submit": {
