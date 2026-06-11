@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { User } from "@/src/types/auth/auth";
-import { useUserStore } from "@/src/store/userStore";
+import { userStore } from "@/src/store/userStore";
 
 export const USER_STORAGE_KEY = "@auth_user";
 
@@ -18,7 +18,7 @@ type AuthState = {
     setAccessToken: (token: string) => void;
 };
 
-export const useAuthStore = create<AuthState>()(
+export const authStore = create<AuthState>()(
     persist(
         (set, get) => ({
             user: null,
@@ -27,11 +27,12 @@ export const useAuthStore = create<AuthState>()(
 
             login: async (user: User) => {
                 set({ user, isAuthenticated: true, isLoading: false });
+                // TODO: call api for default settings
             },
 
             logout: async () => {
                 set({ user: null, isAuthenticated: false, isLoading: false });
-                useUserStore.getState().clearUser();
+                userStore.getState().clearUser();
             },
 
             getAccessToken: () => get().user?.access_token ?? null,

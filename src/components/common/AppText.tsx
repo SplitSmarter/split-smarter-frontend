@@ -1,6 +1,6 @@
 // /src/components/common/AppText.tsx
 import { Text, TextProps } from "react-native";
-import { useI18nStore } from "@/src/store/useI18nStore";
+import { i18nStore } from "@/src/store/i18nStore";
 
 interface AppTextProps extends TextProps {
     variant?: 'h1' | 'h2' | 'h3' | 'h4' | 'body-large' | 'body-base' | 'body-small' | 'caption-xs' | 'body-xs';
@@ -15,7 +15,7 @@ export const AppText = ({
                             style,
                             ...props
                         }: AppTextProps) => {
-    const { font, isLoaded } = useI18nStore();
+    const { font, isLoaded } = i18nStore();
 
     const variantClasses: Record<NonNullable<AppTextProps['variant']>, string> = {
         'h1': "text-heading-h1",

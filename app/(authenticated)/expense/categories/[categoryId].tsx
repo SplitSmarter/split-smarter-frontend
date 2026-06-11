@@ -1,10 +1,10 @@
 import React from "react";
-import ExpenseCategoryDetailsScreen from "@/src/screens/expense/ExpenseCategoryDetails";
+import AddSplitScreen from "@/src/screens/expense/AddSplitScreen";
 
-const CategoryDetailsScreen = () => {
+const ExpenseCategory = () => {
     return (
-        <ExpenseCategoryDetailsScreen />
+        <AddSplitScreen />
     );
 };
 
-export default CategoryDetailsScreen;
+export default ExpenseCategory;

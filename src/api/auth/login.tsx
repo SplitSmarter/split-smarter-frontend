@@ -20,6 +20,7 @@ export const CredentialLoginApi = async (data: CredentialsLoginRequest) => {
             return {
                 message: res.data.message,
                 meta: {
+                    id: loginData.id,
                     access_token: access_token,
                     username: loginData.username,
                     profile: loginData.profile, // RemoteUserProfileResponse
@@ -31,6 +32,7 @@ export const CredentialLoginApi = async (data: CredentialsLoginRequest) => {
         return handleApiError(error);
     }
 };
+
 export const GoogleLoginApi = async (data: GoogleLoginRequest) => {
     try {
         const res = await axiosAuthInstance.post<SuccessResponse>("/login/google", data);
@@ -38,11 +40,14 @@ export const GoogleLoginApi = async (data: GoogleLoginRequest) => {
         if (res.data && res.data.success) {
             const rawHeader = res.headers.authorization || "";
             const access_token = rawHeader.replace(/^Bearer\s+/i, "");
+            const loginData = res.data.data;
             return {
                 message: res.data.message,
                 tag: (res.data.data as any)?.tag || "GoogleLoggedIn",
                 meta: {
                     access_token: access_token,
+                    username: loginData.username,
+                    profile: loginData.profile,
                 }
             };
         }

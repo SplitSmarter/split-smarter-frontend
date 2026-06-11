@@ -8,12 +8,12 @@ import {AppText} from '@/src/components/common/AppText';
 import {AppButton} from '@/src/components/common/AppButton';
 import {ScreenWrapper} from "@/src/components/common/ScreenWrapper";
 import {i18n as i18nInstance} from "@/src/i18n/index";
-import {useThemeStore} from "@/src/store/useThemeStore";
+import {themeStore} from "@/src/store/themeStore";
 import {COLORS} from "@/src/constants/colors";
 import {useAlert} from "@/src/context/alertContext";
 import {OtpVerifyApi, OtpSendApi, OtpResendApi} from "@/src/api/auth/otp";
 import {ErrorCode} from "@/src/api/dto/defaults/gateway/ErrorCode";
-import {useDeviceStore} from "@/src/store/deviceStore";
+import {deviceStore} from "@/src/store/deviceStore";
 
 const OTP_COUNT = 6;
 
@@ -22,8 +22,8 @@ const VerifyOtpScreen = () => {
     const {showAlert} = useAlert();
     const router = useRouter();
     const {email} = useLocalSearchParams<{ email: string }>();
-    const platform = useDeviceStore((state) => state.platform);
-    const {theme} = useThemeStore();
+    const platform = deviceStore((state) => state.platform);
+    const {theme} = themeStore();
     const isDark = theme === 'dark';
 
     const [loading, setLoading] = useState(false);

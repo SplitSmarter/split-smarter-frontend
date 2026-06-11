@@ -9,21 +9,28 @@ import {AppButton} from '@/src/components/common/AppButton';
 import {ScreenWrapper} from "@/src/components/common/ScreenWrapper";
 import {AppInput} from "@/src/components/common/AppInput";
 import {i18n as i18nInstance} from "@/src/i18n/index";
-import {useThemeStore} from "@/src/store/useThemeStore";
+import {themeStore} from "@/src/store/themeStore";
 import {COLORS} from "@/src/constants/colors";
 import {OtpSendApi} from "@/src/api/auth/otp";
 import {useAlert} from "@/src/context/alertContext";
 import {ErrorCode} from "@/src/api/dto/defaults/gateway/ErrorCode";
-import {useDeviceStore} from "@/src/store/deviceStore";
+import {deviceStore} from "@/src/store/deviceStore";
 import {validateEmail, validateIdentifier} from "@/src/utils/validation";
+import {googleSignIn} from "@/src/utils/googleAuth";
+import {GoogleLoginApi} from "@/src/api/auth/login";
+import {userStore} from "@/src/store/userStore";
+import {GoogleSignin} from "@react-native-google-signin/google-signin";
+import {authStore} from "@/src/store/authStore";
+import {GoogleSignupApi} from "@/src/api/auth/signup";
 
 const SendOtpScreen = () => {
     const {t} = useTranslation('translation', {i18n: i18nInstance});
     const {showAlert} = useAlert();
     const router = useRouter();
-    const {theme} = useThemeStore();
-    const platform = useDeviceStore((state) => state.platform);
+    const {theme} = themeStore();
+    const platform = deviceStore((state) => state.platform);
     const isDark = theme === 'dark';
+    const { login: authLogin } = authStore();
 
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState("");
@@ -105,6 +112,30 @@ const SendOtpScreen = () => {
                 auth_type: 'credentials'
             }
         });
+    };
+
+    const handleGoogleSignup = async () => {
+        try {
+            // 1. Trigger Google Native UI
+            const googleRes = await googleSignIn();
+            const { idToken, user } = googleRes.userInfo;
+
+            if (!idToken) {
+                showAlert("Google sign-in failed: No ID Token found", "error");
+                return;
+            }
+            router.push({
+                pathname: "/(unauthenticated)/signup",
+                params: {
+                    name: user.name || "",
+                    email: user.email,
+                    googleToken: idToken,
+                    auth_type: "google"
+                }
+            });
+        } catch (error: any) {
+            showAlert(error?.message || "Signup Failed", "error");
+        }
     };
 
     return (
@@ -192,7 +223,7 @@ const SendOtpScreen = () => {
                                 </AppButton>
 
                                 <AppButton
-                                    onPress={() => console.log("Google Login triggered")}
+                                    onPress={handleGoogleSignup}
                                     variant="secondary"
                                     size="md"
                                     hasBorder={true}

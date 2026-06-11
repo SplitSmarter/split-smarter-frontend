@@ -7,7 +7,7 @@ import {
     BottomSheetView
 } from '@gorhom/bottom-sheet';
 import { Iconify } from 'react-native-iconify';
-import { useThemeStore } from '@/src/store/useThemeStore';
+import { themeStore } from '@/src/store/themeStore';
 import { COLORS } from "@/src/constants/colors";
 
 interface AppBottomSheetProps {
@@ -26,7 +26,7 @@ export const AppBottomSheet = React.forwardRef<BottomSheetModal, AppBottomSheetP
     // Sync the external ref with internal ref
     useImperativeHandle(ref, () => internalRef.current as BottomSheetModal);
 
-    const theme = useThemeStore((state) => state.theme);
+    const theme = themeStore((state) => state.theme);
     const isDark = theme === 'dark';
 
     const snapPoints = useMemo(() => customSnapPoints || ['50%', '75%'], [customSnapPoints]);

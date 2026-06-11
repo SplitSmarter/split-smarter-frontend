@@ -7,8 +7,8 @@ import {
     BottomSheetBackdropProps
 } from '@gorhom/bottom-sheet';
 import { useTranslation } from 'react-i18next';
-import { useI18nStore } from '@/src/store/useI18nStore';
-import { useThemeStore } from '@/src/store/useThemeStore';
+import { i18nStore } from '@/src/store/i18nStore';
+import { themeStore } from '@/src/store/themeStore';
 import { Iconify } from 'react-native-iconify';
 import { AppText } from "@/src/components/common/AppText";
 import { AppButton } from "@/src/components/common/AppButton";
@@ -24,8 +24,8 @@ interface LanguageBottomSheetProps {
 export const LanguageBottomSheet = React.memo(({ isVisible, onClose }: LanguageBottomSheetProps) => {
     // 1. Hooks (Strict Stable Order)
     const { t } = useTranslation('translation', { i18n: i18nInstance });
-    const { changeLanguage, language } = useI18nStore();
-    const theme = useThemeStore((state) => state.theme);
+    const { changeLanguage, language } = i18nStore();
+    const theme = themeStore((state) => state.theme);
     const bottomSheetModalRef = useRef<BottomSheetModal>(null);
 
     // 2. Logic

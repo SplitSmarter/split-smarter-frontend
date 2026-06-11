@@ -1,14 +1,18 @@
-import { Redirect, Stack } from 'expo-router';
-import {useAuthStore} from "@/src/store/authStore";
+import { useEffect } from 'react';
+import { Stack, useRouter } from 'expo-router';
+import { authStore } from "@/src/store/authStore";
 
 export default function UnauthenticatedLayout() {
-    const { isAuthenticated, isLoading } = useAuthStore();
-    if (isLoading) return null;
-    if (isAuthenticated) return <Redirect href="/(authenticated)" />;
+    const { isAuthenticated, isLoading } = authStore();
+    const router = useRouter();
 
-    return <Stack
-        screenOptions={{
-            headerShown: false, // This hides the header for ALL screens in this stack
-        }}
-    />;
+    useEffect(() => {
+        if (!isLoading && isAuthenticated) {
+            router.replace("/(authenticated)");
+        }
+    }, [isAuthenticated, isLoading]);
+
+    if (isLoading || isAuthenticated) return null;
+
+    return <Stack screenOptions={{ headerShown: false }} />;
 }

@@ -1,68 +1,85 @@
+// src/api/user/relationshipApi.ts
+
 import axiosUserInstance from "@/src/api/axiosUserServiceInstance";
-import { GetMyRelationshipsResponse } from "@/src/interfaces/relationship";
+import { SuccessResponse } from "@/src/api/dto/ApiResponse";
+import { handleApiError } from "@/src/api/utils/mapper";
+import {
+    RelationshipDetails,
+    AddRelationshipRequest,
+    AddRelationshipResponse,
+    UpdateRelationshipRequest,
+    UpdateRelationshipResponse
+} from "@/src/api/dto/user/relationship";
 
-export const getMyRelationshipsApi = async (
-    offset: number = 0,
-    limit: number = 50
-): Promise<{
-    message: string;
-    tag: string;
-    data: GetMyRelationshipsResponse;
-}> => {
+const BASE_PATH = "/user/relationship/v1"; // Prefix from your APIRouter
+
+/**
+ * Fetch all relationship types (Default + Custom)
+ */
+export const getRelationshipsApi = async (params: { offset?: number; limit?: number } = {}) => {
+    const { offset = 0, limit = 10 } = params;
+
     try {
-        const res = await axiosUserInstance.get("/user/relationship/my", {
-            params: { offset, limit },
-        });
+        const res = await axiosUserInstance.get<SuccessResponse<RelationshipDetails[]>>(
+            `${BASE_PATH}/`,
+            {
+                params: { offset, limit }
+            }
+        );
 
-        if (res.status === 200 && res.data?.data) {
+        if (res.data && res.data.success) {
             return {
-                message: res.data?.message || "Relationships fetched successfully",
-                tag: "RelationshipsFetched",
+                message: res.data.message,
                 data: res.data.data,
+                pagination: res.data.pagination
             };
         }
-
-        return Promise.reject({
-            message: "Unexpected response",
-            status: res.status,
-            tag: "Unexpected",
-        });
+        throw new Error("Invalid Response Schema");
     } catch (error: any) {
-        if (error.response) {
-            const { status, data } = error.response;
-            const detail = data?.detail || data;
+        return handleApiError(error);
+    }
+};
 
-            switch (status) {
-                case 404:
-                    if (detail?.error === "user_not_found") {
-                        return Promise.reject({
-                            message: detail?.message || "User not found",
-                            tag: "UserNotFound",
-                        });
-                    }
-                    return Promise.reject({
-                        message: detail?.message || "Not found",
-                        tag: "NotFound",
-                    });
+/**
+ * Create a new custom relationship type
+ */
+export const createRelationshipApi = async (data: AddRelationshipRequest) => {
+    try {
+        const res = await axiosUserInstance.post<SuccessResponse<AddRelationshipResponse>>(
+            `${BASE_PATH}/`,
+            data
+        );
 
-                case 500:
-                    return Promise.reject({
-                        message: detail?.message || "Server error",
-                        tag: "ServerError",
-                    });
-
-                default:
-                    return Promise.reject({
-                        message: detail?.message || "Something went wrong",
-                        status,
-                        tag: "Unexpected",
-                    });
-            }
+        if (res.data && res.data.success) {
+            return {
+                message: res.data.message,
+                data: res.data.data
+            };
         }
+        throw new Error("Invalid Response Schema");
+    } catch (error: any) {
+        return handleApiError(error);
+    }
+};
 
-        return Promise.reject({
-            message: error.message || "Network error",
-            tag: "Unexpected",
-        });
+/**
+ * Update an existing custom relationship type
+ */
+export const updateRelationshipApi = async (relationshipId: number, data: UpdateRelationshipRequest) => {
+    try {
+        const res = await axiosUserInstance.patch<SuccessResponse<UpdateRelationshipResponse>>(
+            `${BASE_PATH}/${relationshipId}`,
+            data
+        );
+
+        if (res.data && res.data.success) {
+            return {
+                message: res.data.message,
+                data: res.data.data
+            };
+        }
+        throw new Error("Invalid Response Schema");
+    } catch (error: any) {
+        return handleApiError(error);
     }
 };

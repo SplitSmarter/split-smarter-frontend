@@ -1,87 +1,76 @@
 import axiosUserInstance from "@/src/api/axiosUserServiceInstance";
-import { expense_category } from "@/src/constants/expense";
-import {
-    SaveGroupCategoryRequest,
-    SaveGroupCategoryResponse,
-} from "@/src/interfaces/group"; // <-- define request/response interfaces
+import { SuccessResponse, PaginationResponse } from "@/src/api/dto/ApiResponse";
+import { handleApiError } from "@/src/api/utils/mapper";
+import {AddCategoryResponse, AddGroupCategoryRequest, GroupCategoryDetails} from "@/src/api/dto/user/group";
+import {GroupCategorySource} from "@/src/api/dto/constants";
 
-export const saveGroupCategoryApi = async (
-    payload: SaveGroupCategoryRequest
-): Promise<{
-    message: string;
-    tag: string;
-    data: SaveGroupCategoryResponse;
-}> => {
+const BASE_PATH = "/group/category/v1"; // Assuming this follows your group router prefix
+
+/**
+ * Retrieve categories accessible to the authenticated user.
+ */
+export const GetGroupCategoriesApi = async (
+    params: {
+        category_type?: GroupCategorySource[];
+        offset?: number;
+        limit?: number;
+    } = {}
+) => {
+    const {
+        category_type = [GroupCategorySource.CUSTOM, GroupCategorySource.DEFAULT],
+        offset = 0,
+        limit = 100
+    } = params;
+
     try {
-        const res = await axiosUserInstance.post("/group/category/", payload);
+        const res = await axiosUserInstance.get<SuccessResponse<GroupCategoryDetails[]>>(
+            `${BASE_PATH}/`,
+            {
+                params: {
+                    category_type,
+                    offset,
+                    limit
+                }
+            }
+        );
 
-        if (res.status === 201 && res.data?.success) {
+        if (res.data && res.data.success) {
             return {
-                message: res.data?.message || "Category created successfully",
-                tag: "CategoryCreated",
+                message: res.data.message,
+                data: res.data.data,
+                pagination: res.data.pagination as PaginationResponse
+            };
+        }
+        throw new Error("Invalid Response Schema");
+    } catch (error: any) {
+        return handleApiError(error);
+    }
+};
+
+/**
+ * Creates a new custom group category for the authenticated user
+ */
+export const CreateGroupCategoryApi = async (data: AddGroupCategoryRequest) => {
+    try {
+        const res = await axiosUserInstance.post<SuccessResponse<AddCategoryResponse>>(
+            `${BASE_PATH}/`,
+            {
+                title: data.title.trim(),
+                description: data.description,
+                icon_asset_id: data.icon_asset_id
+            }
+        );
+
+        if (res.data && res.data.success) {
+            return {
+                message: res.data.message,
                 data: res.data.data,
             };
         }
-
-        return Promise.reject({
-            message: "Unexpected response",
-            status: res.status,
-            tag: "Unexpected",
-        });
+        throw new Error("Invalid Response Schema");
     } catch (error: any) {
-        if (error.response) {
-            const { status, data } = error.response;
-            const detail = data?.detail || data;
-
-            switch (status) {
-                case 400:
-                    if (detail?.error === "duplicate_category") {
-                        return Promise.reject({
-                            message: detail?.message || "Duplicate category",
-                            tag: "DuplicateCategory",
-                        });
-                    }
-                    return Promise.reject({
-                        message: detail?.message || "Bad request",
-                        tag: "BadRequest",
-                    });
-
-                case 403:
-                    return Promise.reject({
-                        message: detail?.message || "Forbidden",
-                        tag: "Forbidden",
-                    });
-
-                case 404:
-                    if (detail?.error === "owner_not_found") {
-                        return Promise.reject({
-                            message: detail?.message || "Owner not found",
-                            tag: "OwnerNotFound",
-                        });
-                    }
-                    return Promise.reject({
-                        message: detail?.message || "Resource not found",
-                        tag: "NotFound",
-                    });
-
-                case 500:
-                    return Promise.reject({
-                        message: detail?.message || "Server error",
-                        tag: "ServerError",
-                    });
-
-                default:
-                    return Promise.reject({
-                        message: detail?.message || "Something went wrong",
-                        status,
-                        tag: "Unexpected",
-                    });
-            }
-        }
-
-        return Promise.reject({
-            message: error.message || "Network error",
-            tag: "Unexpected",
-        });
+        // This will catch the 409 Conflict for duplicate titles
+        // as well as other validation errors
+        return handleApiError(error);
     }
 };

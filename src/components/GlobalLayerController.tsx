@@ -1,14 +1,14 @@
 import React from 'react';
-import { useConfigStore } from '@/src/store/useConfigStore';
-import { useNetworkStore } from '@/src/store/useNetworkStore';
+import { configStore } from '@/src/store/configStore';
+import { networkStore } from '@/src/store/networkStore';
 import {AppText} from "@/src/components/common/AppText";
-import {useMarketingStore} from "@/src/store/useMarketingStore";
+import {marketingStore} from "@/src/store/marketingStore";
 
 export const GlobalLayerController = () => {
-    const isMaintenance = useConfigStore((state) => state.isMaintenance);
-    const isOffline = useNetworkStore((state) => state.isOfflineMode);
-    const allOffers = useMarketingStore((state) => state.offers);
-    const dismissedIds = useMarketingStore((state) => state.dismissedOfferIds);
+    const isMaintenance = configStore((state) => state.isMaintenance);
+    const isOffline = networkStore((state) => state.isOfflineMode);
+    const allOffers = marketingStore((state) => state.offers);
+    const dismissedIds = marketingStore((state) => state.dismissedOfferIds);
 
     const activeOffers = allOffers.filter(o => !dismissedIds.includes(o.id));
 

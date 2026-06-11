@@ -6,6 +6,7 @@ import {ErrorCode} from "@/src/api/dto/defaults/gateway/ErrorCode";
  * Maps backend ErrorResponse to a rejected promise.
  */
 export const handleApiError = (error: any) => {
+    // TODO: make sure to catch exceptions across all api calls
     const {response} = error;
 
     // If we have a response from the server and it matches our schema

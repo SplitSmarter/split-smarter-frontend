@@ -1,139 +1,85 @@
-import axiosUserInstance from "@/src/api/axiosUserServiceInstance";
-import {expense_category} from "@/src/constants/expense";
-import {GetExpenseCategoriesResponse, GetExpenseCategoriesParams, GetExpenseCategoryByIdResponse} from "@/src/interfaces/expense";
+import axiosUserInstance from "@/src/api/axiosUserServiceInstance"; // Adjust instance name as per your setup
+import { SuccessResponse } from "@/src/api/dto/ApiResponse";
+import { handleApiError } from "@/src/api/utils/mapper";
+import {
+    AddExpenseCategoryRequest,
+    ExpenseCategoryResponse
+} from "@/src/api/dto/expense/category";
+import {ExpenseCategorySource} from "@/src/api/dto/constants";
 
-export const getExpenseCategoriesApi = async (
-    params: GetExpenseCategoriesParams = {}
-): Promise<{
-    message: string;
-    tag: string;
-    data: GetExpenseCategoriesResponse;
-}> => {
+const BASE_PATH = "/expense/category/v1"; // Adjust path based on your backend router prefix
+
+/**
+ * Creates a new custom expense category
+ */
+export const CreateExpenseCategoryApi = async (data: AddExpenseCategoryRequest) => {
     try {
-        console.info(params);
-        const {
-            category_type = [expense_category.custom, expense_category.default],
-            offset = 0,
-            limit = 100,
-        } = params;
+        const res = await axiosUserInstance.post<SuccessResponse<ExpenseCategoryResponse>>(
+            `${BASE_PATH}/`,
+            data
+        );
 
-        const res = await axiosUserInstance.get("/expense/category/", {
-            params: {
-                category_type,
-                offset,
-                limit,
-            },
-            paramsSerializer: {
-                indexes: null,
-            },
-        });
-
-        if (res.status === 200 && res.data?.success) {
+        if (res.data && res.data.success) {
             return {
-                message: "Categories fetched successfully",
-                tag: "CategoriesFetched",
+                message: res.data.message,
                 data: res.data.data,
             };
         }
-
-        return Promise.reject({
-            message: "Unexpected response",
-            status: res.status,
-            tag: "Unexpected",
-        });
+        throw new Error("Invalid Response Schema");
     } catch (error: any) {
-        if (error.response) {
-            const { status, data } = error.response;
-            const detail = data?.detail || data;
-
-            switch (status) {
-                case 404:
-                    if (detail?.error === "user_not_found") {
-                        return Promise.reject({
-                            message: detail?.message || "User not found",
-                            tag: "UserNotFound",
-                        });
-                    }
-                    break;
-
-                case 500:
-                    return Promise.reject({
-                        message: detail?.message || "Server error",
-                        tag: "ServerError",
-                    });
-
-                default:
-                    return Promise.reject({
-                        message: detail?.message || "Something went wrong",
-                        status,
-                        tag: "Unexpected",
-                    });
-            }
-        }
-
-        return Promise.reject({
-            message: error.message || "Network error",
-            tag: "Unexpected",
-        });
+        return handleApiError(error);
     }
 };
 
-export const getExpenseCategoryByIdApi = async (
-    categoryId: number
-): Promise<{
-    message: string;
-    tag: string;
-    data: GetExpenseCategoryByIdResponse;
-}> => {
+/**
+ * Retrieves all expense categories (Default and Custom)
+ */
+export const GetExpenseCategoriesApi = async (
+    category_type: ExpenseCategorySource[] = [ExpenseCategorySource.DEFAULT, ExpenseCategorySource.CUSTOM],
+    offset = 0,
+    limit = 100
+) => {
     try {
-        const res = await axiosUserInstance.get(`/expense/category/${categoryId}`);
+        const res = await axiosUserInstance.get<SuccessResponse<ExpenseCategoryResponse[]>>(
+            `${BASE_PATH}/`,
+            {
+                params: {
+                    category_type, // Axios handles array serialization for Query params
+                    offset,
+                    limit
+                }
+            }
+        );
 
-        if (res.status === 200 && res.data?.success) {
+        if (res.data && res.data.success) {
             return {
-                message: "Category fetched successfully",
-                tag: "CategoryFetched",
+                message: res.data.message,
                 data: res.data.data,
             };
         }
-
-        return Promise.reject({
-            message: "Unexpected response",
-            status: res.status,
-            tag: "Unexpected",
-        });
+        throw new Error("Invalid Response Schema");
     } catch (error: any) {
-        if (error.response) {
-            const { status, data } = error.response;
-            const detail = data?.detail || data;
+        return handleApiError(error);
+    }
+};
 
-            switch (status) {
-                case 404:
-                    if (detail?.error === "category_not_found") {
-                        return Promise.reject({
-                            message: detail?.message || "Category not found",
-                            tag: "CategoryNotFound",
-                        });
-                    }
-                    break;
+/**
+ * Retrieves a specific expense category by ID
+ */
+export const GetExpenseCategoryByIdApi = async (categoryId: number) => {
+    try {
+        const res = await axiosUserInstance.get<SuccessResponse<ExpenseCategoryResponse>>(
+            `${BASE_PATH}/${categoryId}`
+        );
 
-                case 500:
-                    return Promise.reject({
-                        message: detail?.message || "Server error",
-                        tag: "ServerError",
-                    });
-
-                default:
-                    return Promise.reject({
-                        message: detail?.message || "Something went wrong",
-                        status,
-                        tag: "Unexpected",
-                    });
-            }
+        if (res.data && res.data.success) {
+            return {
+                message: res.data.message,
+                data: res.data.data,
+            };
         }
-
-        return Promise.reject({
-            message: error.message || "Network error",
-            tag: "Unexpected",
-        });
+        throw new Error("Invalid Response Schema");
+    } catch (error: any) {
+        return handleApiError(error);
     }
 };

@@ -3,8 +3,8 @@ import React, { useCallback } from 'react';
 import { View, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { i18n as i18nInstance } from "@/src/i18n/index";
-import { useThemeStore } from '@/src/store/useThemeStore';
-import { useI18nStore } from '@/src/store/useI18nStore';
+import { themeStore } from '@/src/store/themeStore';
+import { i18nStore } from '@/src/store/i18nStore';
 import { useAlert } from '@/src/context/alertContext';
 import { AppText } from '@/src/components/common/AppText';
 import {AppButton} from "@/src/components/common/AppButton";
@@ -12,10 +12,10 @@ import {Iconify} from "react-native-iconify";
 
 const OnboardingScreen = () => {
     const { t, ready } = useTranslation('translation', { i18n: i18nInstance, useSuspense: false });
-    const theme = useThemeStore((state) => state.theme);
-    const toggleTheme = useThemeStore((state) => state.toggleTheme);
-    const language = useI18nStore((state) => state.language);
-    const changeLanguage = useI18nStore((state) => state.changeLanguage);
+    const theme = themeStore((state) => state.theme);
+    const toggleTheme = themeStore((state) => state.toggleTheme);
+    const language = i18nStore((state) => state.language);
+    const changeLanguage = i18nStore((state) => state.changeLanguage);
     const { showAlert } = useAlert();
 
     const handleAlertTest = useCallback(() => {

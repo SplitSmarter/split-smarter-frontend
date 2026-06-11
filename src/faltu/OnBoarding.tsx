@@ -2,8 +2,8 @@ import React, { useRef, useState } from "react";
 import { View, TouchableOpacity, Image } from "react-native";
 import PagerView from "react-native-pager-view";
 import { images } from "@/src/constants/onboarding";
-import { useI18nStore } from "@/src/store/useI18nStore";
-import { useThemeStore } from "@/src/store/useThemeStore";
+import { i18nStore } from "@/src/store/i18nStore";
+import { themeStore } from "@/src/store/themeStore";
 import { useTranslation } from "react-i18next";
 import CustomText from "@/src/components/common/CustomText";
 import { useRouter } from "expo-router";
@@ -19,8 +19,8 @@ const OnboardingScreen = () => {
     const pagerRef = useRef<PagerView>(null);
     const [page, setPage] = useState(0);
     const { t } = useTranslation();
-    const { theme } = useThemeStore();
-    const { isLoaded, font } = useI18nStore();
+    const { theme } = themeStore();
+    const { isLoaded, font } = i18nStore();
     const router = useRouter();
 
     const [guestUsername, setGuestUsername] = useState<string | null>(null);

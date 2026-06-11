@@ -1,8 +1,15 @@
-import React from "react";
-import {Redirect} from "expo-router";
+import { authStore } from "@/src/store/authStore";
+import { Redirect } from "expo-router";
 
-const Home = () => {
-    return <Redirect href="/(authenticated)/(tabs)" />;
+export default function Home() {
+    const { isAuthenticated, isLoading } = authStore();
+
+    // Wait until we know the auth state
+    if (isLoading) return null;
+
+    if (isAuthenticated) {
+        return <Redirect href="/(authenticated)/(tabs)" />;
+    }
+
+    return <Redirect href="/(unauthenticated)/login" />;
 }
-
-export default Home;

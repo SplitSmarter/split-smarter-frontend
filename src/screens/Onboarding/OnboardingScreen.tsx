@@ -7,16 +7,17 @@ import {AppButton} from '@/src/components/common/AppButton';
 import {Iconify} from "react-native-iconify";
 import {images} from "@/src/constants/images";
 import {LanguageBottomSheet} from '@/src/screens/Onboarding/comps/LanguageBottomSheet';
-import {useDeviceStore} from '@/src/store/deviceStore';
+import {deviceStore} from '@/src/store/deviceStore';
 import {ScreenWrapper} from "@/src/components/common/ScreenWrapper";
 import {useRouter} from "expo-router";
-import {useThemeStore} from "@/src/store/useThemeStore";
+import {themeStore} from "@/src/store/themeStore";
 import {useAlert} from "@/src/context/alertContext";
 import {GoogleLoginApi} from "@/src/api/auth/login";
 import {ErrorCode} from "@/src/api/dto/defaults/gateway/ErrorCode";
-import {COLORS} from "@/src/constants/colors";
 import { googleSignIn } from "@/src/utils/googleAuth";
 import {GoogleSignin} from "@react-native-google-signin/google-signin";
+import {userStore} from "@/src/store/userStore";
+import {authStore} from "@/src/store/authStore";
 
 const ONBOARDING_DATA = [
     {
@@ -45,9 +46,10 @@ const OnboardingScreen = () => {
     const router = useRouter();
     const {showAlert} = useAlert();
     const [activeIndex, setActiveIndex] = useState(0);
-    const {theme, toggleTheme} = useThemeStore();
+    const {theme, toggleTheme} = themeStore();
     const isDark = theme === 'dark';
-    const {screen, isTablet} = useDeviceStore();
+    const {screen, isTablet} = deviceStore();
+    const { login: authLogin } = authStore();
     const {width, height} = screen;
 
     const isMounted = React.useRef(false);
@@ -82,7 +84,46 @@ const OnboardingScreen = () => {
             }
 
             // 2. Call Backend API
-            const apiRes = await GoogleLoginApi({idToken});
+            const res = await GoogleLoginApi({idToken});
+
+            if (res && res.meta?.access_token) {
+                const { profile, access_token, username } = res.meta;
+
+                // 1. Log in to AuthStore (Persists the token)
+                await authLogin({
+                    access_token: access_token,
+                    username: username,
+                    email: profile.email
+                });
+                userStore.getState().setUser({
+                    id: profile.id,
+                    name: profile.name,
+                    email: profile.email,
+                    phone_number: profile.phone_number,
+                    city: profile.city,
+                    region: profile.region,
+                    country: profile.country,
+                    currency: profile.currency as any,
+                    avatar: {
+                        id: profile.avatar?.asset_id || "",
+                        url: profile.avatar?.asset_url || "",
+                        extension: "png", // TODO: Fix
+                        name: profile.name,
+                    },
+                    language: profile.language,
+                    registered_on: profile.registered_on,
+                    // subscription details
+                    subscription_tier: 'premium',
+                    max_saved_places: Infinity,
+                    can_use_premium_map: true,
+                    has_cloud_sync: true,
+                });
+
+                showAlert(res?.message || t('common.auth.loginSuccess'), "success");
+                router.replace("/(authenticated)/(tabs)");
+            } else {
+                showAlert(res?.message || t('common.error.unknown_error'), "error");
+            }
 
             showAlert(t('common.auth.loginSuccess'), "success");
 

@@ -83,7 +83,6 @@ export function toggleLock(list: any[], setList: Function, userId: string) {
         }
 
         if (unlockedCount <= 2 && !clickedUser.locked) {
-            console.log("ok1")
             return prev.map((u) => ({ ...u, locked: true }));
         }
 

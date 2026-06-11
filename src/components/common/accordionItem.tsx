@@ -6,8 +6,8 @@ import {
     Platform,
     UIManager,
 } from 'react-native';
-import { useThemeStore } from '@/src/store/useThemeStore';
-import { useI18nStore } from '@/src/store/useI18nStore';
+import { themeStore } from '@/src/store/themeStore';
+import { i18nStore } from '@/src/store/i18nStore';
 import CustomText from '@/src/components/common/CustomText';
 
 if (Platform.OS === 'android') {
@@ -23,8 +23,8 @@ type AccordionItemProps = {
 
 const AccordionItem: React.FC<AccordionItemProps> = ({ title, children, initiallyOpen = false }) => {
     const [open, setOpen] = useState(initiallyOpen);
-    const { theme } = useThemeStore();
-    const { font } = useI18nStore();
+    const { theme } = themeStore();
+    const { font } = i18nStore();
 
     const isDark = theme === 'dark';
 

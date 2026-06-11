@@ -1,8 +1,8 @@
 import { Stack, Redirect } from 'expo-router';
-import {useAuthStore} from "@/src/store/authStore";
+import {authStore} from "@/src/store/authStore";
 
 export default function ItemLayout() {
-    const { isAuthenticated, isLoading } = useAuthStore();
+    const { isAuthenticated, isLoading } = authStore();
 
     if (isLoading) return null;
     if (!isAuthenticated) return <Redirect href="/(unauthenticated)" />;

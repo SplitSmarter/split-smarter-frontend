@@ -7,7 +7,7 @@ import {
     BottomSheetBackdropProps
 } from '@gorhom/bottom-sheet';
 import { useTranslation } from 'react-i18next';
-import { useThemeStore } from '@/src/store/useThemeStore';
+import { themeStore } from '@/src/store/themeStore';
 import { Iconify } from 'react-native-iconify';
 import { AppText } from "@/src/components/common/AppText";
 import { AppButton } from "@/src/components/common/AppButton";
@@ -30,7 +30,7 @@ export const CurrencyBottomSheet = React.memo(({
                                                    onSelect
                                                }: CurrencyBottomSheetProps) => {
     const { t } = useTranslation('translation', { i18n: i18nInstance });
-    const { theme } = useThemeStore();
+    const { theme } = themeStore();
     const bottomSheetModalRef = useRef<BottomSheetModal>(null);
 
     const isDark = theme === 'dark';

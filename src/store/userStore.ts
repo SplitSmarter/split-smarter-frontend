@@ -2,11 +2,20 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { CurrencyType } from "@/src/constants/expense";
-import {ImageHostType} from "@/src/constants/images_old";
-import {GetMyDetailsApi} from "@/src/api/user/user";
+import { UserInfoApi } from "@/src/api/user/user";
+import {BasicImage} from "@/src/api/dto/user/asset";
 
-// Your user type
-export interface UserDetails {
+export type SubscriptionTier = 'free' | 'pro' | 'premium';
+
+// Permissions are now part of the User definition
+export interface UserPermissions {
+    max_saved_places: number;
+    can_use_premium_map: boolean;
+    has_cloud_sync: boolean;
+}
+
+export interface UserDetails extends UserPermissions {
+    id: number;
     name: string;
     email?: string;
     phone_number?: string;
@@ -14,10 +23,10 @@ export interface UserDetails {
     region?: string;
     country: string;
     currency: CurrencyType;
-    avatar_id: string;
-    avatar_url?: string;
+    avatar: BasicImage;
     language: string;
     registered_on: string;
+    subscription_tier: SubscriptionTier;
 }
 
 interface UserState {
@@ -25,14 +34,14 @@ interface UserState {
     isAuthenticated: boolean;
     isLoading: boolean;
 
-    // actions
+    // Actions
     setUser: (user: UserDetails) => void;
     updateUser: (fields: Partial<UserDetails>) => void;
     clearUser: () => void;
     syncUserFromServer: () => Promise<void>;
 }
 
-export const useUserStore = create<UserState>()(
+export const userStore = create<UserState>()(
     persist(
         (set) => ({
             user: null,
@@ -52,11 +61,12 @@ export const useUserStore = create<UserState>()(
 
             syncUserFromServer: async () => {
                 try {
-                    const res = await GetMyDetailsApi();
-                    set({ user: res, isAuthenticated: true, isLoading: false });
+                    const res = await UserInfoApi();
+                    // Assuming API returns fields like max_saved_places, etc.
+                    set({ isAuthenticated: true, isLoading: false });
                 } catch (err) {
                     console.error("Failed to sync user:", err);
-                    set({ user: null, isAuthenticated: false, isLoading: false });
+                    set({ isLoading: false });
                 }
             },
         }),

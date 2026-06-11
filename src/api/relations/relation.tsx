@@ -1,78 +1,67 @@
 import axiosUserInstance from "@/src/api/axiosUserServiceInstance";
-import { RelationWithUserType } from "@/src/constants/expense";
-import { GetRelationsResponse } from "@/src/interfaces/relation";
+import { SuccessResponse } from "@/src/api/dto/ApiResponse";
+import { handleApiError } from "@/src/api/utils/mapper";
+import {AddRelationRequest, AddRelationResponse, RelationDetails} from "@/src/api/dto/user/relation";
+import { RelationWithUserType } from "@/src/api/dto/constants";
 
-export const getRelationsApi = async (
-    params?: {
-        relation_type?: RelationWithUserType[];
-        offset?: number;
-        limit?: number;
-    }
-): Promise<{
-    message: string;
-    tag: string;
-    data: GetRelationsResponse;
-}> => {
+const BASE_PATH = "/user/relation/v1"; // Update based on your actual router prefix
+
+export const AddRelationApi = async (data: AddRelationRequest) => {
     try {
-        const res = await axiosUserInstance.get("/user/relation/my", {
-            params,
-        });
+        const res = await axiosUserInstance.post<SuccessResponse<AddRelationResponse>>(
+            `${BASE_PATH}/`,
+            data
+        );
 
-        if (res.status === 200 && res.data?.data) {
+        if (res.data && res.data.success) {
             return {
-                message: res.data?.message || "Relations fetched successfully",
-                tag: "RelationsFetched",
-                data: res.data.data,
+                message: res.data.message,
+                data: res.data.data
             };
         }
-
-        return Promise.reject({
-            message: "Unexpected response",
-            status: res.status,
-            tag: "Unexpected",
-        });
+        throw new Error("Invalid Response Schema");
     } catch (error: any) {
-        if (error.response) {
-            const { status, data } = error.response;
-            const detail = data?.detail || data;
+        return handleApiError(error);
+    }
+};
 
-            switch (status) {
-                case 404:
-                    if (detail?.error === "user_not_found") {
-                        return Promise.reject({
-                            message: detail?.message || "User not found",
-                            tag: "UserNotFound",
-                        });
-                    }
-                    if (detail?.error === "with_user_not_found") {
-                        return Promise.reject({
-                            message: detail?.message || "With user not found",
-                            tag: "WithUserNotFound",
-                        });
-                    }
-                    return Promise.reject({
-                        message: detail?.message || "Not found",
-                        tag: "NotFound",
-                    });
+/**
+ * Fetches user relations (friends/contacts) with filters
+ */
+export const GetRelationsApi = async (
+    params: {
+        relation_types?: RelationWithUserType[];
+        offset?: number;
+        limit?: number;
+    } = {}
+) => {
+    const {
+        relation_types = [RelationWithUserType.USER, RelationWithUserType.CUSTOM],
+        offset = 0,
+        limit = 10
+    } = params;
 
-                case 500:
-                    return Promise.reject({
-                        message: detail?.message || "Server error",
-                        tag: "ServerError",
-                    });
-
-                default:
-                    return Promise.reject({
-                        message: detail?.message || "Something went wrong",
-                        status,
-                        tag: "Unexpected",
-                    });
+    try {
+        const res = await axiosUserInstance.get<SuccessResponse<RelationDetails[]>>(
+            `${BASE_PATH}/`,
+            {
+                params: {
+                    relation_type: relation_types, // Axios handles array to multiple query params
+                    offset,
+                    limit
+                }
             }
-        }
+        );
 
-        return Promise.reject({
-            message: error.message || "Network error",
-            tag: "Unexpected",
-        });
+        if (res.data && res.data.success) {
+            return {
+                message: res.data.message,
+                data: res.data.data,
+                pagination: res.data.pagination
+            };
+        }
+        throw new Error("Invalid Response Schema");
+    } catch (error: any) {
+        return handleApiError(error);
     }
 };

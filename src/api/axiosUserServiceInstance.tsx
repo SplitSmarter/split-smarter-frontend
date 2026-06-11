@@ -1,12 +1,11 @@
+import { refreshAccessTokenApi } from "@/src/api/auth/token";
+import { BACKEND_HOSTNAME } from "@/src/config/config";
+import { authStore } from "@/src/store/authStore";
+import { getAccessToken, setAccessToken } from "@/src/utils/token";
 import axios from "axios";
-import {BACKEND_HOSTNAME} from "@/src/config/config"
-import {getAccessToken, setAccessToken} from "@/src/utils/token";
-import {refreshAccessTokenApi} from "@/src/api/auth/token";
-import {useAuthStore} from "@/src/store/authStore";
-
 
 export const getLogoutHandler = () => {
-    const {logout} = useAuthStore.getState();
+    const {logout} = authStore.getState();
     return logout;
 };
 
@@ -16,7 +15,7 @@ const axiosUserInstance = axios.create({
         'Content-Type': 'application/json',
     },
     withCredentials: true,
-    timeout: 10000,
+    timeout: 60000,
 });
 
 axiosUserInstance.interceptors.request.use(
@@ -27,9 +26,7 @@ axiosUserInstance.interceptors.request.use(
         }
 
         const fullUrl = `${config.baseURL || ''}${config.url || ''}`;
-        console.info("User Request URL:", fullUrl);
-        if (config.data) console.info("User Request Payload:", config.data);
-        if (config.headers["Authorization"]) console.info("User Request Authorization:", config.headers["Authorization"]);
+        console.info(`[User Request] method=${config.method?.toUpperCase()} url=${fullUrl} payload=`, config.data || '{}');
 
         return config;
     },
@@ -40,6 +37,7 @@ let isRefreshing = false;
 let failedQueue: { resolve: (token: string) => void; reject: (err: any) => void }[] = [];
 
 const processQueue = (error: any, token: string | null = null) => {
+    console.info(`[Auth Queue] Processing sub-requests queue. Count=${failedQueue.length} Status=${error ? 'REJECT' : 'RESOLVE'}`);
     failedQueue.forEach(prom => {
         if (error) {
             prom.reject(error);
@@ -52,20 +50,23 @@ const processQueue = (error: any, token: string | null = null) => {
 
 axiosUserInstance.interceptors.response.use(
     async (response) => {
-
-        console.info(`User Response Status: ${response.status} `);
-        if (response.data) console.info("User Response Payload:", response.data);
-        if (response.headers["Authorization"]) console.info("User Response Authorization:", response.headers["Authorization"]);
-
+        const fullUrl = `${response.config.baseURL || ''}${response.config.url || ''}`;
+        console.info(`[User Response] method=${response.config.method?.toUpperCase()} url=${fullUrl} code=${response.status} payload=`, response.data || '{}');
         return response;
     },
     async (error) => {
         const originalRequest = error?.config;
-        if (error.response?.data) console.info("User Response Error Payload:", error.response.data);
+        const fullUrl = originalRequest ? `${originalRequest.baseURL || ''}${originalRequest.url || ''}` : 'UNKNOWN';
+        if (error.response?.data) {
+            console.warn(`[User Response Error] url=${fullUrl} status=${error.response?.status} payload=`, error.response.data);
+        } else {
+            console.error(`[User Network/Runtime Error] message=${error.message} url=${fullUrl}`);
+        }
         if (!originalRequest) return Promise.reject(error);
 
         if (error.response?.status === 401 && !originalRequest._retry) {
             if (isRefreshing) {
+                console.info(`[Auth Interceptor] 401 detected for url=${fullUrl}. Token refresh already in progress. Queueing request.`);
                 // if first request is fetching the updated token then this is for subsequent requests
                 return await new Promise((resolve, reject) => {
                     failedQueue.push({resolve, reject});
@@ -119,16 +120,6 @@ axiosUserInstance.interceptors.response.use(
         } else {
             console.log("⚠️ Not a 401 or already retried. Forwarding error.");
         }
-
-        // if (error.response) {
-        //     console.error(`User Response Error : status ${error.response?.status}, data: ${JSON.stringify(error.response?.data)}`);
-        //     // console.error(`User Response Error : status ${error.response.status}, data: ${error.response.data}`);
-        // } else if (error.request) {
-        //     console.warn("User No response received from server");
-        // } else {
-        //     console.warn("User Network Error:", error.message);
-        // }
-
         return Promise.reject(error);
     }
 );

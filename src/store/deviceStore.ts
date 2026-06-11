@@ -12,7 +12,7 @@ interface DeviceState {
     updateScreen: (screen: ScaledSize) => void;
 }
 
-export const useDeviceStore = create<DeviceState>((set) => {
+export const deviceStore = create<DeviceState>((set) => {
     const initialScreen = Dimensions.get("window");
 
     const calculateState = (screen: ScaledSize) => ({

@@ -3,8 +3,8 @@ import React, { ReactNode } from 'react';
 import { Pressable, PressableProps, View, GestureResponderEvent, ActivityIndicator } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { AppText } from "@/src/components/common/AppText";
-import { useThemeStore } from '@/src/store/useThemeStore';
-import { useDeviceStore } from '@/src/store/deviceStore';
+import { themeStore } from '@/src/store/themeStore';
+import { deviceStore } from '@/src/store/deviceStore';
 import { COLORS } from "@/src/constants/colors";
 
 interface AppButtonProps extends PressableProps {
@@ -36,8 +36,8 @@ export const AppButton = ({
                               ...props
                           }: AppButtonProps) => {
 
-    const theme = useThemeStore((state) => state.theme);
-    const platform = useDeviceStore((state) => state.platform);
+    const theme = themeStore((state) => state.theme);
+    const platform = deviceStore((state) => state.platform);
 
     const isDark = theme === 'dark';
     const isInteractionDisabled = disabled || loading;
@@ -126,7 +126,7 @@ export const AppButton = ({
                             </AppText>
                         </>
                     )}
-                </View>
+            </View>
             )}
         </Pressable>
     );

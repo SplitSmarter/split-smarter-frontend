@@ -1,86 +1,105 @@
+// src/api/user/customUserApi.ts
+
 import axiosUserInstance from "@/src/api/axiosUserServiceInstance";
+import {SuccessResponse} from "@/src/api/dto/ApiResponse";
+import {handleApiError} from "@/src/api/utils/mapper";
 import {
+    CustomUserDetails,
     AddCustomUserRequest,
     AddCustomUserResponse,
-} from "@/src/interfaces/customUser";
+    UpdateCustomUserRequest,
+    UpdateCustomUserResponse
+} from "@/src/api/dto/user/custom_user";
 
-export const addCustomUserApi = async (
-    payload: AddCustomUserRequest
-): Promise<{
-    message: string;
-    tag: string;
-    data: AddCustomUserResponse;
-}> => {
+const BASE_PATH = "/user/custom/v1"; // Custom Users Router Prefix
+
+/**
+ * List all custom users created by the authenticated user
+ */
+export const listCustomUsersApi = async (params: { offset?: number; limit?: number } = {}) => {
+    const {offset = 0, limit = 100} = params;
+
     try {
-        const res = await axiosUserInstance.post("/user/custom/", payload);
+        const res = await axiosUserInstance.get<SuccessResponse<CustomUserDetails[]>>(
+            `${BASE_PATH}/`,
+            {params: {offset, limit}}
+        );
 
-        if (res.status === 201) {
+        if (res.data && res.data.success) {
             return {
-                message: "Custom user created successfully",
-                tag: "CustomUserCreated",
-                data: res.data,
+                message: res.data.message,
+                data: res.data.data,
+                pagination: res.data.pagination
             };
         }
-
-        return Promise.reject({
-            message: "Unexpected response",
-            status: res.status,
-            tag: "Unexpected",
-        });
+        throw new Error("Invalid Response Schema");
     } catch (error: any) {
-        if (error.response) {
-            const { status, data } = error.response;
-            const detail = data?.detail || data;
+        return handleApiError(error);
+    }
+};
 
-            switch (status) {
-                case 404:
-                    if (detail?.error === "user_not_found") {
-                        return Promise.reject({
-                            message: detail?.message || "User not found",
-                            tag: "UserNotFound",
-                        });
-                    }
-                    if (detail?.error === "relationship_not_found") {
-                        return Promise.reject({
-                            message: detail?.message || "Relationship not found",
-                            tag: "RelationshipNotFound",
-                        });
-                    }
-                    return Promise.reject({
-                        message: detail?.message || "Resource not found",
-                        tag: "NotFound",
-                    });
+/**
+ * Create a new custom user and link them to a relationship
+ */
+export const createCustomUserApi = async (data: AddCustomUserRequest) => {
+    try {
+        const res = await axiosUserInstance.post<SuccessResponse<AddCustomUserResponse>>(
+            `${BASE_PATH}/`,
+            data
+        );
 
-                case 409:
-                    if (detail?.error === "user_already_exists") {
-                        return Promise.reject({
-                            message: detail?.message || "Custom user already exists",
-                            tag: "UserAlreadyExists",
-                        });
-                    }
-                    return Promise.reject({
-                        message: detail?.message || "Conflict",
-                        tag: "Conflict",
-                    });
-
-                case 500:
-                    return Promise.reject({
-                        message: detail?.message || "Server error",
-                        tag: "ServerError",
-                    });
-
-                default:
-                    return Promise.reject({
-                        message: detail?.message || "Something went wrong",
-                        status,
-                        tag: "Unexpected",
-                    });
-            }
+        if (res.data && res.data.success) {
+            return {
+                message: res.data.message,
+                data: res.data.data
+            };
         }
+        throw new Error("Invalid Response Schema");
+    } catch (error: any) {
+        return handleApiError(error);
+    }
+};
 
-        return Promise.reject({
-            message: error.message || "Network error",
-            tag: "Unexpected",
-        });
+/**
+ * Get detailed information for a specific custom user (including groups and relations)
+ */
+export const getCustomUserDetailsApi = async (customUserId: number) => {
+    try {
+        const res = await axiosUserInstance.get<SuccessResponse<CustomUserDetails>>(
+            `${BASE_PATH}/${customUserId}`
+        );
+
+        if (res.data && res.data.success) {
+            return {
+                message: res.data.message,
+                data: res.data.data
+            };
+        }
+        throw new Error("Invalid Response Schema");
+    } catch (error: any) {
+        return handleApiError(error);
+    }
+};
+
+/**
+ * Update custom user details (e.g., change name)
+ */
+export const updateCustomUserApi = async (customUserId: number, data: UpdateCustomUserRequest) => {
+    try {
+        // Note: Backend currently returns raw JSON for update, mapping to consistent SuccessResponse locally
+        const res = await axiosUserInstance.patch<UpdateCustomUserResponse>(
+            `${BASE_PATH}/${customUserId}`,
+            data
+        );
+
+        if (res.data) {
+            return {
+                message: "Custom user updated successfully",
+                data: res.data
+            };
+        }
+        throw new Error("Invalid Response Schema");
+    } catch (error: any) {
+        return handleApiError(error);
     }
 };

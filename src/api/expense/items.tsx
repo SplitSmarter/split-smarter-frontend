@@ -1,142 +1,107 @@
 import axiosUserInstance from "@/src/api/axiosUserServiceInstance";
-import {
-    GetExpenseItemsParams,
-    GetExpenseItemsResponse,
-    GetExpenseItemByIdResponse
-} from "@/src/interfaces/expense";
+import { SuccessResponse } from "@/src/api/dto/ApiResponse";
+import { handleApiError } from "@/src/api/utils/mapper";
+import {AddExpenseItemRequest, AddExpenseItemResponse, ExpenseItemResponse, UpdateExpenseItemRequest} from "@/src/api/dto/expense/item";
+import {ExpenseItemSource} from "@/src/api/dto/constants";
 
-export const getExpenseItemsApi = async (
-    params: GetExpenseItemsParams = {}
-): Promise<{
-    message: string;
-    tag: string;
-    data: GetExpenseItemsResponse;
-}> => {
+const BASE_PATH = "/expense/item/v1";
+
+/**
+ * Creates a new custom expense item
+ */
+export const CreateExpenseItemApi = async (data: AddExpenseItemRequest) => {
     try {
-        const {
-            category_type = ["custom", "default"],
-            offset = 0,
-            limit = 100,
-        } = params;
+        const res = await axiosUserInstance.post<SuccessResponse<AddExpenseItemResponse>>(
+            `${BASE_PATH}/`,
+            data
+        );
 
-        const res = await axiosUserInstance.get("/expense/item/", {
-            params: {
-                category_type,
-                offset,
-                limit,
-            },
-            paramsSerializer: {
-                indexes: null, // produces ?category_type=custom&category_type=default
-            },
-        });
-
-        if (res.status === 200 && res.data?.success) {
+        if (res.data?.success) {
             return {
-                message: "Items fetched successfully",
-                tag: "ItemsFetched",
+                message: res.data.message,
                 data: res.data.data,
             };
         }
-
-        return Promise.reject({
-            message: "Unexpected response",
-            status: res.status,
-            tag: "Unexpected",
-        });
+        throw new Error("Invalid Response Schema");
     } catch (error: any) {
-        if (error.response) {
-            const { status, data } = error.response;
-            const detail = data?.detail || data;
-
-            switch (status) {
-                case 404:
-                    if (detail?.error === "user_not_found") {
-                        return Promise.reject({
-                            message: detail?.message || "User not found",
-                            tag: "UserNotFound",
-                        });
-                    }
-                    break;
-                case 500:
-                    return Promise.reject({
-                        message: detail?.message || "Server error",
-                        tag: "ServerError",
-                    });
-                default:
-                    return Promise.reject({
-                        message: detail?.message || "Something went wrong",
-                        status,
-                        tag: "Unexpected",
-                    });
-            }
-        }
-
-        return Promise.reject({
-            message: error.message || "Network error",
-            tag: "Unexpected",
-        });
+        return handleApiError(error);
     }
 };
 
-export const getExpenseItemByIdApi = async (
-    itemId: number
-): Promise<{
-    message: string;
-    tag: string;
-    data: GetExpenseItemByIdResponse;
-}> => {
+/**
+ * Retrieves expense items based on source type (Default/Custom)
+ */
+export const GetExpenseItemsApi = async (
+    source_type: ExpenseItemSource[] = [ExpenseItemSource.DEFAULT, ExpenseItemSource.CUSTOM],
+    offset = 0,
+    limit = 100
+) => {
     try {
-        const res = await axiosUserInstance.get(`/expense/item/${itemId}`);
+        const res = await axiosUserInstance.get<SuccessResponse<ExpenseItemResponse[]>>(
+            `${BASE_PATH}/`,
+            {
+                params: {
+                    source_type, // Backend expects source_type as Query List
+                    offset,
+                    limit
+                },
+                // Use bracket-less serialization to match FastAPI Query list: ?source_type=custom&source_type=default
+                paramsSerializer: { indexes: null }
+            }
+        );
 
-        if (res.status === 200 && res.data?.success) {
+        if (res.data?.success) {
             return {
-                message: "Item fetched successfully",
-                tag: "ItemFetched",
+                message: res.data.message,
+                data: res.data.data,
+                pagination: res.data.pagination // Backend returns pagination object
+            };
+        }
+        throw new Error("Invalid Response Schema");
+    } catch (error: any) {
+        return handleApiError(error);
+    }
+};
+
+/**
+ * Retrieves a specific expense item by ID
+ */
+export const GetExpenseItemByIdApi = async (itemId: number) => {
+    try {
+        const res = await axiosUserInstance.get<SuccessResponse<ExpenseItemResponse>>(
+            `${BASE_PATH}/${itemId}`
+        );
+
+        if (res.data?.success) {
+            return {
+                message: res.data.message,
                 data: res.data.data,
             };
         }
-
-        return Promise.reject({
-            message: "Unexpected response",
-            status: res.status,
-            tag: "Unexpected",
-        });
+        throw new Error("Invalid Response Schema");
     } catch (error: any) {
-        if (error.response) {
-            const { status, data } = error.response;
-            const detail = data?.detail || data;
+        return handleApiError(error);
+    }
+};
 
-            switch (status) {
-                case 404:
-                    if (detail?.error === "item_not_found") {
-                        return Promise.reject({
-                            message: detail?.message || "Item not found",
-                            tag: "ItemNotFound",
-                        });
-                    } else if (detail?.error === "user_not_found") {
-                        return Promise.reject({
-                            message: detail?.message || "User not found",
-                            tag: "UserNotFound",
-                        });
-                    }
-                    break;
-                case 500:
-                    return Promise.reject({
-                        message: detail?.message || "Server error",
-                        tag: "ServerError",
-                    });
-                default:
-                    return Promise.reject({
-                        message: detail?.message || "Something went wrong",
-                        status,
-                        tag: "Unexpected",
-                    });
-            }
+/**
+ * Updates an existing expense item (Custom items only)
+ */
+export const UpdateExpenseItemApi = async (itemId: number, data: UpdateExpenseItemRequest) => {
+    try {
+        const res = await axiosUserInstance.patch<SuccessResponse<null>>(
+            `${BASE_PATH}/${itemId}`,
+            data
+        );
+
+        if (res.data?.success) {
+            return {
+                message: res.data.message,
+                data: res.data.data,
+            };
         }
-
-        return Promise.reject({
-            message: error.message || "Network error",
-            tag: "Unexpected",
-        });
+        throw new Error("Invalid Response Schema");
+    } catch (error: any) {
+        return handleApiError(error);
     }
 };

@@ -1,50 +1,51 @@
-import axiosUserServiceInstance from "@/src/api/axiosUserServiceInstance";
+import axiosUserInstance from "@/src/api/axiosUserServiceInstance";
+import { SuccessResponse, PaginationResponse } from "@/src/api/dto/ApiResponse";
+import { handleApiError } from "@/src/api/utils/mapper";
+import {UserProfileResponse, UserSearchResponse} from "@/src/api/dto/user/user";
 
-export const GetMyDetailsApi = async () => {
+const BASE_PATH = "/user/v1"; // Match your backend router prefix
+
+/**
+ * Searches for users by name, email, or phone
+ */
+export const SearchUsersApi = async (params: {
+    q: string;
+    offset?: number;
+    limit?: number;
+}) => {
     try {
-        const res = await axiosUserServiceInstance.get("/user/");
+        const res = await axiosUserInstance.get<SuccessResponse<UserSearchResponse[]>>(
+            `${BASE_PATH}/search`,
+            { params }
+        );
 
-        if (res.status === 200 && res.data.success) {
-            return res.data.data.user;
+        if (res.data && res.data.success) {
+            return {
+                message: res.data.message,
+                data: res.data.data,
+                pagination: res.data.pagination as PaginationResponse
+            };
         }
-
-        return Promise.reject({
-            message: "Unexpected response",
-            status: res.status,
-            tag: "Unexpected",
-        });
+        throw new Error("Invalid Response Schema");
     } catch (error: any) {
-        if (error.response) {
-            const { status, data } = error.response;
-            const detail = data?.detail || data;
+        return handleApiError(error);
+    }
+};
 
-            switch (status) {
-                case 404:
-                    if (detail?.error === "user_not_found") {
-                        return Promise.reject({
-                            message: detail?.message || "User not found",
-                            tag: "UserNotFound",
-                        });
-                    }
-                    break;
 
-                case 500:
-                    return Promise.reject({
-                        message: detail?.message || "Server error",
-                        tag: "ServerError",
-                    });
-            }
-
-            return Promise.reject({
-                message: detail?.message || "Something went wrong",
-                status,
-                tag: "Unexpected",
-            });
+export const UserInfoApi = async () => {
+    try {
+        const res = await axiosUserInstance.get<SuccessResponse<UserProfileResponse>>(
+            `${BASE_PATH}/`,
+        );
+        if (res.data && res.data.success) {
+            return {
+                message: res.data.message,
+                data: res.data.data,
+            };
         }
-
-        return Promise.reject({
-            message: error.message || "Network error",
-            tag: "Unexpected",
-        });
+        throw new Error("Invalid Response Schema");
+    } catch (error: any) {
+        return handleApiError(error);
     }
 };

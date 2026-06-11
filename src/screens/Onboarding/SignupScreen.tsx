@@ -7,19 +7,21 @@ import {AppInput} from '@/src/components/common/AppInput';
 import {AppImage} from '@/src/components/common/AppImage';
 import {ScreenWrapper} from "@/src/components/common/ScreenWrapper";
 import {i18n as i18nInstance} from "@/src/i18n/index";
-import {useThemeStore} from "@/src/store/useThemeStore";
+import {themeStore} from "@/src/store/themeStore";
 import {Iconify} from "react-native-iconify";
-import {useDeviceStore} from "@/src/store/deviceStore";
+import {deviceStore} from "@/src/store/deviceStore";
 import {currencies} from '@/src/constants/currency';
 import {CurrencyBottomSheet} from "@/src/screens/Onboarding/comps/CurrencyBottomSheet";
 import {router, useLocalSearchParams} from "expo-router";
 import {validateName, validatePassword} from "@/src/utils/validation";
 import {useAlert} from "@/src/context/alertContext";
-import {useAuthStore} from "@/src/store/authStore";
-import {useConfigStore} from "@/src/store/useConfigStore";
-import {CredentialSignupApi} from "@/src/api/auth/signup";
-import {CredentialsSignupRequest} from "@/src/api/dto/auth/signup";
-import {useUserStore} from "@/src/store/userStore";
+import {authStore} from "@/src/store/authStore";
+import {configStore} from "@/src/store/configStore";
+import {CredentialSignupApi, GoogleSignupApi} from "@/src/api/auth/signup";
+import {CredentialsSignupRequest, GoogleSignupRequest} from "@/src/api/dto/auth/signup";
+import {userStore} from "@/src/store/userStore";
+import {ErrorCode} from "@/src/api/dto/defaults/gateway/ErrorCode";
+import {GoogleSignin} from "@react-native-google-signin/google-signin";
 
 
 const SignupScreen = () => {
@@ -36,11 +38,11 @@ const SignupScreen = () => {
     }>();
 
     const {t} = useTranslation('translation', {i18n: i18nInstance});
-    const {theme} = useThemeStore();
-    const platform = useDeviceStore((state) => state.platform);
-    const {countryCode, cityName} = useConfigStore();
-    const {login: authLogin} = useAuthStore();
-    const setUser = useUserStore((state) => state.setUser);
+    const {theme} = themeStore();
+    const platform = deviceStore((state) => state.platform);
+    const {countryCode, cityName} = configStore();
+    const {login: authLogin} = authStore();
+    const setUser = userStore((state) => state.setUser);
     const isDark = theme === 'dark';
     const {showAlert} = useAlert();
 
@@ -74,50 +76,93 @@ const SignupScreen = () => {
 
         setLoading(true);
         try {
-            const signupData: CredentialsSignupRequest = {
+            let res;
+            const commonData = {
                 name: name.trim(),
-                email: email || null,
-                password: password,
                 city: cityName || "Unknown",
                 country: countryCode || "Unknown",
                 currency: currencyCode,
                 language: i18nInstance.language || 'en',
-                user_type: email === undefined ? 'guest' : 'user',
             };
-            const res = await CredentialSignupApi(signupData);
+
+            if (auth_type === 'google') {
+                // Handle Google Signup
+                const googleData: GoogleSignupRequest = {
+                    ...commonData,
+                    idToken: googleToken || "",
+                    password: password,
+                };
+                res = await GoogleSignupApi(googleData);
+            } else {
+                const signupData: CredentialsSignupRequest = {
+                    name: name.trim(),
+                    email: email || null,
+                    password: password,
+                    city: cityName || "Unknown",
+                    country: countryCode || "Unknown",
+                    currency: currencyCode,
+                    language: i18nInstance.language || 'en',
+                    user_type: email === undefined ? 'guest' : 'user',
+                };
+                res = await CredentialSignupApi(signupData);
+            }
             if (res && res.meta?.access_token) {
                 showAlert(t(res.message || 'common.auth.signupSuccess'), "success");
+                const {profile, access_token, username} = res.meta;
 
                 // 1. Log into AuthStore (Tokens)
                 await authLogin({
                     email: email ? email : undefined,
-                    access_token: res.meta.access_token,
-                    username: res.meta.username,
+                    access_token: access_token,
+                    username: username
                 });
 
                 // 2. Update UserStore (Profile Info)
                 // We construct a partial UserDetails object from the API response
-                setUser({
-                    name: name.trim(),
-                    email: email,
-                    country: countryCode || "Unknown",
-                    currency: currencyCode as any,
-                    avatar_id: res.meta.avatar_id || "default",
-                    avatar_url: res.meta.avatar_url,
-                    language: i18nInstance.language || 'en',
-                    registered_on: new Date().toISOString(),
-                    city: cityName || undefined,
+                userStore.getState().setUser({
+                    id: profile.id,
+                    name: profile.name,
+                    email: profile.email,
+                    phone_number: profile.phone_number,
+                    city: profile.city,
+                    region: profile.region,
+                    country: profile.country,
+                    currency: profile.currency as any,
+                    avatar: {
+                        id: profile.avatar?.asset_id || "",
+                        url: profile.avatar?.asset_url || "",
+                        extension: "png", // TODO: Fix
+                        name: profile.name,
+                    },
+                    language: profile.language,
+                    registered_on: profile.registered_on,
+                    // subscription details
+                    subscription_tier: 'premium',
+                    max_saved_places: Infinity,
+                    can_use_premium_map: true,
+                    has_cloud_sync: true,
                 });
 
                 // 3. Optional: Sync full details if your API provides more fields than meta
-                // await useUserStore.getState().syncUserFromServer();
+                // await userStore.getState().syncUserFromServer();
 
                 router.replace("/(authenticated)/(tabs)");
             } else {
                 showAlert(t(res?.message || 'common.error.unknown_error'), "error");
             }
         } catch (err: any) {
-            showAlert(err.message, "error");
+            const errorTag = err?.tag;
+
+            // 3. Handle specific New User case
+            if (errorTag === ErrorCode.RESOURCE_USER_CONFLICT) {
+                showAlert("Already signed up, Please login", "warning");
+                router.replace({
+                    pathname: "/(unauthenticated)/login",
+                });
+            } else {
+                showAlert(err?.message || "Signup Failed", "error");
+            }
+
         } finally {
             setLoading(false);
         }
@@ -221,6 +266,7 @@ const SignupScreen = () => {
             />
         </ScreenWrapper>
     );
-};
+}
+
 
 export default SignupScreen;

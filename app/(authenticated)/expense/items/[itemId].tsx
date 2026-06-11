@@ -1,9 +1,9 @@
 import React from "react";
-import ExpenseItemDetailsScreen from "@/src/screens/expense/ExpenseItemDetails";
+import AddSplitScreen from "@/src/screens/expense/AddSplitScreen";
 
 const ItemDetailsScreen = () => {
     return (
-        <ExpenseItemDetailsScreen />
+        <AddSplitScreen />
     );
 };
 

@@ -1,42 +1,44 @@
 import React, {useRef, useState} from 'react';
 import {View, Pressable, KeyboardAvoidingView, ScrollView, TextInput} from 'react-native';
-import { useTranslation } from 'react-i18next';
-import { useRouter } from 'expo-router';
-import { Iconify } from "react-native-iconify";
-import { AppText } from '@/src/components/common/AppText';
-import { AppButton } from '@/src/components/common/AppButton';
-import { ScreenWrapper } from "@/src/components/common/ScreenWrapper";
-import { i18n as i18nInstance } from "@/src/i18n/index";
+import {useTranslation} from 'react-i18next';
+import {useRouter, useLocalSearchParams} from 'expo-router';
+import {Iconify} from "react-native-iconify";
+import {AppText} from '@/src/components/common/AppText';
+import {AppButton} from '@/src/components/common/AppButton';
+import {ScreenWrapper} from "@/src/components/common/ScreenWrapper";
+import {i18n as i18nInstance} from "@/src/i18n/index";
 import {AppInput} from "@/src/components/common/AppInput";
 import {COLORS} from "@/src/constants/colors";
-import {useThemeStore} from "@/src/store/useThemeStore";
-import {useDeviceStore} from "@/src/store/deviceStore";
-import {useAuthStore} from "@/src/store/authStore";
+import {themeStore} from "@/src/store/themeStore";
+import {deviceStore} from "@/src/store/deviceStore";
+import {authStore} from "@/src/store/authStore";
 import {useAlert} from "@/src/context/alertContext";
 import {CredentialLoginApi} from "@/src/api/auth/login";
 import {validateIdentifier, validatePassword} from "@/src/utils/validation";
-import {useUserStore} from "@/src/store/userStore";
+import {userStore} from "@/src/store/userStore";
 
 const LoginScreen = () => {
     // Pass instance explicitly to fix the warning you had
-    const { t } = useTranslation('translation', { i18n: i18nInstance });
-    const { theme } = useThemeStore();
-    const platform = useDeviceStore((state) => state.platform);
+    const {t} = useTranslation('translation', {i18n: i18nInstance});
+    const {theme} = themeStore();
+    const platform = deviceStore((state) => state.platform);
     const isDark = theme === 'dark';
     const router = useRouter();
+    const {redirect} = useLocalSearchParams<{ redirect?: string }>();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
     const passwordRef = useRef<TextInput>(null);
-    const { login: authLogin } = useAuthStore();
-    const { showAlert } = useAlert();
+    const {login: authLogin} = authStore();
+    const {showAlert} = useAlert();
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
     const handleLogin = async () => {
-        if(loading) return;
+        if (loading) return;
         const emailValidation = validateIdentifier(email);
         const passwordValidation = validatePassword(password);
+
 
         setErrors({
             email: emailValidation.isValid ? undefined : t(emailValidation.error!),
@@ -56,7 +58,7 @@ const LoginScreen = () => {
 
             // Check if the response contains the expected meta-data (token)
             if (res && res.meta?.access_token) {
-                const { profile, access_token, username } = res.meta;
+                const {profile, access_token, username} = res.meta;
 
                 // 1. Log in to AuthStore (Persists the token)
                 await authLogin({
@@ -64,7 +66,8 @@ const LoginScreen = () => {
                     username: username,
                     email: profile.email
                 });
-                useUserStore.getState().setUser({
+                userStore.getState().setUser({
+                    id: profile.id,
                     name: profile.name,
                     email: profile.email,
                     phone_number: profile.phone_number,
@@ -72,14 +75,28 @@ const LoginScreen = () => {
                     region: profile.region,
                     country: profile.country,
                     currency: profile.currency as any,
-                    avatar_id: profile.avatar?.asset_id || "",
-                    avatar_url: profile.avatar?.asset_url,
+                    avatar: {
+                        id: profile.avatar?.asset_id || "",
+                        url: profile.avatar?.asset_url || "",
+                        extension: "png", // TODO: Fix
+                        name: profile.name,
+                    },
                     language: profile.language,
                     registered_on: profile.registered_on,
+                    // subscription details
+                    subscription_tier: 'premium',
+                    max_saved_places: Infinity,
+                    can_use_premium_map: true,
+                    has_cloud_sync: true,
                 });
 
                 showAlert(res?.message || t('common.auth.loginSuccess'), "success");
-                router.replace("/(authenticated)/(tabs)");
+
+                if (redirect) {
+                    router.replace(redirect as any);
+                } else {
+                    router.replace("/(authenticated)/(tabs)");
+                }
             } else {
                 showAlert(res?.message || t('common.error.unknown_error'), "error");
             }
@@ -91,7 +108,11 @@ const LoginScreen = () => {
     };
 
     const handleBack = () => {
-        router.back();
+        if (router.canGoBack()) {
+            router.back();
+        } else {
+            router.replace("/(unauthenticated)");
+        }
     };
 
     return (
@@ -101,13 +122,14 @@ const LoginScreen = () => {
                 className="flex-1"
             >
                 <ScrollView
-                    contentContainerStyle={{ flexGrow: 1 }}
+                    contentContainerStyle={{flexGrow: 1}}
                     showsVerticalScrollIndicator={false}
                 >
                     {/* Header */}
                     <View className="flex-row items-center pt-4 mb-8">
                         <Pressable onPress={handleBack} className="p-2 -ml-2">
-                            <Iconify icon="heroicons:arrow-left" size={24} color={isDark ? COLORS.icon_primary_dark : COLORS.icon_primary_light} />
+                            <Iconify icon="heroicons:arrow-left" size={24}
+                                     color={isDark ? COLORS.icon_primary_dark : COLORS.icon_primary_light}/>
                         </Pressable>
                         <View className="flex-1 flex-row justify-center mr-8">
                             <AppText variant="h3">{t('common.auth.login')} to Split </AppText>
@@ -129,9 +151,9 @@ const LoginScreen = () => {
                             autoCapitalize="none"
                             onChangeText={(text) => {
                                 setEmail(text);
-                                if (errors.email) setErrors(prev => ({ ...prev, email: undefined }));
+                                if (errors.email) setErrors(prev => ({...prev, email: undefined}));
                             }}
-                            renderLeftIcon={(color) => <Iconify icon="heroicons:user" size={20} color={color} />}
+                            renderLeftIcon={(color) => <Iconify icon="heroicons:user" size={20} color={color}/>}
                         />
 
                         <View className="gap-y-2">
@@ -145,17 +167,18 @@ const LoginScreen = () => {
                                 onSubmitEditing={handleLogin}
                                 onChangeText={(text) => {
                                     setPassword(text);
-                                    if (errors.password) setErrors(prev => ({ ...prev, password: undefined }));
+                                    if (errors.password) setErrors(prev => ({...prev, password: undefined}));
                                 }}
                                 error={errors.password}
                                 secureTextEntry={!isPasswordVisible}
-                                renderLeftIcon={(color) => <Iconify icon="heroicons:lock-closed" size={20} color={color} />}
+                                renderLeftIcon={(color) => <Iconify icon="heroicons:lock-closed" size={20}
+                                                                    color={color}/>}
                                 renderRightIcon={(color) => (
                                     <Pressable onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
                                         {isPasswordVisible ? (
-                                            <Iconify icon="heroicons:eye-slash" size={20} color={color} />
+                                            <Iconify icon="heroicons:eye-slash" size={20} color={color}/>
                                         ) : (
-                                            <Iconify icon="heroicons:eye" size={20} color={color} />
+                                            <Iconify icon="heroicons:eye" size={20} color={color}/>
                                         )}
                                     </Pressable>
                                 )}
@@ -168,7 +191,7 @@ const LoginScreen = () => {
                         </View>
                     </View>
 
-                    <View className="flex-1" />
+                    <View className="flex-1"/>
 
                     <View className="gap-y-6 pb-8 w-full">
                         <AppButton

@@ -1,9 +1,9 @@
 import axiosGatewayInstance from "@/src/api/axiosGatewayInstance";
 import {setAccessToken} from "@/src/utils/token";
-import {useAuthStore} from "@/src/store/authStore";
+import {authStore} from "@/src/store/authStore";
 
 export const getLogoutHandler = () => {
-    const { logout } = useAuthStore.getState();
+    const { logout } = authStore.getState();
     return logout;
 };
 

@@ -9,10 +9,10 @@ import {
 } from "react-native";
 import { GetMyDetailsApi } from "@/src/api/user/user";
 import CustomAvatar from "@/src/components/common/CustomAvatar";
-import { useUserStore } from "@/src/store/userStore";
+import { userStore } from "@/src/store/userStore";
 
 export default function MyProfileScreen() {
-    const { user, setUser } = useUserStore();
+    const { user, setUser } = userStore();
     const [loading, setLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
 

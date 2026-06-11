@@ -5,7 +5,6 @@ export const googleSignIn = async () => {
         await GoogleSignin.hasPlayServices();
         const response = await GoogleSignin.signIn();
         if (isSuccessResponse(response)) {
-            // console.log({ userInfo: response.data });
             return Promise.resolve({"userInfo": response.data})
         } else {
             console.log("cancelled");

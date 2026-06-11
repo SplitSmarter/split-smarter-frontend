@@ -6,7 +6,7 @@ import CustomText from "@/src/components/common/CustomText";
 import AccordionItem from "@/src/components/common/accordionItem";
 import { AddExpenseForm } from "@/src/interfaces/expense";
 import { useTranslation } from "react-i18next";
-import {useDeviceStore} from "@/src/store/deviceStore";
+import {deviceStore} from "@/src/store/deviceStore";
 
 interface Props {
     form: AddExpenseForm;
@@ -17,7 +17,7 @@ const ExpenseDetailsSection = ({ form, updateForm }: Props) => {
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [advancedOpen, setAdvancedOpen] = useState(false);
     const { t } = useTranslation();
-    const platform = useDeviceStore((state) => state.platform);
+    const platform = deviceStore((state) => state.platform);
 
     const onDateChange = (_event: any, selectedDate?: Date) => {
         setShowDatePicker(platform === "ios");

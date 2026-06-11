@@ -1,9 +1,9 @@
 import React from "react";
-import ExpenseCategoriesScreen from "@/src/screens/expense/ExpenseCategories";
+import AddSplitScreen from "@/src/screens/expense/AddSplitScreen";
 
 const CategoriesScreen = () => {
     return (
-        <ExpenseCategoriesScreen/>
+        <AddSplitScreen/>
     );
 };
 

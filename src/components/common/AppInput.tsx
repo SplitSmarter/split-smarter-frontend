@@ -2,7 +2,7 @@
 import React, {forwardRef, useState} from 'react';
 import { View, TextInput, TextInputProps } from 'react-native';
 import { AppText } from "@/src/components/common/AppText";
-import { useThemeStore } from "@/src/store/useThemeStore";
+import { themeStore } from "@/src/store/themeStore";
 import { COLORS } from "@/src/constants/colors";
 
 interface AppInputProps extends TextInputProps {
@@ -13,19 +13,13 @@ interface AppInputProps extends TextInputProps {
     renderRightIcon?: (color: string) => React.ReactNode;
 }
 
+// /src/components/common/AppInput.tsx
 export const AppInput = forwardRef<TextInput, AppInputProps>((props, ref) => {
     const {
-        label,
-        error,
-        required,
-        renderLeftIcon,
-        renderRightIcon,
-        onFocus,
-        onBlur,
-        ...rest // Use 'rest' to ensure all TextInputProps are passed
+        label, error, required, renderLeftIcon, renderRightIcon, onFocus, onBlur, ...rest
     } = props;
     const [isFocused, setIsFocused] = useState(false);
-    const {theme} = useThemeStore();
+    const { theme } = themeStore();
     const isDark = theme === 'dark';
 
     const getBorderClass = () => {
@@ -40,6 +34,11 @@ export const AppInput = forwardRef<TextInput, AppInputProps>((props, ref) => {
             ? isDark ? COLORS.icon_secondary_dark : COLORS.icon_secondary_light
             : isDark ? COLORS.icon_primary_dark : COLORS.icon_primary_light;
 
+    // --- DYNAMIC CLASS CALCULATION ---
+    const containerClass = `w-full px-4 rounded-2xl flex-row border ${getBorderClass()} ${
+        isDark ? 'bg-bg-primary' : 'bg-white'
+    } ${rest.multiline ? 'py-4 items-start' : 'h-14 items-center'}`;
+
     return (
         <View className="gap-y-2 w-full">
             {label && (
@@ -51,22 +50,23 @@ export const AppInput = forwardRef<TextInput, AppInputProps>((props, ref) => {
                 </View>
             )}
 
-            <View
-                className={`w-full h-14 px-4 rounded-2xl flex-row items-center border ${getBorderClass()} ${
-                    isDark ? 'bg-bg-primary' : 'bg-white'
-                }`}
-            >
-                {/* --- Left Icon Section --- */}
+            {/* REMOVED h-14 HERE, using containerClass instead */}
+            <View className={containerClass}>
                 {renderLeftIcon && (
-                    <View className="mr-3">
+                    <View className={rest.multiline ? "mr-3 mt-1" : "mr-3"}>
                         {renderLeftIcon(iconColor)}
                     </View>
                 )}
 
                 <TextInput
                     ref={ref}
-                    className={`flex-1 text-base h-full ${isDark ? 'text-white' : 'text-gray-900'}`}
-                    placeholderTextColor={isDark ? '#71717a' : '#a1a1aa'} // Updated to a hex string for better reliability
+                    // Adjusted height logic to avoid collisions
+                    className={`flex-1 text-base ${isDark ? 'text-white' : 'text-gray-900'} ${
+                        rest.multiline ? 'min-h-[100px]' : ''
+                    }`}
+                    textAlignVertical={rest.multiline ? 'top' : 'center'}
+                    placeholderTextColor={isDark ? '#71717a' : '#a1a1aa'}
+                    multiline={rest.multiline}
                     onFocus={(e) => {
                         setIsFocused(true);
                         onFocus?.(e);
@@ -75,10 +75,9 @@ export const AppInput = forwardRef<TextInput, AppInputProps>((props, ref) => {
                         setIsFocused(false);
                         onBlur?.(e);
                     }}
-                    {...props}
+                    {...rest} // Use rest instead of props to avoid double-passing ref/onFocus
                 />
 
-                {/* --- Right Icon Section --- */}
                 {renderRightIcon && (
                     <View className="ml-2">
                         {renderRightIcon(iconColor)}

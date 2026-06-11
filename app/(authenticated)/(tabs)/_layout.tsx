@@ -1,10 +1,10 @@
 import { Tabs } from 'expo-router';
-import { useThemeStore } from "@/src/store/useThemeStore";
+import { themeStore } from "@/src/store/themeStore";
 import { Iconify } from "react-native-iconify";
 import { Platform } from 'react-native';
 
 export default function AuthTabLayout() {
-    const { theme } = useThemeStore();
+    const { theme } = themeStore();
     const isDark = theme === 'dark';
 
     // Mapping colors from your global.css variables

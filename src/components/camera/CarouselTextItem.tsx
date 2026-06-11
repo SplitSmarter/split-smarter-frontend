@@ -6,7 +6,7 @@ import Animated, {
     interpolateColor,
     useAnimatedStyle,
 } from 'react-native-reanimated';
-import {useI18nStore} from "@/src/store/useI18nStore";
+import {i18nStore} from "@/src/store/i18nStore";
 import {windowWidth} from "@/src/constants/sizes";
 
 type CarouselTextItemProps = {
@@ -22,7 +22,7 @@ const CarouselTextItem: React.FC<CarouselTextItemProps> = ({
                                                                index,
                                                                contentOffset,
                                                            }) => {
-    const { font } = useI18nStore();
+    const { font } = i18nStore();
     const animatedTextStyle = useAnimatedStyle(() => {
         const inputRange = [
             (index - 2) * ListItemWidth,

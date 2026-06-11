@@ -3,7 +3,7 @@ import { View, Pressable, SafeAreaView } from 'react-native';
 import { AppText } from '../common/AppText';
 import { Iconify } from 'react-native-iconify';
 import { COLORS } from '@/src/constants/colors';
-import { useLogStore } from '@/src/store/useLogStore';
+import { logStore } from '@/src/store/logStore';
 
 interface Props {
     children?: ReactNode; // Explicitly defined
@@ -27,7 +27,7 @@ export class CustomErrorBoundary extends Component<Props, State> {
 
     public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
         // Log to your Zustand store
-        useLogStore.getState().addLog({
+        logStore.getState().addLog({
             level: 'ERROR',
             message: error.message,
             context: {

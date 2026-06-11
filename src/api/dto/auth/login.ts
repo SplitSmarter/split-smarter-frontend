@@ -27,7 +27,7 @@ export type RemoteUserProfileResponse = {
 };
 
 export type CredentialsLoginResponse = {
-    id: number;
+    id: string;
     username: string;
     profile: RemoteUserProfileResponse;
 };

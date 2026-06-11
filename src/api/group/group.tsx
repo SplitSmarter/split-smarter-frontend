@@ -1,92 +1,91 @@
 import axiosUserInstance from "@/src/api/axiosUserServiceInstance";
-import {
-    SaveGroupRequest,
-    SaveGroupResponse,
-} from "@/src/interfaces/group";
+import {SuccessResponse, PaginationResponse} from "@/src/api/dto/ApiResponse";
+import {handleApiError} from "@/src/api/utils/mapper";
+import {AddGroupRequest, AddGroupResponse, GroupDetails} from "@/src/api/dto/user/group";
+import {GroupStatus} from "@/src/api/dto/constants";
 
-export const saveGroupApi = async (
-    payload: SaveGroupRequest
-): Promise<{
-    message: string;
-    tag: string;
-    data: SaveGroupResponse;
-}> => {
+const BASE_PATH = "/group/v1"; // Matching your backend router logic
+
+/**
+ * Retrieves all groups for the authenticated user with filters and pagination
+ */
+export const GetGroupsApi = async (
+    params: {
+        offset?: number;
+        limit?: number;
+        statuses?: GroupStatus[];
+    } = {}
+) => {
+    const {
+        offset = 0,
+        limit = 100,
+        statuses = [GroupStatus.ACTIVE]
+    } = params;
+
     try {
-        const res = await axiosUserInstance.post("/group/", payload);
+        const res = await axiosUserInstance.get<SuccessResponse<GroupDetails[]>>(
+            `${BASE_PATH}/`,
+            {
+                params: {
+                    offset,
+                    limit,
+                    statuses
+                }
+            }
+        );
 
-        if (res.status === 201 && res.data?.success) {
+        if (res.data && res.data.success) {
             return {
-                message: res.data?.message || "Group created successfully",
-                tag: "GroupCreated",
+                message: res.data.message,
+                data: res.data.data,
+                pagination: res.data.pagination as PaginationResponse
+            };
+        }
+        throw new Error("Invalid Response Schema");
+    } catch (error: any) {
+        return handleApiError(error);
+    }
+};
+
+/**
+ * Retrieves a specific group by its internal ID
+ */
+export const GetGroupByIdApi = async (groupId: number) => {
+    try {
+        const res = await axiosUserInstance.get<SuccessResponse<GroupDetails>>(
+            `${BASE_PATH}/${groupId}`
+        );
+
+        if (res.data && res.data.success) {
+            return {
+                message: res.data.message,
                 data: res.data.data,
             };
         }
-
-        return Promise.reject({
-            message: "Unexpected response",
-            status: res.status,
-            tag: "Unexpected",
-        });
+        throw new Error("Invalid Response Schema");
     } catch (error: any) {
-        if (error.response) {
-            const { status, data } = error.response;
-            const detail = data?.detail || data;
+        return handleApiError(error);
+    }
+};
 
-            switch (status) {
-                case 400:
-                    return Promise.reject({
-                        message: detail?.message || "Bad request",
-                        tag: "BadRequest",
-                    });
+/**
+ * Creates a new group
+ */
+export const CreateGroupApi = async (data: AddGroupRequest) => {
+    try {
+        const res = await axiosUserInstance.post<SuccessResponse<AddGroupResponse>>(
+            `${BASE_PATH}/`,
+            data
+        );
 
-                case 404:
-                    if (detail?.error === "user_not_found") {
-                        return Promise.reject({
-                            message: detail?.message || "User not found",
-                            tag: "UserNotFound",
-                        });
-                    }
-                    if (detail?.error === "category_not_found") {
-                        return Promise.reject({
-                            message: detail?.message || "Category not found",
-                            tag: "CategoryNotFound",
-                        });
-                    }
-                    return Promise.reject({
-                        message: detail?.message || "Resource not found",
-                        tag: "NotFound",
-                    });
-
-                case 409:
-                    if (detail?.error === "title_conflict") {
-                        return Promise.reject({
-                            message: detail?.message || "Group title already exists",
-                            tag: "TitleConflict",
-                        });
-                    }
-                    return Promise.reject({
-                        message: detail?.message || "Conflict",
-                        tag: "Conflict",
-                    });
-
-                case 500:
-                    return Promise.reject({
-                        message: detail?.message || "Server error",
-                        tag: "ServerError",
-                    });
-
-                default:
-                    return Promise.reject({
-                        message: detail?.message || "Something went wrong",
-                        status,
-                        tag: "Unexpected",
-                    });
-            }
+        if (res.data && res.data.success) {
+            return {
+                message: res.data.message,
+                data: res.data.data,
+            };
         }
-
-        return Promise.reject({
-            message: error.message || "Network error",
-            tag: "Unexpected",
-        });
+        throw new Error("Invalid Response Schema");
+    } catch (error: any) {
+        return handleApiError(error);
     }
 };

@@ -1,4 +1,4 @@
-// /src/i18n/index.ts
+// /src/i18n/index.tsx
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import { resources, fallbackLang, LANGUAGE_KEY } from "@/src/constants/language";
