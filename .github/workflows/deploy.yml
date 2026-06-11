@@ -10,8 +10,8 @@ on:
 
 jobs:
   call-central-workflow:
-    # Uses a relative path to reference a local workflow in the same repo
-    uses: ./ci-cd-workflows/.github/workflows/expo-deploy.yml
+    # Format: <organization>/<repository-name>/.github/workflows/<file-name>@<branch-or-tag>
+    uses: SplitSmarter/ci-cd-workflows/.github/workflows/expo-deploy.yml@main
     with:
       branch_name: ${{ github.ref }}
     secrets:
