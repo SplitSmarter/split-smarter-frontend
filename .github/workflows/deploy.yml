@@ -23,4 +23,5 @@ jobs:
       branch_name: ${{ github.ref }}
       # Defaults to true on automated git push events, or reads manual checkbox choice
       publish_artifact: ${{ github.event.inputs.should_publish || 'true' }}
-    secrets: inherit
+    secrets:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
