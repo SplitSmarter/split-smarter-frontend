@@ -7,7 +7,7 @@ import MultiExpenseItemSelect from "@/src/components/expense/MultiExpenseItemSel
 import {CategoryGroupLocationSelector} from "@/src/screens/expense/CGLSelector";
 import {themeStore} from "@/src/store/themeStore";
 import {userStore} from "@/src/store/userStore";
-import {useExpenseDraftStore} from "@/src/store/draft/expenseDraftStore";
+import {useExpenseDraftStore, PayerUser} from "@/src/store/draft/expenseDraftStore";
 import {RelationWithUserType} from "@/src/api/dto/constants";
 import {router} from 'expo-router';
 import React, {useMemo, useState, useEffect, useRef} from 'react';
@@ -32,10 +32,14 @@ const AddExpenseScreen = () => {
         return draft.totalAmount === 0 ? "" : draft.totalAmount.toString();
     }, [draft.totalAmount]);
 
-    // Track initialization parameters and bootstrap "You" configurations
+    // Unify initialization context and automatic mathematical allocation safely in a single flow
     useEffect(() => {
-        if (user && draft.payers.length === 0 && draft.splitParticipants.length === 0) {
-            const initialUserObject = {
+        let currentPayers = [...draft.payers];
+        let currentParticipants = [...draft.splitParticipants];
+
+        // 1. Fallback Bootstrapping: If the store initialized empty (e.g. userStore wasn't ready at startup), load it now
+        if (user && currentPayers.length === 0 && currentParticipants.length === 0) {
+            const initialUserObject: PayerUser = {
                 id: String(user.id),
                 name: "You",
                 avatar: user.avatar ? {
@@ -49,28 +53,29 @@ const AddExpenseScreen = () => {
                 isLocked: false,
                 user_type: RelationWithUserType.USER
             };
-            draft.setPayers([initialUserObject]);
-            draft.setSplitParticipants([initialUserObject]);
+            currentPayers = [initialUserObject];
+            currentParticipants = [initialUserObject];
         }
-    }, [user]);
 
-    // Handle background allocation mathematical scaling transformations dynamically
-    useEffect(() => {
-        // Safe check: If this is the initial layout pass, don't overwrite pre-populated store entries
+        // 2. Initial Mount Guard: Stop overwrite steps if data allocations are already distributed
         if (isInitialMount.current) {
             isInitialMount.current = false;
+            const totalPayerSum = currentPayers.reduce((sum, p) => sum + (p.amount || 0), 0);
 
-            // If the store already contains amounts distributed, do not reset them
-            const totalPayerSum = draft.payers.reduce((sum, p) => sum + (p.amount || 0), 0);
-            if (totalPayerSum > 0 || draft.totalAmount > 0) {
+            // If we have populated arrays from initialization or a prior draft state, save them and exit
+            if (totalPayerSum > 0 || draft.totalAmount > 0 || currentPayers.length > 0) {
+                if (draft.payers.length === 0) {
+                    draft.setPayers(currentPayers);
+                    draft.setSplitParticipants(currentParticipants);
+                }
                 return;
             }
         }
 
+        // 3. Mathematical Scaling Distribution Sequence
         const scaleDistribution = (prevList: any[]) => {
             if (prevList.length === 0) return prevList;
 
-            // Look for locked amounts to subtract from the divisible total pool
             const lockedSum = prevList.reduce((sum, u) => sum + (u.isLocked ? (u.amount || 0) : 0), 0);
             const remainingPool = Math.max(0, draft.totalAmount - lockedSum);
 
@@ -78,7 +83,7 @@ const AddExpenseScreen = () => {
             const totalShares = unlockedParticipants.reduce((sum, u) => sum + (u.shares ?? 1), 0);
 
             return prevList.map(p => {
-                if (p.isLocked) return p; // Preserve row if explicit lock is marked
+                if (p.isLocked) return p;
                 return {
                     ...p,
                     amount: totalShares > 0 ? (remainingPool * (p.shares ?? 1)) / totalShares : 0
@@ -86,13 +91,12 @@ const AddExpenseScreen = () => {
             });
         };
 
-        // Batch set entries safely
-        const updatedPayers = scaleDistribution(draft.payers);
-        const updatedParticipants = scaleDistribution(draft.splitParticipants);
+        const updatedPayers = scaleDistribution(currentPayers);
+        const updatedParticipants = scaleDistribution(currentParticipants);
 
         draft.setPayers(updatedPayers);
         draft.setSplitParticipants(updatedParticipants);
-    }, [draft.totalAmount]);
+    }, [draft.totalAmount, user]); // <-- Adding user dependency handles async auth store updates smoothly
 
     const handleAmountChange = (text: string) => {
         const parsed = parseFloat(text);
@@ -113,7 +117,6 @@ const AddExpenseScreen = () => {
         });
     };
 
-    // Humanize UI feedback label components based on exact arrays state metrics
     const payerText = useMemo(() => {
         if (draft.payers.length === 0) return "No one paid";
         const hasMe = draft.payers.some(p => String(p.id) === String(user?.id));
@@ -170,7 +173,6 @@ const AddExpenseScreen = () => {
                     <AppButtonV2
                         variant="secondary"
                         size="none"
-                        /* changed to rounded-full for that perfect capsule shape */
                         className="w-full flex-row justify-between items-center px-6 py-4 rounded-full border border-border-input bg-bg-primary-lighter"
                         onPress={handleOpenPaidBy}
                         hasShadow={false}
@@ -227,7 +229,7 @@ const AddExpenseScreen = () => {
                                 </View>
                             ))
                         ) : (
-                            <AppText variant="caption-xs" className="text-text-primary opacity-60 font-medium">Split with no one</AppText>
+                            <AppText variant="caption-xs" className="text-text-primary opacity-60 font-medium">{splitTextSummary}</AppText>
                         )}
                     </Pressable>
 
@@ -277,7 +279,6 @@ const AddExpenseScreen = () => {
                 </View>
             </ScrollView>
 
-            {/* MultiExpenseItemSelect Modal */}
             <Modal visible={isItemSelectVisible} animationType="slide" transparent
                    onRequestClose={() => setIsItemSelectVisible(false)}>
                 <View className="flex-1 justify-end bg-black/50">
@@ -302,31 +303,5 @@ const AddExpenseScreen = () => {
         </>
     );
 };
-
-interface UserRowProps {
-    name: string;
-    avatarUrl: string | null;
-    amount: string;
-    isLast?: boolean;
-}
-
-const UserRow = ({name, avatarUrl, amount, isLast}: UserRowProps) => (
-    <View
-        className={`flex-row items-center justify-between py-3 ${!isLast ? 'border-b border-bg-secondary-lighter' : ''}`}>
-        <View className="flex-row items-center">
-            {avatarUrl ? (
-                <AppImageV2 id={`avatar-${name}`} url={avatarUrl} style={{width: 32, height: 32}}
-                            className="rounded-full"/>
-            ) : (
-                <View style={{width: 32, height: 32}}
-                      className="bg-gray-200 dark:bg-gray-700 rounded-full items-center justify-center">
-                    <Iconify icon="heroicons:user-solid" size={16} color="#999"/>
-                </View>
-            )}
-            <AppText className="ml-3 text-text-primary font-medium">{name}</AppText>
-        </View>
-        <AppText className="font-bold text-text-primary">{amount}</AppText>
-    </View>
-);
 
 export default AddExpenseScreen;
