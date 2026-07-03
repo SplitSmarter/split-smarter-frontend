@@ -1,5 +1,5 @@
 import React from "react";
-import GroupListScreen from "@/src/screens/group/GroupListScreen";
+import ExpenseChatGroupListScreen from "@/src/screens/ExpenseChatGroupListScreen";
 import AddExpenseCategoryScreen from "@/src/screens/expense/AddExpenseCategory";
 import AddGroupCategoryScreen from "@/src/screens/group/AddGroupCategory";
 import AddRelationshipScreen from "@/src/screens/relation/AddRelationshipScreen";
@@ -9,7 +9,7 @@ import AddGroupScreen from "@/src/screens/group/AddGroup";
 
 const Camera = () => {
     return (
-        <AddGroupScreen />
+        <ExpenseChatGroupListScreen />
     );
 };
 

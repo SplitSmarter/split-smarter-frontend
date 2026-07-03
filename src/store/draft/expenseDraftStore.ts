@@ -1,24 +1,19 @@
-import { create } from 'zustand';
-import { RelationWithUserType } from "@/src/api/dto/constants";
-import { ExpenseComponentType } from "@/src/api/dto/expense/constant";
-import { CurrencyType } from "@/src/constants/expense"; // 👈 UPDATED: Swapped for global app types
-import { userStore } from "@/src/store/userStore";
-import {DateComponentPayload} from "@/src/constants/expense/schedule";     // 👈 ADDED: For initial user context pull
+import {create} from 'zustand';
+import {RelationWithUserType} from "@/src/api/dto/constants";
+import {ExpenseComponentType} from "@/src/api/dto/expense/constant";
+// import {CurrencyType} from "@/src/constants/expense"; // 👈 UPDATED: Swapped for global app types
+import {userStore} from "@/src/store/userStore";
+import {DateComponentPayload} from "@/src/constants/expense/schedule";
+import {ImageInfo} from "@/src/constants/user/asset"; // 👈 ADDED: For initial user context pull
+import { Currency, CurrencyCode } from "@/src/constants/expense/currency";
 
 export type ExpenseLocationType = 'current' | 'place' | 'none';
-
-export interface BasicImage {
-    id: string;
-    name: string;
-    url: string;
-    extension: string;
-}
 
 export interface User {
     id: string;
     user_type: RelationWithUserType;
     name: string;
-    avatar: BasicImage | null;
+    avatar: ImageInfo | null;
 }
 
 export interface PayerUser extends User {
@@ -52,7 +47,7 @@ export interface ExpenseDraftState {
     title: string;
     description: string;
     totalAmount: number;
-    currency: CurrencyType; // 👈 UPDATED
+    currency: CurrencyCode; // 👈 UPDATED
     categoryId: number | undefined;
     defaultCategoryId: number | undefined;
     groupId: number | undefined;
@@ -69,7 +64,7 @@ export interface ExpenseDraftState {
     setTitle: (title: string) => void;
     setDescription: (description: string) => void;
     setTotalAmount: (amount: number) => void;
-    setCurrency: (currency: CurrencyType) => void; // 👈 UPDATED
+    setCurrency: (currency: CurrencyCode) => void; // 👈 UPDATED
     setCategoryId: (id: number | undefined) => void;
     setDefaultCategoryId: (id: number) => void;
     setGroupId: (id: number | undefined) => void;
@@ -109,12 +104,12 @@ export const useExpenseDraftStore = create<ExpenseDraftState>((set) => ({
     title: '',
     description: '',
     totalAmount: 0.0,
-    currency: (userStore.getState().user?.currency as CurrencyType) || 'INR', // Falls back to user's native currency choice
+    currency: (userStore.getState().user?.currency as CurrencyCode) || 'INR', // Falls back to user's native currency choice
     categoryId: undefined,
     defaultCategoryId: undefined,
     groupId: undefined,
-    payers: getInitialUserContext(), // 👈 SEEDED: Automatically populates self-as-payer
-    splitParticipants: getInitialUserContext(), // 👈 SEEDED: Automatically populates self-as-sharer
+    payers: getInitialUserContext(),
+    splitParticipants: getInitialUserContext(),
     expenseDate: new Date().toISOString(),
     expenseLocationMode: 'none',
     expenseLocation: undefined,
@@ -139,11 +134,11 @@ export const useExpenseDraftStore = create<ExpenseDraftState>((set) => ({
     setIsRecurring: (isRecurring) => set({ isRecurring }),
 
     resetDraft: () => set({
-        expenseType: ExpenseComponentType.TRANSFER,
+        expenseType: ExpenseComponentType.ITEM,
         title: '',
         description: '',
         totalAmount: 0,
-        currency: (userStore.getState().user?.currency as CurrencyType) || 'INR',
+        currency: (userStore.getState().user?.currency as CurrencyCode) || 'INR',
         categoryId: undefined,
         defaultCategoryId: undefined,
         groupId: undefined,

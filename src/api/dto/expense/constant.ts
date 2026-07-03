@@ -20,12 +20,18 @@ export enum ExpenseComponentType {
 }
 
 export enum ExpenseExtraDetailType {
-    LOCATION = "LOCATION",
-    METADATA = "METADATA",
-    NOTES = "NOTES"
+    PLACE = "PLACE",
+    TEXT = "TEXT",
+    LIST = "LIST"
 }
+
+
+export enum ExpenseStatus {
+    ACTIVE = "ACTIVE",
+    DELETED = "DELETED",
+}
+
 
 export type Weekday = "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY" | "SUNDAY";
 export type Month = "JANUARY" | "FEBRUARY" | "MARCH" | "APRIL" | "MAY" | "JUNE" | "JULY" | "AUGUST" | "SEPTEMBER" | "OCTOBER" | "NOVEMBER" | "DECEMBER";
-export type Currency = string; // e.g., "INR", "USD"
 

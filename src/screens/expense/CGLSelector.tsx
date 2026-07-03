@@ -7,7 +7,7 @@ import { images } from "@/src/constants/images";
 import { SelectExpenseCategoryBottomSheet } from "@/src/components/expense/SelectExpenseCategoryBottomSheet";
 import { SelectGroupBottomSheet } from "@/src/components/user/SelectGroupBottomSheet";
 import { systemStore } from "@/src/store/systemStore";
-import { useExpenseDraftStore } from "@/src/store/expenseDraftStore";
+import { useExpenseDraftStore } from "@/src/store/draft/expenseDraftStore";
 import { GetExpenseCategoryByIdApi } from "@/src/api/expense/categories";
 import { GetGroupByIdApi } from "@/src/api/group/group";
 import { ExpenseCategoryResponse } from "@/src/api/dto/expense/category";

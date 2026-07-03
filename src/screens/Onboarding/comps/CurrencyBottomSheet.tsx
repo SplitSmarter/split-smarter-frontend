@@ -12,7 +12,7 @@ import { Iconify } from 'react-native-iconify';
 import { AppText } from "@/src/components/common/AppText";
 import { AppButton } from "@/src/components/common/AppButton";
 import { AppImage } from "@/src/components/common/AppImage"; // Import AppImage
-import { currencies } from "@/src/constants/currency";
+import { Currency } from "@/src/constants/expense/currency";
 import { COLORS } from "@/src/constants/colors";
 import { i18n as i18nInstance } from "@/src/i18n/index";
 
@@ -47,7 +47,7 @@ export const CurrencyBottomSheet = React.memo(({
         <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} opacity={0.5} pressBehavior="close" />
     ), []);
 
-    const renderCurrencyItem = useCallback(({ item }: { item: typeof currencies[keyof typeof currencies] }) => {
+    const renderCurrencyItem = useCallback(({ item }: { item: typeof Currency[keyof typeof Currency] }) => {
         const isSelected = currentCurrency === item.code;
         // Using the 4:3 ratio URL as discussed for better circular fit
         const flagUrl = `https://flagcdn.com/256x192/${item.countryTag.toLowerCase()}.png`;
@@ -120,7 +120,7 @@ export const CurrencyBottomSheet = React.memo(({
                 </View>
 
                 <BottomSheetFlatList
-                    data={Object.values(currencies)}
+                    data={Object.values(Currency)}
                     keyExtractor={(item) => item.code}
                     contentContainerStyle={{ gap: 12, paddingBottom: 20 }}
                     renderItem={renderCurrencyItem}

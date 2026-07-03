@@ -42,11 +42,15 @@ module.exports = {
         'icon-secondary-darker': "rgb(var(--color-icon-secondary-darker) / <alpha-value>)",
 
         // --- Status Colors ---
+        'status-error': "rgb(var(--color-status-error) / <alpha-value>)",
         'green-increase': "rgb(var(--color-green-increase) / <alpha-value>)",
         'red-decrease': "rgb(var(--color-red-decrease) / <alpha-value>)",
         'golden': "rgb(var(--color-golden) / <alpha-value>)",
 
-        // --- Semantic Aliases ---
+        // --- Form Controls Specific Mappings ---
+        'border-input': "rgb(var(--color-border-input) / <alpha-value>)",
+
+        // --- Standard Tailwind Mapping Targets ---
         background: "rgb(var(--bg-background) / <alpha-value>)",
         foreground: "rgb(var(--text-foreground) / <alpha-value>)",
       },

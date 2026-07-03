@@ -6,75 +6,97 @@
 @layer base {
     /* LIGHT THEME (Default) */
     :root {
-        --color-bg-primary: 242 242 242;     /* F2F2F2 */
-        --color-bg-primary-lighter: 255 255 255;     /* F2F2F2 */
-        --color-bg-primary-darker: 230 230 230;/* E6E6E6 (Used to be bg-primary-dark) */
-        --color-bg-canvas: 255 255 255;      /* FFFFFF (Used to be bg-primary-light/bg-canvas) */
-        --color-bg-secondary: 43 135 97;     /* 2B8761 (Brand Green) */
-        --color-bg-secondary-lighter: 85 159 129; /* 559F81 (Used to be bg-secondary-light) */
-        --color-bg-secondary-darker: 34 108 78; /* 226C4E (Used to be bg-secondary-dark) */
-        --color-bg-overlay: 255 255 255;        /* FFFFFF */
+        /* Backgrounds */
+        --color-bg-primary: 242 242 242;          /* #F2F2F2 - General App Background */
+        --color-bg-primary-lighter: 255 255 255;  /* #FFFFFF */
+        --color-bg-primary-darker: 224 224 224;   /* #E0E0E0 - Subtle borders/dividers */
+        --color-bg-canvas: 255 255 255;           /* #FFFFFF - Card containers / Surface */
 
-        --color-text-primary: 77 77 77;      /* 4D4D4D */
-        --color-text-primary-placeholder: 77 77 77;      /* 4D4D4D */
-        --color-text-primary-lighter: 0 0 0; /* 000000 (Used to be text-primary-light) */
-        --color-text-primary-darker: 13 13 13; /* 0D0D0D (Used to be text-primary-dark) */
-        --color-text-canvas: 255 255 255;      /* FFFFFF (Used to be bg-primary-light/bg-canvas) */
-        --color-text-secondary: 255 255 255;    /* F2F2F2 */
-        --color-text-secondary-lighter: 255 255 255; /* FFFFFF (Used to be text-secondary-light) */
-        --color-text-secondary-darker: 230 230 230; /* E6E6E6 (Used to be text-secondary-dark) */
-        --color-text-overlay: 255 255 255;        /* FFFFFF */
-        --color-text-link: 255 255 255;         /* FFFFFF */
+        /* Brand Secondary (Green Theme) */
+        --color-bg-secondary: 43 135 97;          /* #2B8761 - Brand Main Green */
+        --color-bg-secondary-lighter: 212 237 225; /* #D4EDE1 - Soft tinted green background */
+        --color-bg-secondary-darker: 34 108 78;   /* #226C4E - Deep brand interactive states */
+        --color-bg-overlay: 255 255 255;
 
-        --color-icon-primary: 77 77 77;         /* 4D4D4D */
-        --color-icon-primary-lighter: 0 0 0;    /* 000000 */
-        --color-icon-primary-darker: 0 0 0;     /* 000000 */
+        /* Text Mappings */
+        --color-text-primary: 43 43 43;           /* #2B2B2B - Main readable text (High Contrast) */
+        --color-text-primary-placeholder: 140 140 140; /* #8C8C8C - Forms placeholder input */
+        --color-text-primary-lighter: 100 100 100; /* #646464 - Subtitles / Muted text */
+        --color-text-primary-darker: 18 18 18;     /* #121212 - Pure Dark Accents */
 
-        --color-icon-secondary: 77 77 77;         /* 4D4D4D */
-        --color-icon-secondary-lighter: 0 0 0;    /* 000000 */
-        --color-icon-secondary-darker: 0 0 0;     /* 000000 */
+        --color-text-canvas: 43 43 43;
+        --color-text-secondary: 255 255 255;       /* #FFFFFF - High contrast readable text on Green buttons */
+        --color-text-secondary-lighter: 235 247 241;/* Slightly tinted white text */
+        --color-text-secondary-darker: 210 210 210;
+        --color-text-overlay: 43 43 43;
+        --color-text-link: 43 135 97;             /* Clean Green links */
 
+        /* Icons */
+        --color-icon-primary: 77 77 77;
+        --color-icon-primary-lighter: 120 120 120;
+        --color-icon-primary-darker: 30 30 30;
 
-        /* Utility/Status Colors */
-        --color-green-increase: 40 159 50;   /* 289F32 */
-        --color-red-decrease: 209 46 52;     /* D12E34 */
-        --color-golden: 181 175 152;         /* B5AF98 */
+        --color-icon-secondary: 43 135 97;
+        --color-icon-secondary-lighter: 85 159 129;
+        --color-icon-secondary-darker: 34 108 78;
 
-        /* Standard Mappings for default Tailwind classes */
+        /* Status Colors */
+        --color-status-error: 239 68 68;
+        --color-green-increase: 40 159 50;
+        --color-red-decrease: 209 46 52;
+        --color-golden: 181 175 152;
+
+        /* Form Controls Specific Mappings */
+        --color-border-input: 228 228 231;
+
+        /* Standard Tailwind Mapping Targets */
         --bg-background: var(--color-bg-primary);
         --text-foreground: var(--color-text-primary);
     }
 
     /* DARK THEME (Activated by .dark class) */
     .dark {
-        --color-bg-primary: 34 34 34;
-        --color-bg-primary-lighter: 0 0 0;
-        --color-bg-primary-darker: 51 51 51;
-        --color-bg-canvas: 17 17 17;
-        --color-bg-secondary: 50 150 110;
-        --color-bg-secondary-lighter: 100 180 150;
+        /* Backgrounds */
+        --color-bg-primary: 26 26 26;             /* Deep slate/dark background */
+        --color-bg-primary-lighter: 30 30 30;
+        --color-bg-primary-darker: 18 18 18;
+        --color-bg-canvas: 12 12 12;              /* Soft dark card surfaces */
+
+        /* Brand Secondary (Green Theme) */
+        --color-bg-secondary: 50 150 110;         /* Brighter green for neon legibility on dark darks */
+        --color-bg-secondary-lighter: 30 55 45;   /* Dark forest green tint box */
         --color-bg-secondary-darker: 40 120 90;
         --color-bg-overlay: 30 30 30;
 
-        --color-text-primary: 230 230 230;
-        --color-text-primary-placeholder: 230 230 230;
-        --color-text-primary-lighter: 240 240 240;
+        /* Text Mappings */
+        --color-text-primary: 235 235 235;        /* Soft crisp off-white for low fatigue reading */
+        --color-text-primary-placeholder: 110 110 110;
+        --color-text-primary-lighter: 170 170 170;/* Gray text subtitles */
         --color-text-primary-darker: 255 255 255;
+
+        --color-text-canvas: 235 235 235;
         --color-text-secondary: 255 255 255;
-        --color-text-secondary-lighter: 255 255 255;
-        --color-text-secondary-darker: 51 51 51;
-        --color-text-overlay: 30 30 30;
-        --color-text-link: 50 150 250;
+        --color-text-secondary-lighter: 220 240 230;
+        --color-text-secondary-darker: 150 150 150;
+        --color-text-overlay: 235 235 235;
+        --color-text-link: 75 180 140;
 
-        --color-icon-primary: 200 200 200;
-        --color-icon-primary-lighter: 255 255 255;
-        --color-icon-primary-darker: 255 255 255;
+        /* Icons */
+        --color-icon-primary: 180 180 180;
+        --color-icon-primary-lighter: 220 220 220;
+        --color-icon-primary-darker: 130 130 130;
 
-        --color-icon-secondary: 200 200 200;
-        --color-icon-secondary-lighter: 255 255 255;
-        --color-icon-secondary-darker: 255 255 255;
+        --color-icon-secondary: 50 150 110;
+        --color-icon-secondary-lighter: 100 180 150;
+        --color-icon-secondary-darker: 40 120 90;
 
+        /* Status Colors */
+        --color-status-error: 248 113 113;        /* #F87171 - Softer red for dark mode contrast */
 
+        /* Form Controls Specific Mappings */
+        --color-border-input: 63 63 70;
+
+        /* Standard Tailwind Mapping Targets */
         --bg-background: var(--color-bg-canvas);
         --text-foreground: var(--color-text-primary);
     }

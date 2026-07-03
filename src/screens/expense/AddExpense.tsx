@@ -1,22 +1,24 @@
-import { AppButton } from '@/src/components/common/AppButton';
-import { AppImageV2 } from '@/src/components/common/AppImageV2';
-import { AppInput } from '@/src/components/common/AppInput';
-import { AppText } from '@/src/components/common/AppText';
-import { ExpenseAttachments } from "@/src/components/expense/ExpenseAttachments";
+import {AppButton} from '@/src/components/common/AppButton';
+import {AppImageV2} from '@/src/components/common/AppImageV2';
+import {AppInput} from '@/src/components/common/AppInput';
+import {AppText} from '@/src/components/common/AppText';
+import {ExpenseAttachments} from "@/src/components/expense/ExpenseAttachments";
 import MultiExpenseItemSelect from "@/src/components/expense/MultiExpenseItemSelect";
-import { CategoryGroupLocationSelector } from "@/src/screens/expense/CGLSelector";
-import { themeStore } from "@/src/store/themeStore";
-import { userStore } from "@/src/store/userStore";
-import { useExpenseDraftStore } from "@/src/store/expenseDraftStore";
-import { RelationWithUserType } from "@/src/api/dto/constants";
-import { router } from 'expo-router';
+import {CategoryGroupLocationSelector} from "@/src/screens/expense/CGLSelector";
+import {themeStore} from "@/src/store/themeStore";
+import {userStore} from "@/src/store/userStore";
+import {useExpenseDraftStore} from "@/src/store/draft/expenseDraftStore";
+import {RelationWithUserType} from "@/src/api/dto/constants";
+import {router} from 'expo-router';
 import React, {useMemo, useState, useEffect, useRef} from 'react';
-import { Modal, Pressable, ScrollView, View } from 'react-native';
-import { Iconify } from 'react-native-iconify';
+import {Modal, Pressable, ScrollView, View} from 'react-native';
+import {Iconify} from 'react-native-iconify';
+import {AppButtonV2} from "@/src/components/common/AppButtonV2";
+import {COLORS} from "@/src/constants/colors";
 
 const AddExpenseScreen = () => {
-    const { user } = userStore();
-    const { theme } = themeStore();
+    const {user} = userStore();
+    const {theme} = themeStore();
     const isDark = theme === 'dark';
 
     const [isItemSelectVisible, setIsItemSelectVisible] = useState(false);
@@ -36,7 +38,12 @@ const AddExpenseScreen = () => {
             const initialUserObject = {
                 id: String(user.id),
                 name: "You",
-                avatar: user.avatar ? { id: String(user.avatar.id), name: '', url: user.avatar.url, extension: '' } : null,
+                avatar: user.avatar ? {
+                    id: String(user.avatar.id),
+                    name: '',
+                    url: user.avatar.url,
+                    extension: ''
+                } : null,
                 amount: draft.totalAmount,
                 shares: 1,
                 isLocked: false,
@@ -95,14 +102,14 @@ const AddExpenseScreen = () => {
     const handleOpenPaidBy = () => {
         router.push({
             pathname: '/(authenticated)/expense/user/split',
-            params: { type: 'paidBy', totalExpense: draft.totalAmount.toString() }
+            params: {type: 'paidBy', totalExpense: draft.totalAmount.toString()}
         });
     };
 
     const handleOpenSplitSelect = () => {
         router.push({
             pathname: '/(authenticated)/expense/user/split',
-            params: { type: 'split', totalExpense: draft.totalAmount.toString() }
+            params: {type: 'split', totalExpense: draft.totalAmount.toString()}
         });
     };
 
@@ -127,7 +134,7 @@ const AddExpenseScreen = () => {
                 className="flex-1"
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
-                contentContainerStyle={{ paddingBottom: 60 }}
+                contentContainerStyle={{paddingBottom: 60}}
             >
                 <View className="gap-y-6">
                     {/* 1. Name Input */}
@@ -140,55 +147,64 @@ const AddExpenseScreen = () => {
                     />
 
                     {/* 2. Amount Input */}
-                    <View>
-                        <AppInput
-                            label="Amount"
-                            value={amountString}
-                            onChangeText={handleAmountChange}
-                            placeholder="0.00"
-                            placeholderTextColor="rgb(var(--color-text-primary-placeholder))"
-                            className="flex-1 border-0 h-full p-0"
-                            renderLeftIcon={() => (
-                                <AppText className="text-green-increase mr-2 text-heading-h3 font-bold">₹</AppText>
-                            )}
-                            keyboardType="numeric"
-                            renderRightIcon={() => (
-                                <Pressable onPress={() => draft.setTotalAmount(0)}>
-                                    <AppText variant="body-small" className="text-green-increase font-medium">Clear</AppText>
-                                </Pressable>
-                            )}
-                        />
-                    </View>
+                    <AppInput
+                        label="Amount"
+                        value={amountString}
+                        onChangeText={handleAmountChange}
+                        placeholder="0.00"
+                        placeholderTextColor="rgb(var(--color-text-primary-placeholder))"
+                        renderLeftIcon={() => (
+                            <AppText className="text-bg-secondary mr-2 text-heading-h3 font-bold">₹</AppText>
+                        )}
+                        keyboardType="numeric"
+                        renderRightIcon={() => (
+                            <Pressable onPress={() => draft.setTotalAmount(0)}>
+                                <AppText variant="body-small" className="text-bg-secondary font-medium">Clear</AppText>
+                            </Pressable>
+                        )}
+                    />
 
                     <CategoryGroupLocationSelector/>
 
                     {/* 4. Paid By Selection Box */}
-                    <AppButton
+                    <AppButtonV2
                         variant="secondary"
-                        className="bg-bg-primary border-bg-secondary-lighter py-4 rounded-xl"
+                        size="none"
+                        /* changed to rounded-full for that perfect capsule shape */
+                        className="w-full flex-row justify-between items-center px-6 py-4 rounded-full border border-border-input bg-bg-primary-lighter"
                         onPress={handleOpenPaidBy}
                         hasShadow={false}
                     >
-                        <View className="flex-row justify-between items-center w-full px-2">
-                            <View className="space-y-0.5 items-start">
-                                <AppText variant="caption-xs" className="text-text-secondary opacity-60 font-semibold uppercase tracking-wider">Paid By</AppText>
-                                <AppText variant="body-base" className="text-text-primary font-medium">{payerText}</AppText>
-                            </View>
-                            <Iconify icon="heroicons:chevron-right" size={20} color="rgb(var(--color-icon-secondary))"/>
+                        <View className="flex-1 items-start space-y-0.5">
+                            <AppText variant="caption-xs"
+                                     className="text-text-primary-lighter font-semibold uppercase tracking-wider">
+                                Paid By
+                            </AppText>
+                            <AppText variant="body-base" className="text-text-primary font-medium">
+                                {payerText}
+                            </AppText>
                         </View>
-                    </AppButton>
+
+                        <Iconify
+                            icon="heroicons:chevron-right"
+                            size={20}
+                            color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary}
+                        />
+                    </AppButtonV2>
 
                     {/* 5. Split Between List Component Box */}
                     <Pressable
-                        className="bg-bg-primary rounded-2xl p-4 shadow-sm border border-bg-secondary-lighter"
+                        className="bg-bg-primary-lighter rounded-2xl p-4 shadow-sm border border-border-input"
                         onPress={handleOpenSplitSelect}
                     >
                         <View className="flex-row justify-between items-center mb-4">
                             <View className="space-y-0.5">
                                 <AppText variant="h4" className="font-bold text-text-primary">Split Between</AppText>
-                                <AppText variant="caption-xs" className="text-text-secondary opacity-60 font-medium">{splitTextSummary}</AppText>
+                                <AppText variant="caption-xs"
+                                         className="text-text-secondary opacity-60 font-medium">{splitTextSummary}</AppText>
                             </View>
-                            <Iconify icon="heroicons:pencil-square" size={20} color="rgb(var(--color-icon-secondary-lighter))"/>
+                            <Iconify icon="heroicons:pencil-square" size={20}
+                                     color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary}/>
                         </View>
 
                         {draft.splitParticipants.map((participant, index) => (
@@ -204,49 +220,59 @@ const AddExpenseScreen = () => {
 
                     {/* 6. Items Section */}
                     <Pressable
-                        className="bg-bg-primary rounded-2xl p-4 shadow-sm border border-bg-secondary-lighter"
+                        className="bg-bg-primary-lighter rounded-2xl p-4 shadow-sm border border-border-input"
                         onPress={() => setIsItemSelectVisible(true)}
                     >
                         <View className="flex-row justify-between items-center mb-4">
                             <AppText variant="h4" className="font-bold text-text-primary">Items</AppText>
-                            <Iconify icon="heroicons:pencil-square" size={20} color="rgb(var(--color-icon-secondary-lighter))"/>
+                            <Iconify icon="heroicons:pencil-square" size={20}
+                                     color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary}/>
                         </View>
                         {draft.expenseItems.length > 0 ? (
                             draft.expenseItems.map((item, index) => (
-                                <View key={item.id} className={`flex-row items-center justify-between py-3 ${index !== draft.expenseItems.length - 1 ? 'border-b border-bg-secondary-lighter' : ''}`}>
+                                <View key={item.id}
+                                      className={`flex-row items-center justify-between py-3 ${index !== draft.expenseItems.length - 1 ? 'border-b border-bg-secondary-lighter' : ''}`}>
                                     <View className="flex-row items-center flex-1">
                                         {item.iconUrl ? (
-                                            <AppImageV2 id={`selected-item-${item.id}`} url={item.iconUrl} style={{width: 24, height: 24}} contentFit="contain"/>
+                                            <AppImageV2 id={`selected-item-${item.id}`} url={item.iconUrl}
+                                                        style={{width: 24, height: 24}} contentFit="contain"/>
                                         ) : (
-                                            <View style={{width: 24, height: 24}} className="bg-gray-200 rounded-full items-center justify-center">
+                                            <View style={{width: 24, height: 24}}
+                                                  className="bg-gray-200 rounded-full items-center justify-center">
                                                 <Iconify icon="heroicons:shopping-cart" size={12} color="#999"/>
                                             </View>
                                         )}
                                         <View className="ml-3 flex-1">
                                             <AppText className="text-text-primary font-medium">{item.title}</AppText>
-                                            <AppText variant="body-small" className="text-text-secondary">Qty: {item.quantity}</AppText>
+                                            <AppText variant="body-small"
+                                                     className="text-text-secondary">Qty: {item.quantity}</AppText>
                                         </View>
                                     </View>
-                                    <AppText className="font-bold text-text-primary">₹{(item.cost * item.quantity).toFixed(2)}</AppText>
+                                    <AppText
+                                        className="font-bold text-text-primary">₹{(item.cost * item.quantity).toFixed(2)}</AppText>
                                 </View>
                             ))
                         ) : (
                             <View className="flex-row items-center justify-between py-3">
                                 <AppText className="text-text-secondary italic">No items selected</AppText>
-                                <Iconify icon="heroicons:plus-circle" size={20} color="rgb(var(--color-icon-secondary-lighter))"/>
+                                <Iconify icon="heroicons:plus-circle" size={20}
+                                         color="rgb(var(--color-icon-secondary-lighter))"/>
                             </View>
                         )}
                     </Pressable>
 
-                    <ExpenseAttachments onAttachmentsChange={() => {}}/>
+                    <ExpenseAttachments onAttachmentsChange={() => {
+                    }}/>
                 </View>
             </ScrollView>
 
             {/* MultiExpenseItemSelect Modal */}
-            <Modal visible={isItemSelectVisible} animationType="slide" transparent onRequestClose={() => setIsItemSelectVisible(false)}>
+            <Modal visible={isItemSelectVisible} animationType="slide" transparent
+                   onRequestClose={() => setIsItemSelectVisible(false)}>
                 <View className="flex-1 justify-end bg-black/50">
                     <Pressable className="absolute inset-0" onPress={() => setIsItemSelectVisible(false)}/>
-                    <View style={{height: '90%', zIndex: 1}} className={`rounded-t-[32px] overflow-hidden ${isDark ? 'bg-[#121212]' : 'bg-[#F8F9FA]'}`}>
+                    <View style={{height: '90%', zIndex: 1}}
+                          className={`rounded-t-[32px] overflow-hidden ${isDark ? 'bg-[#121212]' : 'bg-[#F8F9FA]'}`}>
                         <View className="items-center pt-3 pb-1">
                             <View className={`w-12 h-1.5 rounded-full ${isDark ? 'bg-gray-700' : 'bg-gray-300'}`}/>
                         </View>
@@ -266,14 +292,23 @@ const AddExpenseScreen = () => {
     );
 };
 
-interface UserRowProps { name: string; avatarUrl: string | null; amount: string; isLast?: boolean; }
+interface UserRowProps {
+    name: string;
+    avatarUrl: string | null;
+    amount: string;
+    isLast?: boolean;
+}
+
 const UserRow = ({name, avatarUrl, amount, isLast}: UserRowProps) => (
-    <View className={`flex-row items-center justify-between py-3 ${!isLast ? 'border-b border-bg-secondary-lighter' : ''}`}>
+    <View
+        className={`flex-row items-center justify-between py-3 ${!isLast ? 'border-b border-bg-secondary-lighter' : ''}`}>
         <View className="flex-row items-center">
             {avatarUrl ? (
-                <AppImageV2 id={`avatar-${name}`} url={avatarUrl} style={{width: 32, height: 32}} className="rounded-full"/>
+                <AppImageV2 id={`avatar-${name}`} url={avatarUrl} style={{width: 32, height: 32}}
+                            className="rounded-full"/>
             ) : (
-                <View style={{width: 32, height: 32}} className="bg-gray-200 dark:bg-gray-700 rounded-full items-center justify-center">
+                <View style={{width: 32, height: 32}}
+                      className="bg-gray-200 dark:bg-gray-700 rounded-full items-center justify-center">
                     <Iconify icon="heroicons:user-solid" size={16} color="#999"/>
                 </View>
             )}

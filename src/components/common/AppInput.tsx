@@ -1,5 +1,4 @@
-// /src/components/common/AppInput.tsx
-import React, {forwardRef, useState} from 'react';
+import React, { forwardRef, useState } from 'react';
 import { View, TextInput, TextInputProps } from 'react-native';
 import { AppText } from "@/src/components/common/AppText";
 import { themeStore } from "@/src/store/themeStore";
@@ -9,11 +8,10 @@ interface AppInputProps extends TextInputProps {
     label?: string;
     error?: string;
     required?: boolean;
-    renderLeftIcon?: (color: string) => React.ReactNode; // Added Left Icon prop
+    renderLeftIcon?: (color: string) => React.ReactNode;
     renderRightIcon?: (color: string) => React.ReactNode;
 }
 
-// /src/components/common/AppInput.tsx
 export const AppInput = forwardRef<TextInput, AppInputProps>((props, ref) => {
     const {
         label, error, required, renderLeftIcon, renderRightIcon, onFocus, onBlur, ...rest
@@ -22,22 +20,26 @@ export const AppInput = forwardRef<TextInput, AppInputProps>((props, ref) => {
     const { theme } = themeStore();
     const isDark = theme === 'dark';
 
+    // 1. Dynamic Native Variable Assignments
+    // Note: If your `COLORS` structure maps to tailwind vars, you can read directly from CSS variables here too!
+    const iconColor = error
+        ? (isDark ? '#F87171' : '#EF4444') // Maps exactly to --color-status-error
+        : isFocused
+            ? (isDark ? COLORS.icon_secondary_dark : COLORS.icon_secondary_light)
+            : (isDark ? COLORS.icon_primary_dark : COLORS.icon_primary_light);
+
+    const placeholderColor = isDark ? '#71717A' : '#A1A1AA';
+
+    // 2. Pure Variable-Driven Tailwind Selection
     const getBorderClass = () => {
-        if (error) return 'border-red-500';
+        if (error) return 'border-status-error';
         if (isFocused) return 'border-bg-secondary';
-        return isDark ? 'border-white/10' : 'border-gray-200';
+        return 'border-border-input';
     };
 
-    const iconColor = error
-        ? '#EF4444'
-        : isFocused
-            ? isDark ? COLORS.icon_secondary_dark : COLORS.icon_secondary_light
-            : isDark ? COLORS.icon_primary_dark : COLORS.icon_primary_light;
-
-    // --- DYNAMIC CLASS CALCULATION ---
-    const containerClass = `w-full px-4 rounded-2xl flex-row border ${getBorderClass()} ${
-        isDark ? 'bg-bg-primary' : 'bg-white'
-    } ${rest.multiline ? 'py-4 items-start' : 'h-14 items-center'}`;
+    const containerClass = `w-full px-4 rounded-2xl flex-row border ${getBorderClass()} bg-bg-primary-lighter ${
+        rest.multiline ? 'py-4 items-start' : 'h-14 items-center'
+    }`;
 
     return (
         <View className="gap-y-2 w-full">
@@ -46,11 +48,10 @@ export const AppInput = forwardRef<TextInput, AppInputProps>((props, ref) => {
                     <AppText variant="body-base" className="font-semibold text-text-primary">
                         {label}
                     </AppText>
-                    {required && <AppText className="text-red-500 ml-1">*</AppText>}
+                    {required && <AppText className="text-status-error ml-1">*</AppText>}
                 </View>
             )}
 
-            {/* REMOVED h-14 HERE, using containerClass instead */}
             <View className={containerClass}>
                 {renderLeftIcon && (
                     <View className={rest.multiline ? "mr-3 mt-1" : "mr-3"}>
@@ -60,12 +61,11 @@ export const AppInput = forwardRef<TextInput, AppInputProps>((props, ref) => {
 
                 <TextInput
                     ref={ref}
-                    // Adjusted height logic to avoid collisions
-                    className={`flex-1 text-base ${isDark ? 'text-white' : 'text-gray-900'} ${
+                    className={`flex-1 text-base text-text-primary ${
                         rest.multiline ? 'min-h-[100px]' : ''
                     }`}
                     textAlignVertical={rest.multiline ? 'top' : 'center'}
-                    placeholderTextColor={isDark ? '#71717a' : '#a1a1aa'}
+                    placeholderTextColor={placeholderColor}
                     multiline={rest.multiline}
                     onFocus={(e) => {
                         setIsFocused(true);
@@ -75,7 +75,7 @@ export const AppInput = forwardRef<TextInput, AppInputProps>((props, ref) => {
                         setIsFocused(false);
                         onBlur?.(e);
                     }}
-                    {...rest} // Use rest instead of props to avoid double-passing ref/onFocus
+                    {...rest}
                 />
 
                 {renderRightIcon && (
@@ -86,7 +86,7 @@ export const AppInput = forwardRef<TextInput, AppInputProps>((props, ref) => {
             </View>
 
             {error && (
-                <AppText variant="caption-xs" className="text-red-500 ml-1">
+                <AppText variant="caption-xs" className="text-status-error ml-1">
                     {error}
                 </AppText>
             )}

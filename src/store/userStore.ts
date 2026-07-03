@@ -6,12 +6,16 @@ import { UserInfoApi } from "@/src/api/user/user";
 import {BasicImage} from "@/src/api/dto/user/asset";
 
 export type SubscriptionTier = 'free' | 'pro' | 'premium';
+export type CurrencyViewType = 'absolute' | 'custom';
 
-// Permissions are now part of the User definition
 export interface UserPermissions {
     max_saved_places: number;
     can_use_premium_map: boolean;
     has_cloud_sync: boolean;
+}
+
+export interface UserSettings {
+    currency_view_type: CurrencyViewType
 }
 
 export interface UserDetails extends UserPermissions {
@@ -27,6 +31,7 @@ export interface UserDetails extends UserPermissions {
     language: string;
     registered_on: string;
     subscription_tier: SubscriptionTier;
+    user_settings: UserSettings;
 }
 
 interface UserState {

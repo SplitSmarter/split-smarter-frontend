@@ -1,7 +1,8 @@
 export const CurrencyType = {
-    inr: "INR",
-    usd: "USD",
-    eur: "EUR",
+    INR: "INR",
+    USD: "USD",
+    EUR: "EUR",
+    GBP: "GBP",
 } as const;
 export type CurrencyType = typeof CurrencyType[keyof typeof CurrencyType];
 
@@ -22,4 +23,3 @@ export const expense_items = {
     default: "DEFAULT",
 } as const;
 export type ExpenseItemType = (typeof expense_items)[keyof typeof expense_items];
-

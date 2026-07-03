@@ -10,8 +10,7 @@ import {
 } from "@/src/api/dto/expense/expense";
 import {RelationWithUserType} from "@/src/api/dto/constants";
 import {ExpenseComponentType, PaidTowards, ExpenseRecurringPeriod} from "@/src/api/dto/expense/constant";
-import {ExpenseDraftState, PayerUser, ExpenseItem} from "@/src/store/expenseDraftStore";
-// Import the local UI contract type to process its properties strictly
+import {ExpenseDraftState, PayerUser, ExpenseItem} from "@/src/store/draft/expenseDraftStore";
 import {RecurringDateComponent as UiRecurringDateComponent} from "@/src/constants/expense/schedule";
 import {systemStore} from "@/src/store/systemStore";
 

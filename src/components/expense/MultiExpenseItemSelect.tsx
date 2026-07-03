@@ -5,7 +5,7 @@ import { AppInput } from '@/src/components/common/AppInput';
 import { AppText } from '@/src/components/common/AppText';
 import { ScreenWrapper } from "@/src/components/common/ScreenWrapper";
 import { themeStore } from "@/src/store/themeStore";
-import { useExpenseDraftStore, ExpenseItem as StoreExpenseItem } from "@/src/store/expenseDraftStore";
+import { useExpenseDraftStore, ExpenseItem as StoreExpenseItem } from "@/src/store/draft/expenseDraftStore";
 import React, { useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,

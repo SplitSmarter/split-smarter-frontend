@@ -6,7 +6,7 @@ import ParticipantRow from "@/src/components/expense/multi_user_select/Participa
 import SuggestionsSection from "@/src/components/expense/multi_user_select/SuggestionSection";
 import { themeStore } from "@/src/store/themeStore";
 import { userStore } from "@/src/store/userStore";
-import { useExpenseDraftStore, PayerUser as StorePayerUser } from "@/src/store/expenseDraftStore";
+import { useExpenseDraftStore, PayerUser as StorePayerUser } from "@/src/store/draft/expenseDraftStore";
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import {
     FlatList,
@@ -117,6 +117,7 @@ const MultiUserSplitSelect = ({ type, onSave }: MultiUserSplitSelectProps) => {
     }, [draft.payers, draft.splitParticipants, type, currentUser, totalExpense, splitMode, isTotalLocked]);
 
     const selectedUsersRef = useRef<UserItem[]>([]);
+
     useEffect(() => {
         selectedUsersRef.current = selectedUsers;
     }, [selectedUsers]);
@@ -194,20 +195,6 @@ const MultiUserSplitSelect = ({ type, onSave }: MultiUserSplitSelectProps) => {
         });
         return suggestionsList;
     }, [allRelations, selectedUsers, currentUser]);
-
-    // Localized rebalancing logic shared across internal modes
-    const splitEquallyForUnlockedUsers = (users: UserItem[], targetTotal: number): UserItem[] => {
-        const lockedUsers = users.filter(u => u.isLocked);
-        const unlockedUsers = users.filter(u => !u.isLocked);
-
-        const totalLockedAmount = lockedUsers.reduce((sum, u) => sum + u.amount, 0);
-        const remainingAmount = Math.max(0, targetTotal - totalLockedAmount);
-
-        if (unlockedUsers.length === 0) return users;
-
-        const equalChunk = remainingAmount / unlockedUsers.length;
-        return users.map(u => u.isLocked ? u : { ...u, amount: equalChunk });
-    };
 
     // Shared targeted lock operational layout block (Common logic abstraction)
     const executeInternalTargetLock = (id: string, computedAmount: number, activeUsers: UserItem[]) => {

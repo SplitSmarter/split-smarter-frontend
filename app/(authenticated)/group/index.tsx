@@ -1,9 +1,9 @@
 // app/(authenticated)/group/index.tsx
 import React from "react";
-import GroupListScreen from "@/src/screens/group/GroupListScreen";
+import ExpenseChatGroupListScreen from "@/src/screens/ExpenseChatGroupListScreen";
 
 const GroupPage = () => {
-    return <GroupListScreen />;
+    return <ExpenseChatGroupListScreen />;
 };
 
 export default GroupPage;

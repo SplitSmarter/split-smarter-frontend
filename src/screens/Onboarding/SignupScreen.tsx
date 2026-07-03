@@ -10,7 +10,7 @@ import {i18n as i18nInstance} from "@/src/i18n/index";
 import {themeStore} from "@/src/store/themeStore";
 import {Iconify} from "react-native-iconify";
 import {deviceStore} from "@/src/store/deviceStore";
-import {currencies} from '@/src/constants/currency';
+import {Currency} from '@/src/constants/expense/currency';
 import {CurrencyBottomSheet} from "@/src/screens/Onboarding/comps/CurrencyBottomSheet";
 import {router, useLocalSearchParams} from "expo-router";
 import {validateName, validatePassword} from "@/src/utils/validation";
@@ -168,7 +168,7 @@ const SignupScreen = () => {
         }
     };
 
-    const selectedCurrency = currencies[currencyCode as keyof typeof currencies];
+    const selectedCurrency = Currency[currencyCode as keyof typeof Currency];
     const flagUrl = `https://flagcdn.com/256x192/${selectedCurrency.countryTag.toLowerCase()}.png`;
 
     return (

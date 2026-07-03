@@ -5,7 +5,8 @@ import { useAssetPicker } from "@/src/hooks/useMediaPicker";
 import AddExpenseScreen from '@/src/screens/expense/AddExpense';
 import AddTransfer from '@/src/screens/expense/AddTransfer';
 import { themeStore } from "@/src/store/themeStore";
-import { useExpenseDraftStore } from "@/src/store/expenseDraftStore";
+import { useExpenseDraftStore } from "@/src/store/draft/expenseDraftStore";
+import { useTransferDraftStore } from "@/src/store/draft/transferDraftStore"; // 👈 ADDED: Track Transfer variables concurrently
 import { router } from "expo-router";
 import React, { useState } from 'react';
 import { Alert, Pressable, ScrollView, View, ActivityIndicator, Platform, Modal } from 'react-native';
@@ -15,8 +16,10 @@ import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/dat
 import {DateComponentPayload} from "@/src/constants/expense/schedule";
 import {ExpenseScheduleModal} from "@/src/components/expense/schedule/ExpenseScheduleModal";
 import {AddExpenseApi} from "@/src/api/expense/expense";
+// import { AddTransferApi } from "@/src/api/expense/transfer"; // 👈 NOTE: Import your real transfer API handler here
 import {mapDraftToRequest} from "@/src/utils/expense/Mapper";
 import {ExpenseComponentType} from "@/src/api/dto/expense/constant";
+import {createTransferApi} from "@/src/api/expense/transfer";
 
 const AddSplitScreen = () => {
     const { theme } = themeStore();
@@ -29,16 +32,17 @@ const AddSplitScreen = () => {
     const [showDatePicker, setShowDatePicker] = useState(false);
 
     const { handleSingleCamera, handleSingleGallery } = useAssetPicker();
-    const draft = useExpenseDraftStore();
+    const expenseDraft = useExpenseDraftStore();
+    const transferDraft = useTransferDraftStore(); // 👈 INSTANTIATED: Bind transfer draft store instance
 
     const [scheduleModalVisible, setScheduleModalVisible] = useState(false);
 
     const handleTabChange = (tab: 'expense' | 'transfer') => {
         setActiveTab(tab);
         if (tab === 'expense') {
-            draft.setExpenseType(ExpenseComponentType.ITEM);
+            expenseDraft.setExpenseType(ExpenseComponentType.ITEM);
         } else {
-            draft.setExpenseType(ExpenseComponentType.TRANSFER);
+            expenseDraft.setExpenseType(ExpenseComponentType.TRANSFER);
         }
     };
 
@@ -60,8 +64,12 @@ const AddSplitScreen = () => {
 
                     setTimeout(() => {
                         setIsProcessing(false);
-                        draft.setTitle("Scan Draft Expense");
-                        draft.setTotalAmount(450.00);
+                        if (activeTab === 'expense') {
+                            expenseDraft.setTitle("Scan Draft Expense");
+                            expenseDraft.setTotalAmount(450.00);
+                        } else {
+                            transferDraft.setAmount(450.00);
+                        }
                         Alert.alert("Success", "Document scanned and fields populated successfully!");
                     }, 2500);
                 }
@@ -78,7 +86,12 @@ const AddSplitScreen = () => {
         }
 
         if (event.type === 'set' && selectedDate) {
-            draft.setExpenseDate(selectedDate.toISOString());
+            if (activeTab === 'expense') {
+                expenseDraft.setExpenseDate(selectedDate.toISOString());
+            } else {
+                // Ensure date metadata changes persist across transfers too if supported
+                // transferDraft.setDate?.(selectedDate.toISOString());
+            }
         }
     };
 
@@ -103,59 +116,116 @@ const AddSplitScreen = () => {
                     text: "Clear All",
                     style: "destructive",
                     onPress: () => {
-                        draft.resetDraft();
-                        draft.setExpenseType(ExpenseComponentType.ITEM);
-                        setActiveTab('expense');
+                        if (activeTab === 'expense') {
+                            expenseDraft.resetDraft();
+                            expenseDraft.setExpenseType(ExpenseComponentType.ITEM);
+                        } else {
+                            transferDraft.resetDraft();
+                        }
                     }
                 }
             ]
         );
     };
 
+    // 👈 CORE FIXED SUBMIT METHOD: Orchestrates submission strategies based on active context
     const handleSubmitData = async () => {
-        if (activeTab === 'expense') {
-            if (!draft.title.trim()) {
-                Alert.alert("Validation Error", "Please provide a valid Expense Name.");
-                return;
-            }
-        }
-
-        if (draft.totalAmount <= 0) {
-            Alert.alert("Validation Error", "Total expenditure must be greater than 0.");
-            return;
-        }
-
+        setIsSubmitting(true);
         try {
-            setIsSubmitting(true);
-
-            const targetType = activeTab === 'expense' ? ExpenseComponentType.ITEM : ExpenseComponentType.TRANSFER;
-            console.log("Selected target transmission model context type: ", targetType);
-
-            // 👈 FIX 1: Explicitly force the target type to update inside the draft store
-            draft.setExpenseType(targetType);
-
-            // 👈 FIX 2: Create a local copy to map or pass targetType directly into your mapper
-            // to shield your payload generator from Zustand's asynchronous batch updating.
-            const payload = mapDraftToRequest({
-                ...draft,
-                expenseType: targetType
-            });
-
-            console.log("Payload dispatched via HTTP client pipeline:", payload);
-            const response = await AddExpenseApi(payload);
-
-            Alert.alert("Success", response.message, [
-                {
-                    text: "OK",
-                    onPress: () => {
-                        draft.resetDraft();
-                        router.back();
-                    }
+            if (activeTab === 'expense') {
+                // --- 1. EXPENSE PIPELINE ---
+                if (!expenseDraft.title.trim()) {
+                    Alert.alert("Validation Error", "Please provide a valid Expense Name.");
+                    setIsSubmitting(false);
+                    return;
                 }
-            ]);
 
+                if (expenseDraft.totalAmount <= 0) {
+                    Alert.alert("Validation Error", "Total expenditure must be greater than 0.");
+                    setIsSubmitting(false);
+                    return;
+                }
+
+                expenseDraft.setExpenseType(ExpenseComponentType.ITEM);
+                const payload = mapDraftToRequest({
+                    ...expenseDraft,
+                    expenseType: ExpenseComponentType.ITEM
+                });
+
+                console.log("Expense Payload dispatched via HTTP client pipeline:", payload);
+                const response = await AddExpenseApi(payload);
+
+                Alert.alert("Success", response.message, [
+                    {
+                        text: "OK",
+                        onPress: () => {
+                            expenseDraft.resetDraft();
+                            router.back();
+                        }
+                    }
+                ]);
+
+            } else {
+                // --- 2. TRANSFER PIPELINE ---
+                if (transferDraft.amount <= 0) {
+                    Alert.alert("Validation Error", "Transfer amount must be greater than 0.");
+                    setIsSubmitting(false);
+                    return;
+                }
+
+                if (!transferDraft.recipient) {
+                    Alert.alert("Validation Error", "Please choose a valid destination Recipient.");
+                    setIsSubmitting(false);
+                    return;
+                }
+
+                if (!transferDraft.sender) {
+                    Alert.alert("Validation Error", "Sender entity context is missing.");
+                    setIsSubmitting(false);
+                    return;
+                }
+
+                // Construct concrete transfer payload template matching your AddTransferRequest DTO
+                let cleanDateStr = new Date().toISOString().split('T')[0];
+                if (expenseDraft.expenseDate) {
+                    // If it contains a 'T', slice it out, otherwise use the string directly
+                    cleanDateStr = expenseDraft.expenseDate.includes('T')
+                        ? expenseDraft.expenseDate.split('T')[0]
+                        : expenseDraft.expenseDate;
+                }
+
+                const cleanMode = (transferDraft.mode || 'other').toLowerCase();
+
+                const transferPayload = {
+                    name: expenseDraft.title?.trim() || `Transfer for ${transferDraft.recipient.name}`,
+                    amount: transferDraft.amount,
+                    currency: transferDraft.currency,
+                    transfer_date: cleanDateStr, // 👈 Yields strict "2026-06-14" format
+                    from_user_id: Number(transferDraft.sender.id),
+                    from_user_type: transferDraft.sender.user_type,
+                    to_user_id: Number(transferDraft.recipient.id),
+                    to_user_type: transferDraft.recipient.user_type,
+                    group_id: expenseDraft.groupId ? Number(expenseDraft.groupId) : null,
+                    description: transferDraft.description?.trim() || null,
+                    mode: cleanMode as any // 👈 Yields strict lowercase "other", "upi", etc.
+                };
+
+                console.log("Transfer Payload dispatched via createTransferApi:", transferPayload);
+
+                const response = await createTransferApi(transferPayload as any);
+
+                Alert.alert("Success", response.message || "Transfer logged successfully", [
+                    {
+                        text: "OK",
+                        onPress: () => {
+                            transferDraft.resetDraft();
+                            router.back();
+                        }
+                    }
+                ]);
+            }
         } catch (error: any) {
-            console.error("Expense Transmission Failure Log Context:", error);
+            console.error("Submission Failure Log Context:", error);
             const errorTitle = error.tag ? `${error.tag} Alert` : "Submission Failed";
             Alert.alert(
                 errorTitle.replace(/([A-Z])/g, ' $1').trim(),
@@ -167,9 +237,9 @@ const AddSplitScreen = () => {
     };
 
     const readableDate = React.useMemo(() => {
-        const d = new Date(draft.expenseDate);
+        const d = new Date(expenseDraft.expenseDate);
         return d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' });
-    }, [draft.expenseDate]);
+    }, [expenseDraft.expenseDate]);
 
     return (
         <SafeAreaView className="flex-1 bg-bg-canvas" edges={['top']}>
@@ -189,7 +259,7 @@ const AddSplitScreen = () => {
                         <Pressable onPress={() => router.back()} className="p-1">
                             <Iconify icon="heroicons:chevron-left" size={28} color="white" />
                         </Pressable>
-                        <AppText variant="h3" className="text-white font-bold">Add Split</AppText>
+                        <AppText variant="h3" className="text-text-primary font-bold">Add Split</AppText>
 
                         <View className="flex-row items-center gap-x-3">
                             <Pressable onPress={() => setPickerVisible(true)} className="p-1 active:opacity-70">
@@ -204,7 +274,6 @@ const AddSplitScreen = () => {
                     {/* Main Render Section */}
                     <View className="flex-1 flex-col px-6 mt-2">
                         <View className="flex-row bg-bg-primary p-1 rounded-full shadow-sm mb-6 w-full">
-                            {/* 👈 FIX 3: Swapped generic state hook overrides with explicit orchestration handlers */}
                             <TabButton label="Expense" isActive={activeTab === 'expense'} onPress={() => handleTabChange('expense')} />
                             <TabButton label="Transfer" isActive={activeTab === 'transfer'} onPress={() => handleTabChange('transfer')} />
                         </View>
@@ -261,7 +330,7 @@ const AddSplitScreen = () => {
                                     </Pressable>
                                 </View>
                                 <DateTimePicker
-                                    value={new Date(draft.expenseDate)}
+                                    value={new Date(expenseDraft.expenseDate)}
                                     mode="date"
                                     display="spinner"
                                     maximumDate={new Date()}
@@ -271,7 +340,7 @@ const AddSplitScreen = () => {
                         </View>
                     ) : (
                         <DateTimePicker
-                            value={new Date(draft.expenseDate)}
+                            value={new Date(expenseDraft.expenseDate)}
                             mode="date"
                             display="default"
                             maximumDate={new Date()}
@@ -280,7 +349,7 @@ const AddSplitScreen = () => {
                     )
                 )}
 
-                {/* 3-Option Ellipsis Action Sheet Menu */}
+                {/* Options Action Sheet Menu */}
                 <Modal
                     visible={optionsVisible}
                     transparent={true}
@@ -327,7 +396,7 @@ const AddSplitScreen = () => {
                     visible={scheduleModalVisible}
                     onClose={() => setScheduleModalVisible(false)}
                     onSaveSchedule={handleSaveCompiledSchedule}
-                    initialDate={draft.expenseDate}
+                    initialDate={expenseDraft.expenseDate}
                 />
 
                 <MediaPickerBottomSheet

@@ -1,16 +1,17 @@
 // ============================================================================
 // Sub-DTO Core Interface Schemas
 // ============================================================================
-import {RelationWithUserType} from "@/src/api/dto/constants";
+import {Currency, RelationWithUserType} from "@/src/api/dto/constants";
 import {
-    Currency,
     ExpenseComponentType,
     ExpenseExtraDetailType,
-    ExpenseRecurringPeriod,
+    ExpenseRecurringPeriod, ExpenseStatus,
     Month,
     PaidTowards,
     Weekday
 } from "@/src/api/dto/expense/constant";
+import {BasicUserDetails} from "@/src/api/dto/user/user";
+import {BasicImage} from "@/src/api/dto/user/asset";
 
 export interface ExpenseSharersDto {
     user_id: number;
@@ -128,26 +129,113 @@ export interface AddExpenseRequest {
     assets: string[] | null; // UUID mapped to standard strings arrays
 }
 
-// Group Framework Error Schemas
-export interface BasicGroupDetails {
-    id: number;
-    title: string;
-    avatar_url?: string;
-}
-
-export interface BasicUserDetails {
-    id: number;
-    name: string;
-    email?: string;
-}
-
-export interface InvalidGroupMembershipDetails {
-    group: BasicGroupDetails;
-    invalid_users: BasicUserDetails[];
-}
-
 export interface AddExpenseResponse {
     id: number;
     name: string;
     total_cost: number;
+}
+
+export interface ExpenseCategoryBasicResponse {
+    id: number;
+    icon: BasicImage;
+}
+
+export interface ExpenseRateDetails {
+    INR: number;
+    USD: number;
+    EUR: number;
+    CAD: number;
+    GBP: number;
+}
+
+export interface ExpenseDetailsBasicResponse {
+    id: number;
+    name: string;
+    status: ExpenseStatus;
+    expense_type: ExpenseComponentType;
+    expense_date: string;
+    total_amount: number;
+    currency: Currency;
+    category: ExpenseCategoryBasicResponse;
+    exchange_rate: ExpenseRateDetails | null;
+    paid_by_users: ExpensePaidByDetail[];
+    sharers: ExpenseSharerDetail[];
+    user_contribution: number | null;
+    group: BaseGroupDetails | null;
+    place: LocationDetails | null;
+    is_scheduled_blueprint: boolean;
+    has_attachment: boolean;
+    is_settled: boolean;
+}
+
+export interface ExpensePaidByDetail extends BasicUserDetails {
+    amount: number;
+}
+
+export interface ExpenseSharerDetail extends BasicUserDetails {
+    amount: number;
+}
+
+// Discriminator types organizing custom backend payload expansions
+export interface ExpenseFieldPlaceDetails {
+    detail_type: ExpenseExtraDetailType.PLACE;
+    place_id: number;
+    description: string;
+}
+
+export interface ExpenseFieldTextDetails {
+    detail_type: ExpenseExtraDetailType.TEXT;
+    description: string;
+}
+
+export interface ExpenseFieldListDetails {
+    detail_type: ExpenseExtraDetailType.LIST;
+    details: string[];
+    description: string;
+}
+
+export type ExpenseFieldUnion = ExpenseFieldPlaceDetails | ExpenseFieldTextDetails | ExpenseFieldListDetails;
+
+export interface ExpenseExtraFieldDetail {
+    detail_type: ExpenseExtraDetailType;
+    key: string;
+    details: ExpenseFieldUnion | null;
+}
+
+export interface ScheduledBlueprintDetail {
+    recurring_period: ExpenseRecurringPeriod;
+    custom_period_duration: number | null;
+    interval: number;
+    selected_values: Record<string, any>[] | null;
+    start_date: string;
+    end_date: string | null;
+    next_run_date: string | null;
+    last_expenses: ExpenseDetailsBasicResponse[] | null;
+    is_active: boolean;
+}
+
+export interface BaseGroupDetails {
+    id: number;
+    title: string;
+    avatar?: BasicImage | null;
+}
+
+export interface LocationDetails {
+    id: number;
+    name: string;
+    latitude: number;
+    longitude: number;
+    address: string | null;
+}
+
+// Master Response Structure
+export interface ExpenseDetailsResponse extends ExpenseDetailsBasicResponse {
+    description: string | null;
+    assets: BasicImage[];
+    created_by: BasicUserDetails;
+    created_at: string; // ISO DateTime footprint
+    updated_at: string; // ISO DateTime footprint
+
+    extra_details: ExpenseExtraFieldDetail[];
+    schedule_blueprint: ScheduledBlueprintDetail | null;
 }
