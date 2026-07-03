@@ -5,7 +5,7 @@ import {ExpenseComponentType} from "@/src/api/dto/expense/constant";
 import {userStore} from "@/src/store/userStore";
 import {DateComponentPayload} from "@/src/constants/expense/schedule";
 import {ImageInfo} from "@/src/constants/user/asset"; // 👈 ADDED: For initial user context pull
-import { Currency, CurrencyCode } from "@/src/constants/expense/currency";
+import { CurrencyCode } from "@/src/constants/expense/currency";
 
 export type ExpenseLocationType = 'current' | 'place' | 'none';
 
@@ -59,6 +59,8 @@ export interface ExpenseDraftState {
     expenseItems: ExpenseItem[];
     isRecurring: boolean;
     recurringDetails: DateComponentPayload['recurring_details'] | null; // 👈 ADDED
+    localAttachmentUris: string[];
+
     // Form Setters
     setExpenseType: (type: ExpenseComponentType) => void;
     setTitle: (title: string) => void;
@@ -75,6 +77,7 @@ export interface ExpenseDraftState {
     setExpenseLocation: (location: ExpenseLocation | undefined) => void;
     setExpenseItems: (items: ExpenseItem[]) => void;
     setIsRecurring: (value: boolean) => void;
+    setLocalAttachmentUris: (localAttachmentUris: string[]) => void,
     resetDraft: () => void;
 }
 
@@ -116,6 +119,7 @@ export const useExpenseDraftStore = create<ExpenseDraftState>((set) => ({
     expenseItems: [],
     isRecurring: false,
     recurringDetails: null,
+    localAttachmentUris: [],
 
     setExpenseType: (expenseType) => set({ expenseType }),
     setTitle: (title) => set({ title }),
@@ -132,6 +136,7 @@ export const useExpenseDraftStore = create<ExpenseDraftState>((set) => ({
     setExpenseLocation: (location) => set({ expenseLocation: location }),
     setExpenseItems: (expenseItems) => set({ expenseItems }),
     setIsRecurring: (isRecurring) => set({ isRecurring }),
+    setLocalAttachmentUris: (localAttachmentUris) => set({ localAttachmentUris }),
 
     resetDraft: () => set({
         expenseType: ExpenseComponentType.ITEM,
@@ -150,5 +155,6 @@ export const useExpenseDraftStore = create<ExpenseDraftState>((set) => ({
         expenseItems: [],
         isRecurring: false,
         recurringDetails: null,
+        localAttachmentUris: [],
     }),
 }));

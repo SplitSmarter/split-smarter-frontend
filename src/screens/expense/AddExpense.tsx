@@ -198,24 +198,38 @@ const AddExpenseScreen = () => {
                         onPress={handleOpenSplitSelect}
                     >
                         <View className="flex-row justify-between items-center mb-4">
-                            <View className="space-y-0.5">
-                                <AppText variant="h4" className="font-bold text-text-primary">Split Between</AppText>
-                                <AppText variant="caption-xs"
-                                         className="text-text-secondary opacity-60 font-medium">{splitTextSummary}</AppText>
-                            </View>
+                            <AppText variant="h4" className="font-bold text-text-primary">Split Between</AppText>
                             <Iconify icon="heroicons:pencil-square" size={20}
                                      color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary}/>
                         </View>
 
-                        {draft.splitParticipants.map((participant, index) => (
-                            <UserRow
-                                key={`split-${participant.id}-${participant.user_type}`}
-                                name={participant.name}
-                                avatarUrl={participant.avatar?.url || null}
-                                amount={`₹${(participant.amount || 0).toFixed(2)}`}
-                                isLast={index === draft.splitParticipants.length - 1}
-                            />
-                        ))}
+                        {draft.splitParticipants.length > 0 ? (
+                            draft.splitParticipants.map((participant, index) => (
+                                <View
+                                    key={`split-${participant.id}-${participant.user_type}`}
+                                    className={`flex-row items-center justify-between py-3 ${index !== draft.splitParticipants.length - 1 ? 'border-b border-border-input' : ''}`}
+                                >
+                                    <View className="flex-row items-center flex-1">
+                                        {participant.avatar?.url ? (
+                                            <AppImageV2 id={`avatar-${participant.name}`} url={participant.avatar.url}
+                                                        style={{width: 24, height: 24}} className="rounded-full"/>
+                                        ) : (
+                                            <View style={{width: 24, height: 24}}
+                                                  className="bg-gray-200 dark:bg-zinc-800 rounded-full items-center justify-center">
+                                                <Iconify icon="heroicons:user-solid" size={12} color="#999"/>
+                                            </View>
+                                        )}
+                                        <AppText
+                                            className="ml-3 flex-1 text-text-primary font-medium">{participant.name}</AppText>
+                                    </View>
+                                    <AppText
+                                        className="font-bold text-text-primary">₹{(participant.amount || 0).toFixed(2)}</AppText>
+                                </View>
+                            ))
+                        ) : (
+                            <AppText variant="caption-xs" className="text-text-secondary opacity-60 font-medium">Split
+                                with no one</AppText>
+                        )}
                     </Pressable>
 
                     {/* 6. Items Section */}
@@ -253,15 +267,13 @@ const AddExpenseScreen = () => {
                                 </View>
                             ))
                         ) : (
-                            <View className="flex-row items-center justify-between py-3">
-                                <AppText className="text-text-secondary italic">No items selected</AppText>
-                                <Iconify icon="heroicons:plus-circle" size={20}
-                                         color="rgb(var(--color-icon-secondary-lighter))"/>
-                            </View>
+                            <AppText variant="caption-xs"
+                                     className="text-text-secondary opacity-60 font-medium">No items selected</AppText>
                         )}
                     </Pressable>
 
-                    <ExpenseAttachments onAttachmentsChange={() => {
+                    <ExpenseAttachments onAttachmentsChange={(uris) => {
+                        draft.setLocalAttachmentUris(uris)
                     }}/>
                 </View>
             </ScrollView>

@@ -10,6 +10,7 @@ import { RelationWithUserType } from "@/src/api/dto/constants";
 import { Currency, CurrencyCode } from "@/src/constants/expense/currency";
 import { useTransferDraftStore, TransferParticipant } from "@/src/store/draft/transferDraftStore";
 import { SelectSinglePeopleBottomSheet } from "@/src/components/user/SelectSinglePeopleBottomSheet";
+import {COLORS} from "@/src/constants/colors";
 
 const QUICK_AMOUNTS = [100, 200, 500, 1000];
 
@@ -162,7 +163,7 @@ const AddTransfer = () => {
                         {/* Source Payer Box */}
                         <Pressable onPress={() => openSelectorFor('sender')} className="flex-1 items-center active:opacity-75">
                             <View className="w-12 h-12 rounded-full bg-emerald-500/10 items-center justify-center mb-2 border border-emerald-500/20">
-                                <Iconify icon="heroicons:user-minus" size={22} color="#2D6A4F" />
+                                <Iconify icon="heroicons:user-minus" size={22} color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary} />
                             </View>
                             <AppText variant="caption-xs" className="text-text-secondary opacity-60 font-semibold uppercase tracking-wider">{t('transfer.from', 'Sender')}</AppText>
                             <AppText variant="body-base" className="font-bold text-text-primary text-center mt-1" numberOfLines={1}>
@@ -176,7 +177,7 @@ const AddTransfer = () => {
                                 onPress={handleSwapParticipants}
                                 className="bg-bg-primary p-2.5 rounded-full border border-bg-secondary-lighter shadow-sm active:bg-gray-100 dark:active:bg-zinc-800"
                             >
-                                <Iconify icon="heroicons:arrows-right-left" size={18} color="#2D6A4F" />
+                                <Iconify icon="heroicons:arrows-right-left" size={18} color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary} />
                             </Pressable>
                         </View>
 
@@ -200,14 +201,13 @@ const AddTransfer = () => {
                             onChangeText={handleAmountChange}
                             placeholder="0.00"
                             placeholderTextColor="rgb(var(--color-text-primary-placeholder))"
-                            className="flex-1 border-0 h-full p-0"
                             keyboardType="numeric"
                             renderLeftIcon={() => (
                                 <Pressable onPress={toggleCurrency} className="flex-row items-center mr-2 pr-2 border-r border-bg-secondary-lighter">
                                     <AppText className="text-green-increase text-heading-h3 font-bold">
                                         {activeCurrencyConfig?.symbol ?? '₹'}
                                     </AppText>
-                                    <Iconify icon="heroicons:chevron-down" size={14} color="#2D6A4F" className="ml-1" />
+                                    <Iconify icon="heroicons:chevron-down" size={14} color={isDark ? COLORS.dark.brand.primary : COLORS.light.brand.primary} className="ml-1" />
                                 </Pressable>
                             )}
                             renderRightIcon={() => (
@@ -248,13 +248,11 @@ const AddTransfer = () => {
                             placeholderTextColor="rgb(var(--color-text-primary-placeholder))"
                             value={draft.description}
                             onChangeText={(text) => draft.setDescription(text)}
-                            multiline={true}
-                            numberOfLines={3}
                             textAlignVertical="top"
                             maxLength={150}
                             renderLeftIcon={() => (
                                 <View className="mt-0.5 mr-1">
-                                    <Iconify icon="heroicons:document-text" size={20} color="rgb(var(--color-icon-secondary-lighter))" />
+                                    <Iconify icon="heroicons:document-text" size={20} color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary} />
                                 </View>
                             )}
                         />

@@ -15,7 +15,7 @@ import {authStore} from "@/src/store/authStore";
 import {useAlert} from "@/src/context/alertContext";
 import {CredentialLoginApi} from "@/src/api/auth/login";
 import {validateIdentifier, validatePassword} from "@/src/utils/validation";
-import {userStore} from "@/src/store/userStore";
+import {CurrencyViewType, userStore} from "@/src/store/userStore";
 
 const LoginScreen = () => {
     // Pass instance explicitly to fix the warning you had
@@ -80,6 +80,9 @@ const LoginScreen = () => {
                         url: profile.avatar?.asset_url || "",
                         extension: "png", // TODO: Fix
                         name: profile.name,
+                    },
+                    user_settings: {
+                        currency_view_type: 'custom'
                     },
                     language: profile.language,
                     registered_on: profile.registered_on,

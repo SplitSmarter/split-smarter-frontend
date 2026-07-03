@@ -1,10 +1,12 @@
 import * as ImagePicker from 'expo-image-picker';
-import {useUploadStore} from '@/src/store/uploadStore';
-import {permissionStore} from '@/src/store/permissionStore';
+import { useUploadStore } from '@/src/store/uploadStore';
+import { permissionStore } from '@/src/store/permissionStore';
 
-export const useAssetPicker = () => {
+// Accept an optional configuration object to preserve backwards compatibility
+export const useAssetPicker = (options?: { autoUpload?: boolean }) => {
+    const autoUpload = options?.autoUpload ?? true;
     const addToQueue = useUploadStore((state) => state.addToQueue);
-    const {camera, media, requestCamera, requestMedia} = permissionStore();
+    const { camera, media, requestCamera, requestMedia } = permissionStore();
 
     const pickImage = async (useCamera: boolean, allowMultiple: boolean = false) => {
         const isGranted = useCamera
@@ -13,9 +15,8 @@ export const useAssetPicker = () => {
 
         if (!isGranted) return null;
 
-        // Use array of strings to avoid deprecation and type issues
         const mediaConfig = {
-            mediaTypes: ['images'] as ImagePicker.MediaType[], // Fixes the warning
+            mediaTypes: ['images'] as ImagePicker.MediaType[],
             quality: 0.6,
         };
 
@@ -35,8 +36,12 @@ export const useAssetPicker = () => {
         if (result.canceled || !result.assets.length) return null;
 
         const uploadPromises = result.assets.map(async (asset) => {
-            const assetId = await addToQueue(asset.uri);
-            return {uri: asset.uri, assetId};
+            if (autoUpload) {
+                const assetId = await addToQueue(asset.uri);
+                return { uri: asset.uri, trackingId: assetId };
+            } else {
+                return { uri: asset.uri, trackingId: null };
+            }
         });
 
         return await Promise.all(uploadPromises);

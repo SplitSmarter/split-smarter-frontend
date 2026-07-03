@@ -110,6 +110,9 @@ const OnboardingScreen = () => {
                         extension: "png", // TODO: Fix
                         name: profile.name,
                     },
+                    user_settings: {
+                        currency_view_type: 'custom'
+                    },
                     language: profile.language,
                     registered_on: profile.registered_on,
                     // subscription details

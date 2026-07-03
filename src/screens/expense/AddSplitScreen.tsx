@@ -6,24 +6,27 @@ import AddExpenseScreen from '@/src/screens/expense/AddExpense';
 import AddTransfer from '@/src/screens/expense/AddTransfer';
 import { themeStore } from "@/src/store/themeStore";
 import { useExpenseDraftStore } from "@/src/store/draft/expenseDraftStore";
-import { useTransferDraftStore } from "@/src/store/draft/transferDraftStore"; // 👈 ADDED: Track Transfer variables concurrently
+import { useTransferDraftStore } from "@/src/store/draft/transferDraftStore";
 import { router } from "expo-router";
 import React, { useState } from 'react';
 import { Alert, Pressable, ScrollView, View, ActivityIndicator, Platform, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Iconify } from "react-native-iconify";
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import {DateComponentPayload} from "@/src/constants/expense/schedule";
-import {ExpenseScheduleModal} from "@/src/components/expense/schedule/ExpenseScheduleModal";
-import {AddExpenseApi} from "@/src/api/expense/expense";
-// import { AddTransferApi } from "@/src/api/expense/transfer"; // 👈 NOTE: Import your real transfer API handler here
-import {mapDraftToRequest} from "@/src/utils/expense/Mapper";
-import {ExpenseComponentType} from "@/src/api/dto/expense/constant";
-import {createTransferApi} from "@/src/api/expense/transfer";
+import { DateComponentPayload } from "@/src/constants/expense/schedule";
+import { ExpenseScheduleModal } from "@/src/components/expense/schedule/ExpenseScheduleModal";
+import { AddExpenseApi } from "@/src/api/expense/expense";
+import { mapDraftToRequest } from "@/src/utils/expense/Mapper";
+import { ExpenseComponentType } from "@/src/api/dto/expense/constant";
+import { createTransferApi } from "@/src/api/expense/transfer";
+import { useUploadStore } from "@/src/store/uploadStore";
+import { COLORS } from "@/src/constants/colors"; // 🚀 Ensure this points to your Colors file location
 
 const AddSplitScreen = () => {
     const { theme } = themeStore();
     const isDark = theme === 'dark';
+    const activeColors = isDark ? COLORS.dark : COLORS.light;
+
     const [activeTab, setActiveTab] = useState<'expense' | 'transfer'>('expense');
     const [pickerVisible, setPickerVisible] = useState(false);
     const [optionsVisible, setOptionsVisible] = useState(false);
@@ -33,7 +36,7 @@ const AddSplitScreen = () => {
 
     const { handleSingleCamera, handleSingleGallery } = useAssetPicker();
     const expenseDraft = useExpenseDraftStore();
-    const transferDraft = useTransferDraftStore(); // 👈 INSTANTIATED: Bind transfer draft store instance
+    const transferDraft = useTransferDraftStore();
 
     const [scheduleModalVisible, setScheduleModalVisible] = useState(false);
 
@@ -88,9 +91,6 @@ const AddSplitScreen = () => {
         if (event.type === 'set' && selectedDate) {
             if (activeTab === 'expense') {
                 expenseDraft.setExpenseDate(selectedDate.toISOString());
-            } else {
-                // Ensure date metadata changes persist across transfers too if supported
-                // transferDraft.setDate?.(selectedDate.toISOString());
             }
         }
     };
@@ -128,12 +128,10 @@ const AddSplitScreen = () => {
         );
     };
 
-    // 👈 CORE FIXED SUBMIT METHOD: Orchestrates submission strategies based on active context
     const handleSubmitData = async () => {
         setIsSubmitting(true);
         try {
             if (activeTab === 'expense') {
-                // --- 1. EXPENSE PIPELINE ---
                 if (!expenseDraft.title.trim()) {
                     Alert.alert("Validation Error", "Please provide a valid Expense Name.");
                     setIsSubmitting(false);
@@ -146,11 +144,46 @@ const AddSplitScreen = () => {
                     return;
                 }
 
+                let uploadedAssetIds: string[] = [];
+                const localUrisToProcess = expenseDraft.localAttachmentUris || [];
+
+                if (localUrisToProcess.length > 0) {
+                    const addToQueue = useUploadStore.getState().addToQueue;
+
+                    const uploadTasks = localUrisToProcess.map(async (uri): Promise<string | null> => {
+                        const trackingId = await addToQueue(uri);
+                        if (!trackingId) return null;
+
+                        let assetId: string | undefined = undefined;
+
+                        const checkStatus = () => {
+                            const task = useUploadStore.getState().queue[trackingId];
+                            if (task?.status === 'completed') {
+                                assetId = task.assetId;
+                                return true;
+                            }
+                            if (task?.status === 'failed') {
+                                return true;
+                            }
+                            return false;
+                        };
+
+                        if (!checkStatus()) {
+                            for (let i = 0; i < 30; i++) {
+                                await new Promise(resolve => setTimeout(resolve, 500));
+                                if (checkStatus()) break;
+                            }
+                        }
+
+                        return assetId || null;
+                    });
+
+                    const settledAssetIds = await Promise.all<string | null>(uploadTasks);
+                    uploadedAssetIds = settledAssetIds.filter((id): id is string => id !== null);
+                }
+
                 expenseDraft.setExpenseType(ExpenseComponentType.ITEM);
-                const payload = mapDraftToRequest({
-                    ...expenseDraft,
-                    expenseType: ExpenseComponentType.ITEM
-                });
+                const payload = mapDraftToRequest(expenseDraft, uploadedAssetIds);
 
                 console.log("Expense Payload dispatched via HTTP client pipeline:", payload);
                 const response = await AddExpenseApi(payload);
@@ -166,7 +199,6 @@ const AddSplitScreen = () => {
                 ]);
 
             } else {
-                // --- 2. TRANSFER PIPELINE ---
                 if (transferDraft.amount <= 0) {
                     Alert.alert("Validation Error", "Transfer amount must be greater than 0.");
                     setIsSubmitting(false);
@@ -185,10 +217,8 @@ const AddSplitScreen = () => {
                     return;
                 }
 
-                // Construct concrete transfer payload template matching your AddTransferRequest DTO
                 let cleanDateStr = new Date().toISOString().split('T')[0];
                 if (expenseDraft.expenseDate) {
-                    // If it contains a 'T', slice it out, otherwise use the string directly
                     cleanDateStr = expenseDraft.expenseDate.includes('T')
                         ? expenseDraft.expenseDate.split('T')[0]
                         : expenseDraft.expenseDate;
@@ -200,18 +230,17 @@ const AddSplitScreen = () => {
                     name: expenseDraft.title?.trim() || `Transfer for ${transferDraft.recipient.name}`,
                     amount: transferDraft.amount,
                     currency: transferDraft.currency,
-                    transfer_date: cleanDateStr, // 👈 Yields strict "2026-06-14" format
+                    transfer_date: cleanDateStr,
                     from_user_id: Number(transferDraft.sender.id),
                     from_user_type: transferDraft.sender.user_type,
                     to_user_id: Number(transferDraft.recipient.id),
                     to_user_type: transferDraft.recipient.user_type,
                     group_id: expenseDraft.groupId ? Number(expenseDraft.groupId) : null,
                     description: transferDraft.description?.trim() || null,
-                    mode: cleanMode as any // 👈 Yields strict lowercase "other", "upi", etc.
+                    mode: cleanMode as any
                 };
 
                 console.log("Transfer Payload dispatched via createTransferApi:", transferPayload);
-
                 const response = await createTransferApi(transferPayload as any);
 
                 Alert.alert("Success", response.message || "Transfer logged successfully", [
@@ -246,7 +275,7 @@ const AddSplitScreen = () => {
             <View className="flex-1 bg-bg-canvas">
                 {(isProcessing || isSubmitting) && (
                     <View className="absolute inset-0 bg-black/70 z-50 items-center justify-center space-y-4">
-                        <ActivityIndicator size="large" color="#ffffff" />
+                        <ActivityIndicator size="large" color={COLORS.light.bg.canvas} />
                         <AppText className="text-white font-semibold">
                             {isProcessing ? "Parsing receipt records..." : "Uploading transaction data..."}
                         </AppText>
@@ -257,16 +286,16 @@ const AddSplitScreen = () => {
                     {/* Navbar */}
                     <View className="flex-row justify-between items-center px-6 pt-4 pb-2">
                         <Pressable onPress={() => router.back()} className="p-1">
-                            <Iconify icon="heroicons:chevron-left" size={28} color="white" />
+                            <Iconify icon="heroicons:chevron-left" size={28} color={activeColors.text.primary} />
                         </Pressable>
                         <AppText variant="h3" className="text-text-primary font-bold">Add Split</AppText>
 
                         <View className="flex-row items-center gap-x-3">
                             <Pressable onPress={() => setPickerVisible(true)} className="p-1 active:opacity-70">
-                                <Iconify icon="heroicons:camera" size={26} color="white" />
+                                <Iconify icon="heroicons:camera" size={26} color={activeColors.text.primary} />
                             </Pressable>
                             <Pressable onPress={() => setOptionsVisible(true)} className="p-1 active:opacity-70">
-                                <Iconify icon="heroicons:ellipsis-vertical" size={28} color="white" />
+                                <Iconify icon="heroicons:ellipsis-vertical" size={28} color={activeColors.text.primary} />
                             </Pressable>
                         </View>
                     </View>
@@ -285,9 +314,7 @@ const AddSplitScreen = () => {
                                 </View>
                             ) : (
                                 <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 220 }}>
-                                    <View className="bg-bg-primary rounded-[30px] p-6 shadow-xl border border-bg-primary-darker">
                                         <AddTransfer />
-                                    </View>
                                 </ScrollView>
                             )}
                         </View>
@@ -300,7 +327,7 @@ const AddSplitScreen = () => {
                                 onPress={() => setShowDatePicker(true)}
                                 className="flex-row items-center bg-bg-canvas rounded-full px-5 py-2 active:opacity-80"
                             >
-                                <Iconify icon="heroicons:calendar" size={18} className="text-red-decrease" />
+                                <Iconify icon="heroicons:calendar" size={18} color={COLORS.color_red_decrease} />
                                 <AppText variant="body-base" className="ml-2 text-text-primary font-bold">
                                     {readableDate}
                                 </AppText>
@@ -326,7 +353,7 @@ const AddSplitScreen = () => {
                                 <View className="flex-row justify-between items-center mb-4">
                                     <AppText className="font-bold text-lg">Select Date</AppText>
                                     <Pressable onPress={() => setShowDatePicker(false)}>
-                                        <AppText className="text-emerald-500 font-bold">Done</AppText>
+                                        <AppText className="font-bold" style={{ color: activeColors.brand.primary }}>Done</AppText>
                                     </Pressable>
                                 </View>
                                 <DateTimePicker
@@ -367,14 +394,14 @@ const AddSplitScreen = () => {
                             </AppText>
 
                             <Pressable onPress={handleSaveAsDraft} className="flex-row items-center p-4 rounded-xl active:scale-[0.98] mb-1">
-                                <Iconify icon="heroicons:document-arrow-down" size={24} color={isDark ? '#E5E7EB' : '#374151'} />
+                                <Iconify icon="heroicons:document-arrow-down" size={24} color={activeColors.icon.primary} />
                                 <AppText variant="body-base" className={`ml-4 font-semibold text-[16px] ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
                                     Save as Draft
                                 </AppText>
                             </Pressable>
 
                             <Pressable onPress={handleScheduleExpense} className="flex-row items-center p-4 rounded-xl active:scale-[0.98] mb-1">
-                                <Iconify icon="heroicons:clock" size={24} color={isDark ? '#E5E7EB' : '#374151'} />
+                                <Iconify icon="heroicons:clock" size={24} color={activeColors.icon.primary} />
                                 <AppText variant="body-base" className={`ml-4 font-semibold text-[16px] ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
                                     Schedule Transaction
                                 </AppText>
@@ -383,8 +410,8 @@ const AddSplitScreen = () => {
                             <View className={`h-[1px] my-2 w-full ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`} />
 
                             <Pressable onPress={handleClearForm} className="flex-row items-center p-4 rounded-xl active:scale-[0.98] mb-1">
-                                <Iconify icon="heroicons:trash" size={24} color="#EF4444" />
-                                <AppText variant="body-base" className="ml-4 font-semibold text-[16px] text-red-500">
+                                <Iconify icon="heroicons:trash" size={24} color={activeColors.status.error} />
+                                <AppText variant="body-base" className="ml-4 font-semibold text-[16px]" style={{ color: activeColors.status.error }}>
                                     Clear Form
                                 </AppText>
                             </Pressable>

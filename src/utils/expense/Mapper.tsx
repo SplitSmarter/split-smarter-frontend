@@ -75,7 +75,7 @@ const mapDraftDateDetailsToPayload = (
  * Transforms the client-side Zustand form draft state into a strictly-typed
  * payload required by the FastAPI Pydantic validation schemas.
  */
-export const mapDraftToRequest = (draftState: ExpenseDraftState): AddExpenseRequest => {
+export const mapDraftToRequest = (draftState: ExpenseDraftState, uploadedAssetIds: string[] = []): AddExpenseRequest => {
 
     // 1. Process Date Details through isolated sub-mapper framework
     const dateDetailsPayload = mapDraftDateDetailsToPayload(
@@ -169,6 +169,6 @@ export const mapDraftToRequest = (draftState: ExpenseDraftState): AddExpenseRequ
         date_details: dateDetailsPayload,
         extra_fields: [],
         components: componentsPayload,
-        assets: null
+        assets: uploadedAssetIds.length > 0 ? uploadedAssetIds : null,
     };
 };

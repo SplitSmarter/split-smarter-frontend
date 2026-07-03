@@ -36,36 +36,35 @@ export const useUploadStore = create<UploadState>((set, get) => ({
             }
         }));
 
-        try {
-            const res = await UploadImageApi(uri, true); // Assuming to_cloud=true for production
-
-            set((state) => ({
-                queue: {
-                    ...state.queue,
-                    [id]: {...state.queue[id],
-                        status: 'completed',
-                        assetId: res.data.asset_id,
-                        remoteUrl: res.data.url}
-                }
-            }));
-
-            return id;
-
-        } catch (error: any) {
-            set((state) => ({
-                queue: {
-                    ...state.queue,
-                    [id]: {
-                        ...state.queue[id],
-                        status: 'failed',
-                        error: error.message || "Upload failed"
+        UploadImageApi(uri, true)
+            .then((res) => {
+                set((state) => ({
+                    queue: {
+                        ...state.queue,
+                        [id]: {
+                            ...state.queue[id],
+                            status: 'completed',
+                            assetId: res.data.asset_id,
+                            remoteUrl: res.data.url
+                        }
                     }
-                }
-            }));
+                }));
+            })
+            .catch((error: any) => {
+                set((state) => ({
+                    queue: {
+                        ...state.queue,
+                        [id]: {
+                            ...state.queue[id],
+                            status: 'failed',
+                            error: error.message || "Upload failed"
+                        }
+                    }
+                }));
+                console.error(`[UploadStore] Task ${id} failed:`, error);
+            });
 
-            console.error(`[UploadStore] Task ${id} failed:`, error);
-            return null;
-        }
+        return id;
     },
 
     removeFromQueue: (id: string) => {
