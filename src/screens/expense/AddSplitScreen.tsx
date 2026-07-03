@@ -9,7 +9,7 @@ import { useExpenseDraftStore } from "@/src/store/draft/expenseDraftStore";
 import { useTransferDraftStore } from "@/src/store/draft/transferDraftStore";
 import { router } from "expo-router";
 import React, { useState } from 'react';
-import { Alert, Pressable, ScrollView, View, ActivityIndicator, Platform, Modal } from 'react-native';
+import { Alert, Pressable, View, ActivityIndicator, Platform, Modal, KeyboardAvoidingView, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Iconify } from "react-native-iconify";
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
@@ -20,7 +20,7 @@ import { mapDraftToRequest } from "@/src/utils/expense/Mapper";
 import { ExpenseComponentType } from "@/src/api/dto/expense/constant";
 import { createTransferApi } from "@/src/api/expense/transfer";
 import { useUploadStore } from "@/src/store/uploadStore";
-import { COLORS } from "@/src/constants/colors"; // 🚀 Ensure this points to your Colors file location
+import { COLORS } from "@/src/constants/colors";
 
 const AddSplitScreen = () => {
     const { theme } = themeStore();
@@ -271,173 +271,186 @@ const AddSplitScreen = () => {
     }, [expenseDraft.expenseDate]);
 
     return (
-        <SafeAreaView className="flex-1 bg-bg-canvas" edges={['top']}>
-            <View className="flex-1 bg-bg-canvas">
-                {(isProcessing || isSubmitting) && (
-                    <View className="absolute inset-0 bg-black/70 z-50 items-center justify-center space-y-4">
-                        <ActivityIndicator size="large" color={COLORS.light.bg.canvas} />
-                        <AppText className="text-white font-semibold">
-                            {isProcessing ? "Parsing receipt records..." : "Uploading transaction data..."}
-                        </AppText>
-                    </View>
-                )}
-
-                <View className="flex-1">
-                    {/* Navbar */}
-                    <View className="flex-row justify-between items-center px-6 pt-4 pb-2">
-                        <Pressable onPress={() => router.back()} className="p-1">
-                            <Iconify icon="heroicons:chevron-left" size={28} color={activeColors.text.primary} />
-                        </Pressable>
-                        <AppText variant="h3" className="text-text-primary font-bold">Add Split</AppText>
-
-                        <View className="flex-row items-center gap-x-3">
-                            <Pressable onPress={() => setPickerVisible(true)} className="p-1 active:opacity-70">
-                                <Iconify icon="heroicons:camera" size={26} color={activeColors.text.primary} />
-                            </Pressable>
-                            <Pressable onPress={() => setOptionsVisible(true)} className="p-1 active:opacity-70">
-                                <Iconify icon="heroicons:ellipsis-vertical" size={28} color={activeColors.text.primary} />
-                            </Pressable>
-                        </View>
-                    </View>
-
-                    {/* Main Render Section */}
-                    <View className="flex-1 flex-col px-6 mt-2">
-                        <View className="flex-row bg-bg-primary p-1 rounded-full shadow-sm mb-6 w-full">
-                            <TabButton label="Expense" isActive={activeTab === 'expense'} onPress={() => handleTabChange('expense')} />
-                            <TabButton label="Transfer" isActive={activeTab === 'transfer'} onPress={() => handleTabChange('transfer')} />
-                        </View>
-
-                        <View className="flex-1">
-                            {activeTab === 'expense' ? (
-                                <View className="flex-1 pb-[180px]">
-                                    <AddExpenseScreen />
-                                </View>
-                            ) : (
-                                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 220 }}>
-                                        <AddTransfer />
-                                </ScrollView>
-                            )}
-                        </View>
-                    </View>
-
-                    {/* Dynamic Bottom Interface Toolbar Panel */}
-                    <View className="absolute bottom-0 w-full bg-bg-primary pt-4 pb-10 px-6 rounded-t-[40px] shadow-2xl border-t border-bg-secondary-lighter">
-                        <View className="flex-row justify-between items-center mb-6">
-                            <Pressable
-                                onPress={() => setShowDatePicker(true)}
-                                className="flex-row items-center bg-bg-canvas rounded-full px-5 py-2 active:opacity-80"
-                            >
-                                <Iconify icon="heroicons:calendar" size={18} color={COLORS.color_red_decrease} />
-                                <AppText variant="body-base" className="ml-2 text-text-primary font-bold">
-                                    {readableDate}
-                                </AppText>
-                            </Pressable>
-
-                            <AppText variant="caption-xs" className="text-text-secondary italic">
-                                Auto-sync enabled
+        <SafeAreaView className="flex-1 bg-bg-secondary" edges={['top']}>
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                className="flex-1"
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}
+            >
+                <View className="flex-1 bg-bg-secondary">
+                    {(isProcessing || isSubmitting) && (
+                        <View className="absolute inset-0 bg-black/70 z-50 items-center justify-center space-y-4">
+                            <ActivityIndicator size="large" color={COLORS.light.bg.canvas} />
+                            <AppText className="text-white font-semibold">
+                                {isProcessing ? "Parsing receipt records..." : "Uploading transaction data..."}
                             </AppText>
                         </View>
+                    )}
 
-                        <AppButton variant="primary" size="lg" onPress={handleSubmitData}>
-                            SUBMIT
-                        </AppButton>
-                    </View>
-                </View>
+                    <View className="flex-1">
+                        {/* Navbar */}
+                        <View className="flex-row justify-between items-center px-6 pt-4 pb-2">
+                            <Pressable onPress={() => router.back()} className="p-1">
+                                <Iconify icon="heroicons:chevron-left" size={28} color={isDark ? COLORS.dark.text.contrast : COLORS.light.text.contrast} />
+                            </Pressable>
+                            <AppText variant="h3" className="text-text-secondary font-bold">Add Split</AppText>
 
-                {/* DateTimePicker Elements */}
-                {showDatePicker && (
-                    Platform.OS === 'ios' ? (
-                        <View className="absolute inset-0 bg-black/40 z-50 justify-end">
-                            <Pressable className="flex-1" onPress={() => setShowDatePicker(false)} />
-                            <View className={`p-6 rounded-t-[30px] ${isDark ? 'bg-gray-900' : 'bg-white'}`}>
-                                <View className="flex-row justify-between items-center mb-4">
-                                    <AppText className="font-bold text-lg">Select Date</AppText>
-                                    <Pressable onPress={() => setShowDatePicker(false)}>
-                                        <AppText className="font-bold" style={{ color: activeColors.brand.primary }}>Done</AppText>
-                                    </Pressable>
-                                </View>
-                                <DateTimePicker
-                                    value={new Date(expenseDraft.expenseDate)}
-                                    mode="date"
-                                    display="spinner"
-                                    maximumDate={new Date()}
-                                    onChange={handleDateChange}
-                                />
+                            <View className="flex-row items-center gap-x-3">
+                                <Pressable onPress={() => setPickerVisible(true)} className="p-1 active:opacity-70">
+                                    <Iconify icon="heroicons:camera" size={26} color={isDark ? COLORS.dark.text.contrast : COLORS.light.text.contrast} />
+                                </Pressable>
+                                <Pressable onPress={() => setOptionsVisible(true)} className="p-1 active:opacity-70">
+                                    <Iconify icon="heroicons:ellipsis-vertical" size={28} color={isDark ? COLORS.dark.text.contrast : COLORS.light.text.contrast} />
+                                </Pressable>
                             </View>
                         </View>
-                    ) : (
-                        <DateTimePicker
-                            value={new Date(expenseDraft.expenseDate)}
-                            mode="date"
-                            display="default"
-                            maximumDate={new Date()}
-                            onChange={handleDateChange}
-                        />
-                    )
-                )}
 
-                {/* Options Action Sheet Menu */}
-                <Modal
-                    visible={optionsVisible}
-                    transparent={true}
-                    animationType="slide"
-                    onRequestClose={() => setOptionsVisible(false)}
-                >
-                    <View className="flex-1 bg-black/50 justify-end">
-                        <Pressable className="flex-1" onPress={() => setOptionsVisible(false)} />
-                        <View className={`p-6 rounded-t-[40px] pb-12 ${isDark ? 'bg-gray-900 border-t border-gray-800' : 'bg-white'}`}>
+                        {/* Main Render Section */}
+                        <View className="flex-1 bg-bg-secondary flex-col mt-2">
 
-                            <View className={`w-12 h-1.5 rounded-full align-self-center self-center mb-6 ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`} />
+                            {/* Horizontal Switch Container Row */}
+                            <View className="px-6 pt-2 pb-5">
+                                <View className="flex-row bg-bg-canvas p-1 rounded-full border border-bg-primary-darker shadow-sm w-full">
+                                    <TabButton label="Expense" isActive={activeTab === 'expense'} onPress={() => handleTabChange('expense')} />
+                                    <TabButton label="Transfer" isActive={activeTab === 'transfer'} onPress={() => handleTabChange('transfer')} />
+                                </View>
+                            </View>
 
-                            <AppText variant="h3" className={`font-bold mb-4 px-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                                Form Options
-                            </AppText>
+                            {/* 2. Content Sheet Canvas Container */}
+                            <View className="flex-1 bg-bg-canvas rounded-t-[32px] px-6 pt-6 border-t border-bg-primary-darker/40">
+                                <ScrollView
+                                    className="flex-1"
+                                    showsVerticalScrollIndicator={false}
+                                    keyboardShouldPersistTaps="handled"
+                                    contentContainerStyle={{ paddingBottom: 180 }} // <-- Unified bottom layout offset clear of the submit layout layer
+                                >
+                                    {activeTab === 'expense' ? (
+                                        <AddExpenseScreen />
+                                    ) : (
+                                        <AddTransfer />
+                                    )}
+                                </ScrollView>
+                            </View>
+                        </View>
 
-                            <Pressable onPress={handleSaveAsDraft} className="flex-row items-center p-4 rounded-xl active:scale-[0.98] mb-1">
-                                <Iconify icon="heroicons:document-arrow-down" size={24} color={activeColors.icon.primary} />
-                                <AppText variant="body-base" className={`ml-4 font-semibold text-[16px] ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
-                                    Save as Draft
+                        {/* Dynamic Bottom Interface Toolbar Panel */}
+                        <View className="absolute bottom-0 w-full bg-bg-primary pt-4 pb-10 px-6 rounded-t-[40px] shadow-2xl border-t border-bg-secondary-lighter">
+                            <View className="flex-row justify-between items-center mb-6">
+                                <Pressable
+                                    onPress={() => setShowDatePicker(true)}
+                                    className="flex-row items-center bg-bg-canvas rounded-full px-5 py-2 active:opacity-80"
+                                >
+                                    <Iconify icon="heroicons:calendar" size={18} color={COLORS.color_red_decrease} />
+                                    <AppText variant="body-base" className="ml-2 text-text-primary font-bold">
+                                        {readableDate}
+                                    </AppText>
+                                </Pressable>
+
+                                <AppText variant="caption-xs" className="text-text-secondary italic">
+                                    Auto-sync enabled
                                 </AppText>
-                            </Pressable>
+                            </View>
 
-                            <Pressable onPress={handleScheduleExpense} className="flex-row items-center p-4 rounded-xl active:scale-[0.98] mb-1">
-                                <Iconify icon="heroicons:clock" size={24} color={activeColors.icon.primary} />
-                                <AppText variant="body-base" className={`ml-4 font-semibold text-[16px] ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
-                                    Schedule Transaction
-                                </AppText>
-                            </Pressable>
-
-                            <View className={`h-[1px] my-2 w-full ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`} />
-
-                            <Pressable onPress={handleClearForm} className="flex-row items-center p-4 rounded-xl active:scale-[0.98] mb-1">
-                                <Iconify icon="heroicons:trash" size={24} color={activeColors.status.error} />
-                                <AppText variant="body-base" className="ml-4 font-semibold text-[16px]" style={{ color: activeColors.status.error }}>
-                                    Clear Form
-                                </AppText>
-                            </Pressable>
+                            <AppButton variant="primary" size="lg" onPress={handleSubmitData}>
+                                SUBMIT
+                            </AppButton>
                         </View>
                     </View>
-                </Modal>
 
-                <ExpenseScheduleModal
-                    visible={scheduleModalVisible}
-                    onClose={() => setScheduleModalVisible(false)}
-                    onSaveSchedule={handleSaveCompiledSchedule}
-                    initialDate={expenseDraft.expenseDate}
-                />
+                    {/* DateTimePicker Elements */}
+                    {showDatePicker && (
+                        Platform.OS === 'ios' ? (
+                            <View className="absolute inset-0 bg-black/40 z-50 justify-end">
+                                <Pressable className="flex-1" onPress={() => setShowDatePicker(false)} />
+                                <View className={`p-6 rounded-t-[30px] ${isDark ? 'bg-gray-900' : 'bg-white'}`}>
+                                    <View className="flex-row justify-between items-center mb-4">
+                                        <AppText className="font-bold text-lg">Select Date</AppText>
+                                        <Pressable onPress={() => setShowDatePicker(false)}>
+                                            <AppText className="font-bold" style={{ color: activeColors.brand.primary }}>Done</AppText>
+                                        </Pressable>
+                                    </View>
+                                    <DateTimePicker
+                                        value={new Date(expenseDraft.expenseDate)}
+                                        mode="date"
+                                        display="spinner"
+                                        maximumDate={new Date()}
+                                        onChange={handleDateChange}
+                                    />
+                                </View>
+                            </View>
+                        ) : (
+                            <DateTimePicker
+                                value={new Date(expenseDraft.expenseDate)}
+                                mode="date"
+                                display="default"
+                                maximumDate={new Date()}
+                                onChange={handleDateChange}
+                            />
+                        )
+                    )}
 
-                <MediaPickerBottomSheet
-                    visible={pickerVisible}
-                    onClose={() => setPickerVisible(false)}
-                    onSelect={handleMediaSelection}
-                />
-            </View>
+                    {/* Options Action Sheet Menu */}
+                    <Modal
+                        visible={optionsVisible}
+                        transparent={true}
+                        animationType="slide"
+                        onRequestClose={() => setOptionsVisible(false)}
+                    >
+                        <View className="flex-1 bg-black/50 justify-end">
+                            <Pressable className="flex-1" onPress={() => setOptionsVisible(false)} />
+                            <View className={`p-6 rounded-t-[40px] pb-12 ${isDark ? 'bg-gray-900 border-t border-gray-800' : 'bg-white'}`}>
+                                <View className={`w-12 h-1.5 rounded-full align-self-center self-center mb-6 ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`} />
+                                <AppText variant="h3" className={`font-bold mb-4 px-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                    Form Options
+                                </AppText>
+
+                                <Pressable onPress={handleSaveAsDraft} className="flex-row items-center p-4 rounded-xl active:scale-[0.98] mb-1">
+                                    <Iconify icon="heroicons:document-arrow-down" size={24} color={activeColors.icon.primary} />
+                                    <AppText variant="body-base" className={`ml-4 font-semibold text-[16px] ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
+                                        Save as Draft
+                                    </AppText>
+                                </Pressable>
+
+                                <Pressable onPress={handleScheduleExpense} className="flex-row items-center p-4 rounded-xl active:scale-[0.98] mb-1">
+                                    <Iconify icon="heroicons:clock" size={24} color={activeColors.icon.primary} />
+                                    <AppText variant="body-base" className={`ml-4 font-semibold text-[16px] ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
+                                        Schedule Transaction
+                                    </AppText>
+                                </Pressable>
+
+                                <View className={`h-[1px] my-2 w-full ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`} />
+
+                                <Pressable onPress={handleClearForm} className="flex-row items-center p-4 rounded-xl active:scale-[0.98] mb-1">
+                                    <Iconify icon="heroicons:trash" size={24} color={activeColors.status.error} />
+                                    <AppText variant="body-base" className="ml-4 font-semibold text-[16px]" style={{ color: activeColors.status.error }}>
+                                        Clear Form
+                                    </AppText>
+                                </Pressable>
+                            </View>
+                        </View>
+                    </Modal>
+
+                    <ExpenseScheduleModal
+                        visible={scheduleModalVisible}
+                        onClose={() => setScheduleModalVisible(false)}
+                        onSaveSchedule={handleSaveCompiledSchedule}
+                        initialDate={expenseDraft.expenseDate}
+                    />
+
+                    <MediaPickerBottomSheet
+                        visible={pickerVisible}
+                        onClose={() => setPickerVisible(false)}
+                        onSelect={handleMediaSelection}
+                    />
+                </View>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 };
 
-const TabButton = ({ label, isActive, onPress }: { label: string; isActive: boolean; onPress: () => void }) => (
-    <Pressable onPress={onPress} className={`flex-1 py-2 rounded-full items-center justify-center ${isActive ? 'bg-bg-secondary' : ''}`}>
+const TabButton = ({label, isActive, onPress}: { label: string; isActive: boolean; onPress: () => void }) => (
+    <Pressable onPress={onPress}
+               className={`flex-1 py-2 rounded-full items-center justify-center ${isActive ? 'bg-bg-secondary' : ''}`}>
         <AppText variant="body-base" className={isActive ? 'text-white font-bold' : 'text-text-primary-lighter'}>
             {label}
         </AppText>

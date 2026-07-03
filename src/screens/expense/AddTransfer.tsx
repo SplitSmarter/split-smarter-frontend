@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { View, Pressable, ScrollView } from 'react-native';
+import { View, Pressable } from 'react-native';
 import { Iconify } from 'react-native-iconify';
 import { useTranslation } from 'react-i18next';
 import { AppText } from '@/src/components/common/AppText';
@@ -10,7 +10,8 @@ import { RelationWithUserType } from "@/src/api/dto/constants";
 import { Currency, CurrencyCode } from "@/src/constants/expense/currency";
 import { useTransferDraftStore, TransferParticipant } from "@/src/store/draft/transferDraftStore";
 import { SelectSinglePeopleBottomSheet } from "@/src/components/user/SelectSinglePeopleBottomSheet";
-import {COLORS} from "@/src/constants/colors";
+import { COLORS } from "@/src/constants/colors";
+import { CurrencyBottomSheet } from "@/src/screens/Onboarding/comps/CurrencyBottomSheet";
 
 const QUICK_AMOUNTS = [100, 200, 500, 1000];
 
@@ -23,9 +24,9 @@ const AddTransfer = () => {
     const currentUser = userStore((state) => state.user);
 
     const [bottomSheetOpen, setBottomSheetOpen] = useState(false);
+    const [currencySheetOpen, setCurrencySheetOpen] = useState(false);
     const [activeSelectionTarget, setActiveSelectionTarget] = useState<'sender' | 'recipient' | null>(null);
 
-    // Synchronize rendering strings clean structure matching layout variables
     const amountString = useMemo(() => {
         return draft.amount === 0 ? "" : draft.amount.toString();
     }, [draft.amount]);
@@ -50,9 +51,9 @@ const AddTransfer = () => {
         draft.setAmount(amount);
     };
 
-    const toggleCurrency = () => {
-        const nextCurrency: CurrencyCode = draft.currency === 'INR' ? 'USD' : 'INR';
-        draft.setCurrency(nextCurrency);
+    const handleCurrencySelect = (code: string) => {
+        draft.setCurrency(code as CurrencyCode);
+        setCurrencySheetOpen(false);
     };
 
     const handleSwapParticipants = () => {
@@ -62,7 +63,6 @@ const AddTransfer = () => {
         if (!currentSender || !currentRecipient) return;
 
         const currentUserIdStr = currentUser ? String(currentUser.id) : null;
-
         const isSenderSelf = currentSender.id === currentUserIdStr && currentSender.user_type === RelationWithUserType.USER;
         const isRecipientSelf = currentRecipient.id === currentUserIdStr && currentRecipient.user_type === RelationWithUserType.USER;
 
@@ -151,116 +151,111 @@ const AddTransfer = () => {
 
     return (
         <>
-            <ScrollView
-                className="flex-1"
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
-                contentContainerStyle={{ paddingBottom: 60 }}
-            >
-                <View className="gap-y-6">
-                    {/* 1. Interactive Flow Participant Card Matrix */}
-                    <View className="flex-row items-center justify-between bg-bg-primary p-5 rounded-2xl border border-bg-secondary-lighter shadow-sm">
-                        {/* Source Payer Box */}
-                        <Pressable onPress={() => openSelectorFor('sender')} className="flex-1 items-center active:opacity-75">
-                            <View className="w-12 h-12 rounded-full bg-emerald-500/10 items-center justify-center mb-2 border border-emerald-500/20">
-                                <Iconify icon="heroicons:user-minus" size={22} color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary} />
-                            </View>
-                            <AppText variant="caption-xs" className="text-text-secondary opacity-60 font-semibold uppercase tracking-wider">{t('transfer.from', 'Sender')}</AppText>
-                            <AppText variant="body-base" className="font-bold text-text-primary text-center mt-1" numberOfLines={1}>
-                                {draft.sender ? (isUserSelf(draft.sender) ? t('transfer.you', 'You') : draft.sender.name) : t('transfer.select_user', 'Me')}
-                            </AppText>
-                        </Pressable>
-
-                        {/* Flow Direction Vector */}
-                        <View className="px-2 items-center justify-center">
-                            <Pressable
-                                onPress={handleSwapParticipants}
-                                className="bg-bg-primary p-2.5 rounded-full border border-bg-secondary-lighter shadow-sm active:bg-gray-100 dark:active:bg-zinc-800"
-                            >
-                                <Iconify icon="heroicons:arrows-right-left" size={18} color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary} />
-                            </Pressable>
+            <View className="gap-y-6">
+                {/* 1. Interactive Flow Participant Card Matrix */}
+                <View className="flex-row items-center justify-between p-5 rounded-2xl shadow-sm">
+                    {/* Source Payer Box */}
+                    <Pressable onPress={() => openSelectorFor('sender')} className="flex-1 items-center active:opacity-75">
+                        <View className="w-12 h-12 rounded-full bg-emerald-500/10 items-center justify-center mb-2 border border-emerald-500/20">
+                            <Iconify icon="heroicons:user-minus" size={22} color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary} />
                         </View>
+                        <AppText variant="caption-xs" className="text-text-secondary opacity-60 font-semibold uppercase tracking-wider">{t('transfer.from', 'Sender')}</AppText>
+                        <AppText variant="body-base" className="font-bold text-text-primary text-center mt-1" numberOfLines={1}>
+                            {draft.sender ? (isUserSelf(draft.sender) ? t('transfer.you', 'You') : draft.sender.name) : t('transfer.select_user', 'Me')}
+                        </AppText>
+                    </Pressable>
 
-                        {/* Target Recipient Box */}
-                        <Pressable onPress={() => openSelectorFor('recipient')} className="flex-1 items-center active:opacity-75">
-                            <View className="w-12 h-12 rounded-full bg-blue-500/10 items-center justify-center mb-2 border border-blue-500/20">
-                                <Iconify icon="heroicons:user-plus" size={22} color="#3B82F6" />
-                            </View>
-                            <AppText variant="caption-xs" className="text-text-secondary opacity-60 font-semibold uppercase tracking-wider">{t('transfer.to', 'Recipient')}</AppText>
-                            <AppText variant="body-base" className="font-bold text-text-primary text-center mt-1" numberOfLines={1}>
-                                {draft.recipient ? (isUserSelf(draft.recipient) ? t('transfer.you', 'You') : draft.recipient.name) : t('transfer.choose_recipient', 'Select Peer')}
-                            </AppText>
+                    {/* Flow Direction Vector */}
+                    <View className="px-2 items-center justify-center">
+                        <Pressable
+                            onPress={handleSwapParticipants}
+                            className="bg-bg-primary p-2.5 rounded-full border border-bg-secondary-lighter shadow-sm active:bg-gray-100 dark:active:bg-zinc-800"
+                        >
+                            <Iconify icon="heroicons:arrows-right-left" size={18} color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary} />
                         </Pressable>
                     </View>
 
-                    {/* 2. Amount Input Field Box */}
-                    <View>
-                        <AppInput
-                            label={t('transfer.amount_label', 'Amount')}
-                            value={amountString}
-                            onChangeText={handleAmountChange}
-                            placeholder="0.00"
-                            placeholderTextColor="rgb(var(--color-text-primary-placeholder))"
-                            keyboardType="numeric"
-                            renderLeftIcon={() => (
-                                <Pressable onPress={toggleCurrency} className="flex-row items-center mr-2 pr-2 border-r border-bg-secondary-lighter">
-                                    <AppText className="text-green-increase text-heading-h3 font-bold">
-                                        {activeCurrencyConfig?.symbol ?? '₹'}
-                                    </AppText>
-                                    <Iconify icon="heroicons:chevron-down" size={14} color={isDark ? COLORS.dark.brand.primary : COLORS.light.brand.primary} className="ml-1" />
-                                </Pressable>
-                            )}
-                            renderRightIcon={() => (
-                                <Pressable onPress={() => draft.setAmount(0)}>
-                                    <AppText variant="body-small" className="text-green-increase font-medium">Clear</AppText>
-                                </Pressable>
-                            )}
-                        />
-                    </View>
-
-                    {/* 3. Quick-Select Amount Pill Chips Matrix */}
-                    <View className="flex-row justify-between pt-1">
-                        {QUICK_AMOUNTS.map((amt) => {
-                            const isSelected = draft.amount === amt;
-                            return (
-                                <Pressable
-                                    key={amt}
-                                    onPress={() => handleQuickAmountSelect(amt)}
-                                    className={`flex-1 mx-1 py-3 rounded-xl items-center border transition-all ${
-                                        isSelected
-                                            ? 'bg-bg-secondary/10 border-bg-secondary/30'
-                                            : 'bg-bg-primary border-bg-secondary-lighter shadow-xs'
-                                    }`}
-                                >
-                                    <AppText variant="body-small" className={`font-semibold ${isSelected ? 'text-green-increase' : 'text-text-secondary'}`}>
-                                        +{activeCurrencyConfig?.symbol ?? ''}{amt}
-                                    </AppText>
-                                </Pressable>
-                            );
-                        })}
-                    </View>
-
-                    {/* 4. Descriptive Notes Input Box */}
-                    <View>
-                        <AppInput
-                            label={t('transfer.description_label', 'Memo / Notes')}
-                            placeholder={t('transfer.description_placeholder', 'What is this settlement payment for?')}
-                            placeholderTextColor="rgb(var(--color-text-primary-placeholder))"
-                            value={draft.description}
-                            onChangeText={(text) => draft.setDescription(text)}
-                            textAlignVertical="top"
-                            maxLength={150}
-                            renderLeftIcon={() => (
-                                <View className="mt-0.5 mr-1">
-                                    <Iconify icon="heroicons:document-text" size={20} color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary} />
-                                </View>
-                            )}
-                        />
-                    </View>
+                    {/* Target Recipient Box */}
+                    <Pressable onPress={() => openSelectorFor('recipient')} className="flex-1 items-center active:opacity-75">
+                        <View className="w-12 h-12 rounded-full bg-blue-500/10 items-center justify-center mb-2 border border-blue-500/20">
+                            <Iconify icon="heroicons:user-plus" size={22} color="#3B82F6" />
+                        </View>
+                        <AppText variant="caption-xs" className="text-text-secondary opacity-60 font-semibold uppercase tracking-wider">{t('transfer.to', 'Recipient')}</AppText>
+                        <AppText variant="body-base" className="font-bold text-text-primary text-center mt-1" numberOfLines={1}>
+                            {draft.recipient ? (isUserSelf(draft.recipient) ? t('transfer.you', 'You') : draft.recipient.name) : t('transfer.choose_recipient', 'Select Peer')}
+                        </AppText>
+                    </Pressable>
                 </View>
-            </ScrollView>
 
-            {/* Shared Single Picker Sheet Modal Component */}
+                {/* 2. Amount Input Field Box */}
+                <View>
+                    <AppInput
+                        label={t('transfer.amount_label', 'Amount')}
+                        value={amountString}
+                        onChangeText={handleAmountChange}
+                        placeholder="0.00"
+                        placeholderTextColor="rgb(var(--color-text-primary-placeholder))"
+                        keyboardType="numeric"
+                        renderLeftIcon={() => (
+                            <Pressable
+                                onPress={() => setCurrencySheetOpen(true)}
+                                className="flex-row items-center mr-2 pr-2 border-r border-bg-secondary-lighter"
+                            >
+                                <AppText className="text-green-increase text-heading-h3 font-bold">
+                                    {activeCurrencyConfig?.symbol ?? '₹'}
+                                </AppText>
+                                <Iconify icon="heroicons:chevron-down" size={14} color={isDark ? COLORS.dark.brand.primary : COLORS.light.brand.primary} className="ml-1" />
+                            </Pressable>
+                        )}
+                        renderRightIcon={() => (
+                            <Pressable onPress={() => draft.setAmount(0)}>
+                                <AppText variant="body-small" className="text-green-increase font-medium">Clear</AppText>
+                            </Pressable>
+                        )}
+                    />
+                </View>
+
+                {/* 3. Quick-Select Amount Pill Chips Matrix */}
+                <View className="flex-row justify-between pt-1">
+                    {QUICK_AMOUNTS.map((amt) => {
+                        const isSelected = draft.amount === amt;
+                        return (
+                            <Pressable
+                                key={amt}
+                                onPress={() => handleQuickAmountSelect(amt)}
+                                className={`flex-1 mx-1 py-3 rounded-xl items-center border transition-all ${
+                                    isSelected
+                                        ? 'bg-bg-secondary/10 border-bg-secondary/30'
+                                        : 'bg-bg-primary border-bg-secondary-lighter shadow-xs'
+                                }`}
+                            >
+                                <AppText variant="body-small" className={`font-semibold ${isSelected ? 'text-green-increase' : 'text-text-secondary'}`}>
+                                    +{activeCurrencyConfig?.symbol ?? ''}{amt}
+                                </AppText>
+                            </Pressable>
+                        );
+                    })}
+                </View>
+
+                {/* 4. Descriptive Notes Input Box */}
+                <View>
+                    <AppInput
+                        label={t('transfer.description_label', 'Memo / Notes')}
+                        placeholder={t('transfer.description_placeholder', 'What is this settlement payment for?')}
+                        placeholderTextColor="rgb(var(--color-text-primary-placeholder))"
+                        value={draft.description}
+                        onChangeText={(text) => draft.setDescription(text)}
+                        textAlignVertical="top"
+                        maxLength={150}
+                        renderLeftIcon={() => (
+                            <View className="mt-0.5 mr-1">
+                                <Iconify icon="heroicons:document-text" size={20} color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary} />
+                            </View>
+                        )}
+                    />
+                </View>
+            </View>
+
             <SelectSinglePeopleBottomSheet
                 visible={bottomSheetOpen}
                 selectedId={getCurrentlySelectedId()}
@@ -270,6 +265,13 @@ const AddTransfer = () => {
                     setActiveSelectionTarget(null);
                 }}
                 onSelect={handleUserSelected}
+            />
+
+            <CurrencyBottomSheet
+                isVisible={currencySheetOpen}
+                currentCurrency={draft.currency}
+                onSelect={handleCurrencySelect}
+                onClose={() => setCurrencySheetOpen(false)}
             />
         </>
     );

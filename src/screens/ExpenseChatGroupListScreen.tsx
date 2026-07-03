@@ -90,7 +90,7 @@ const ExpenseChatGroupListScreen = () => {
                     title: e.name,
                     subtitle: `${e.currency} ${e.total_amount.toFixed(2)} • ${e.status}`,
                     timestamp: e.created_at,
-                    avatarUrl: e.category?.icon_url,
+                    avatarUrl: e.category?.icon.url,
                     rawItem: e
                 });
             });

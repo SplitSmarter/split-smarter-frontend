@@ -227,8 +227,7 @@ const AddExpenseScreen = () => {
                                 </View>
                             ))
                         ) : (
-                            <AppText variant="caption-xs" className="text-text-secondary opacity-60 font-medium">Split
-                                with no one</AppText>
+                            <AppText variant="caption-xs" className="text-text-primary opacity-60 font-medium">Split with no one</AppText>
                         )}
                     </Pressable>
 
@@ -268,7 +267,7 @@ const AddExpenseScreen = () => {
                             ))
                         ) : (
                             <AppText variant="caption-xs"
-                                     className="text-text-secondary opacity-60 font-medium">No items selected</AppText>
+                                     className="text-text-primary opacity-60 font-medium">No items selected</AppText>
                         )}
                     </Pressable>
 
