@@ -1,9 +1,9 @@
 import { create } from 'zustand';
 import { RelationWithUserType } from "@/src/api/dto/constants";
-import { TransferMode } from "@/src/api/dto/expense/transfer";
 import { Currency, CurrencyCode } from "@/src/constants/expense/currency"; // 👈 UPDATED: Importing the object and type
 import { userStore } from "@/src/store/userStore";
 import { ImageInfo } from "@/src/constants/user/asset";
+import {TransferMode} from "@/src/api/dto/expense/constant";
 
 export interface TransferParticipant {
     id: string;

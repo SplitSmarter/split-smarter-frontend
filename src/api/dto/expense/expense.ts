@@ -140,7 +140,7 @@ export interface ExpenseCategoryBasicResponse {
     icon: BasicImage;
 }
 
-export interface ExpenseRateDetails {
+export interface ExchangeRateDetails {
     INR: number;
     USD: number;
     EUR: number;
@@ -157,7 +157,7 @@ export interface ExpenseDetailsBasicResponse {
     total_amount: number;
     currency: Currency;
     category: ExpenseCategoryBasicResponse;
-    exchange_rate: ExpenseRateDetails | null;
+    exchange_rate: ExchangeRateDetails | null;
     paid_by_users: ExpensePaidByDetail[];
     sharers: ExpenseSharerDetail[];
     user_contribution: number | null;

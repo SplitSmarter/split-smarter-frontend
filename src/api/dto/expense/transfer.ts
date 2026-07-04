@@ -1,12 +1,9 @@
 import {Currency, RelationWithUserType} from "@/src/api/dto/constants";
-
-export enum TransferMode {
-    CASH = "CASH",
-    UPI = "UPI",
-    CARD = "CARD",
-    NET_BANKING = "NET_BANKING",
-    OTHER = "OTHER"
-}
+import {BasicUserDetails} from "@/src/api/dto/user/user";
+import {CurrencyCode} from "@/src/constants/expense/currency";
+import {BaseGroupDetails, ExchangeRateDetails} from "@/src/api/dto/expense/expense";
+import {BasicImage} from "@/src/api/dto/user/asset";
+import {TransferMode} from "@/src/api/dto/expense/constant";
 
 // ============================================================================
 // Request / Response Payload Interface Architectures
@@ -39,4 +36,28 @@ export interface AddSettlementLinkRequest {
 
 export interface AddSettlementLinkResponse {
     id: number;
+}
+
+
+export interface TransferDetailsBasicResponse {
+    id: number;
+    name: string;
+    from_user: BasicUserDetails;
+    to_user: BasicUserDetails;
+    mode: TransferMode;
+    transfer_date: string; // ISO Date format 'YYYY-MM-DD'
+    total_amount: number;
+    currency: CurrencyCode;
+    exchange_rate?: ExchangeRateDetails | null;
+    has_attachment?: boolean;
+    is_settled?: boolean;
+    group?: BaseGroupDetails | null;
+}
+
+export interface TransferDetailsResponse extends TransferDetailsBasicResponse {
+    notes?: string | null;
+    assets: BasicImage[];
+    created_by: BasicUserDetails;
+    created_at: string; // ISO DateTime format
+    updated_at: string; // ISO DateTime format
 }

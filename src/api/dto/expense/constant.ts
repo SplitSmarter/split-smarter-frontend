@@ -35,3 +35,10 @@ export enum ExpenseStatus {
 export type Weekday = "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY" | "SUNDAY";
 export type Month = "JANUARY" | "FEBRUARY" | "MARCH" | "APRIL" | "MAY" | "JUNE" | "JULY" | "AUGUST" | "SEPTEMBER" | "OCTOBER" | "NOVEMBER" | "DECEMBER";
 
+export enum TransferMode {
+    CASH = "CASH",
+    UPI = "UPI",
+    CARD = "CARD",
+    NET_BANKING = "NET_BANKING",
+    OTHER = "OTHER"
+}
