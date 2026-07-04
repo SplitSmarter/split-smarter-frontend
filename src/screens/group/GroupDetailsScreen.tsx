@@ -11,10 +11,12 @@ import { GetGroupByIdApi } from "@/src/api/group/group";
 import { listUserExpensesApi } from "@/src/api/expense/expense";
 import { ExpenseDetailsBasicResponse } from "@/src/api/dto/expense/expense";
 import { GroupOverviewTab } from "@/src/components/user/group/GroupOverviewTab";
-import { GroupExpensesTab } from "@/src/components/user/group/GroupExpensesTab";
+import { GroupTransactionsTab } from "@/src/components/user/group/GroupTransactionsTab";
 import { GroupGalleryTab } from "@/src/components/user/group/GroupGalleryTab";
+import {listUserTransfersApi} from "@/src/api/expense/transfer";
+import {TransferDetailsBasicResponse} from "@/src/api/dto/expense/transfer";
 
-type GroupTab = 'Overview' | 'Expenses' | 'Gallery' | 'Members';
+type GroupTab = 'Overview' | 'Transactions' | 'Gallery' | 'Members';
 
 const GroupDetailsScreen = () => {
     const { theme } = themeStore();
@@ -24,25 +26,28 @@ const GroupDetailsScreen = () => {
 
     const [group, setGroup] = useState<GroupDetails | null>(null);
     const [expenses, setExpenses] = useState<ExpenseDetailsBasicResponse[]>([]);
+    const [transfers, setTransfers] = useState<TransferDetailsBasicResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [activeTab, setActiveTab] = useState<GroupTab>('Expenses');
+    const [activeTab, setActiveTab] = useState<GroupTab>('Transactions');
 
     const fetchGroupDetails = async () => {
         if (!id) return;
         try {
-            const [groupRes, expensesRes] = await Promise.all([
+            setLoading(true);
+            const [groupRes, expensesRes, transfersRes] = await Promise.all([
                 GetGroupByIdApi(Number(id)),
-                listUserExpensesApi({ group_id: [Number(id)], limit: 50 })
+                listUserExpensesApi({ group_id: [Number(id)], limit: 50 }),
+                listUserTransfersApi({ group_id: [Number(id)], limit: 50 })
             ]);
 
             if (groupRes.data) setGroup(groupRes.data);
             if (expensesRes?.data) setExpenses(expensesRes.data);
+            if (transfersRes?.data) setTransfers(transfersRes.data);
         } catch (error) {
-            console.error("Fetch operational matrix failed:", error);
+            console.error("Fetch operational ledger matrix failed:", error);
         } finally {
             setLoading(false);
-            setRefreshing(false);
         }
     };
 
@@ -90,7 +95,7 @@ const GroupDetailsScreen = () => {
                 </View>
 
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 24 }}>
-                    {(['Overview', 'Expenses', 'Gallery', 'Members'] as GroupTab[]).map((tab) => {
+                    {(['Overview', 'Transactions', 'Gallery', 'Members'] as GroupTab[]).map((tab) => {
                         const isActive = activeTab === tab;
                         return (
                             <Pressable
@@ -115,7 +120,7 @@ const GroupDetailsScreen = () => {
                     </View>
                 ) : (
                     <View className="flex-1">
-                        {activeTab === 'Expenses' ? (
+                        {activeTab === 'Transactions' ? (
                             <ScrollView
                                 className="flex-1 px-4 pt-4"
                                 showsVerticalScrollIndicator={false}
@@ -123,7 +128,7 @@ const GroupDetailsScreen = () => {
                                     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={isDark ? "white" : "#2D6A4F"} />
                                 }
                             >
-                                <GroupExpensesTab expenses={expenses} isDark={isDark} />
+                                <GroupTransactionsTab expenses={expenses} transfers={transfers} isDark={isDark} />
                             </ScrollView>
                         ) : (
                             <ScrollView
@@ -142,7 +147,7 @@ const GroupDetailsScreen = () => {
             </View>
 
             {/* --- FIXED FLOATING ACTION BUTTON --- */}
-            {activeTab === 'Expenses' && (
+            {activeTab === 'Transactions' && (
                 <Pressable
                     className="absolute bottom-10 right-6 w-16 h-16 bg-[#2D6A4F] rounded-full items-center justify-center z-50"
                     onPress={() => router.push("/expense/add")}

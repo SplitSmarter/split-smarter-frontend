@@ -1,27 +1,30 @@
-import {AppButton} from '@/src/components/common/AppButton';
-import {AppImageV2} from '@/src/components/common/AppImageV2';
-import {AppInput} from '@/src/components/common/AppInput';
-import {AppText} from '@/src/components/common/AppText';
-import {ExpenseAttachments} from "@/src/components/expense/ExpenseAttachments";
+import { AppButton } from '@/src/components/common/AppButton';
+import { AppImageV2 } from '@/src/components/common/AppImageV2';
+import { AppInput } from '@/src/components/common/AppInput';
+import { AppText } from '@/src/components/common/AppText';
+import { ExpenseAttachments } from "@/src/components/expense/ExpenseAttachments";
 import MultiExpenseItemSelect from "@/src/components/expense/MultiExpenseItemSelect";
-import {CategoryGroupLocationSelector} from "@/src/screens/expense/CGLSelector";
-import {themeStore} from "@/src/store/themeStore";
-import {userStore} from "@/src/store/userStore";
-import {useExpenseDraftStore, PayerUser} from "@/src/store/draft/expenseDraftStore";
-import {RelationWithUserType} from "@/src/api/dto/constants";
-import {router} from 'expo-router';
-import React, {useMemo, useState, useEffect, useRef} from 'react';
-import {Modal, Pressable, ScrollView, View} from 'react-native';
-import {Iconify} from 'react-native-iconify';
-import {AppButtonV2} from "@/src/components/common/AppButtonV2";
-import {COLORS} from "@/src/constants/colors";
+import { CategoryGroupLocationSelector } from "@/src/screens/expense/CGLSelector";
+import { themeStore } from "@/src/store/themeStore";
+import { userStore } from "@/src/store/userStore";
+import { useExpenseDraftStore, PayerUser } from "@/src/store/draft/expenseDraftStore";
+import { RelationWithUserType } from "@/src/api/dto/constants";
+import { Currency, CurrencyCode } from "@/src/constants/expense/currency";
+import { CurrencyBottomSheet } from "@/src/screens/Onboarding/comps/CurrencyBottomSheet";
+import { router } from 'expo-router';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
+import { Modal, Pressable, ScrollView, View } from 'react-native';
+import { Iconify } from 'react-native-iconify';
+import { AppButtonV2 } from "@/src/components/common/AppButtonV2";
+import { COLORS } from "@/src/constants/colors";
 
 const AddExpenseScreen = () => {
-    const {user} = userStore();
-    const {theme} = themeStore();
+    const { user } = userStore();
+    const { theme } = themeStore();
     const isDark = theme === 'dark';
 
     const [isItemSelectVisible, setIsItemSelectVisible] = useState(false);
+    const [currencySheetOpen, setCurrencySheetOpen] = useState(false);
     const isInitialMount = useRef(true);
 
     // Bind local UI rendering hooks completely to Zustand Context
@@ -37,7 +40,7 @@ const AddExpenseScreen = () => {
         let currentPayers = [...draft.payers];
         let currentParticipants = [...draft.splitParticipants];
 
-        // 1. Fallback Bootstrapping: If the store initialized empty (e.g. userStore wasn't ready at startup), load it now
+        // 1. Fallback Bootstrapping: If the store initialized empty, load it now
         if (user && currentPayers.length === 0 && currentParticipants.length === 0) {
             const initialUserObject: PayerUser = {
                 id: String(user.id),
@@ -96,24 +99,29 @@ const AddExpenseScreen = () => {
 
         draft.setPayers(updatedPayers);
         draft.setSplitParticipants(updatedParticipants);
-    }, [draft.totalAmount, user]); // <-- Adding user dependency handles async auth store updates smoothly
+    }, [draft.totalAmount, user]);
 
     const handleAmountChange = (text: string) => {
         const parsed = parseFloat(text);
         draft.setTotalAmount(isNaN(parsed) || parsed < 0 ? 0 : parsed);
     };
 
+    const handleCurrencySelect = (code: string) => {
+        draft.setCurrency(code as CurrencyCode);
+        setCurrencySheetOpen(false);
+    };
+
     const handleOpenPaidBy = () => {
         router.push({
             pathname: '/(authenticated)/expense/user/split',
-            params: {type: 'paidBy', totalExpense: draft.totalAmount.toString()}
+            params: { type: 'paidBy', totalExpense: draft.totalAmount.toString() }
         });
     };
 
     const handleOpenSplitSelect = () => {
         router.push({
             pathname: '/(authenticated)/expense/user/split',
-            params: {type: 'split', totalExpense: draft.totalAmount.toString()}
+            params: { type: 'split', totalExpense: draft.totalAmount.toString() }
         });
     };
 
@@ -131,13 +139,15 @@ const AddExpenseScreen = () => {
         return hasMe ? `Split between You and ${draft.splitParticipants.length - 1} others` : `Split between ${draft.splitParticipants[0].name} and ${draft.splitParticipants.length - 1} others`;
     }, [draft.splitParticipants, user]);
 
+    const activeCurrencyConfig = Currency[draft.currency];
+
     return (
         <>
             <ScrollView
                 className="flex-1"
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
-                contentContainerStyle={{paddingBottom: 60}}
+                contentContainerStyle={{ paddingBottom: 60 }}
             >
                 <View className="gap-y-6">
                     {/* 1. Name Input */}
@@ -157,7 +167,20 @@ const AddExpenseScreen = () => {
                         placeholder="0.00"
                         placeholderTextColor="rgb(var(--color-text-primary-placeholder))"
                         renderLeftIcon={() => (
-                            <AppText className="text-bg-secondary mr-2 text-heading-h3 font-bold">₹</AppText>
+                            <Pressable
+                                onPress={() => setCurrencySheetOpen(true)}
+                                className="flex-row items-center mr-2 pr-2 border-r border-bg-secondary-lighter"
+                            >
+                                <AppText className="text-bg-secondary text-heading-h3 font-bold">
+                                    {activeCurrencyConfig?.symbol ?? '₹'}
+                                </AppText>
+                                <Iconify
+                                    icon="heroicons:chevron-down"
+                                    size={14}
+                                    color={isDark ? COLORS.dark.brand.primary : COLORS.light.brand.primary}
+                                    className="ml-1"
+                                />
+                            </Pressable>
                         )}
                         keyboardType="numeric"
                         renderRightIcon={() => (
@@ -167,7 +190,7 @@ const AddExpenseScreen = () => {
                         )}
                     />
 
-                    <CategoryGroupLocationSelector/>
+                    <CategoryGroupLocationSelector />
 
                     {/* 4. Paid By Selection Box */}
                     <AppButtonV2
@@ -202,7 +225,7 @@ const AddExpenseScreen = () => {
                         <View className="flex-row justify-between items-center mb-4">
                             <AppText variant="h4" className="font-bold text-text-primary">Split Between</AppText>
                             <Iconify icon="heroicons:pencil-square" size={20}
-                                     color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary}/>
+                                     color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary} />
                         </View>
 
                         {draft.splitParticipants.length > 0 ? (
@@ -214,18 +237,18 @@ const AddExpenseScreen = () => {
                                     <View className="flex-row items-center flex-1">
                                         {participant.avatar?.url ? (
                                             <AppImageV2 id={`avatar-${participant.name}`} url={participant.avatar.url}
-                                                        style={{width: 24, height: 24}} className="rounded-full"/>
+                                                        style={{ width: 24, height: 24 }} className="rounded-full" />
                                         ) : (
-                                            <View style={{width: 24, height: 24}}
+                                            <View style={{ width: 24, height: 24 }}
                                                   className="bg-gray-200 dark:bg-zinc-800 rounded-full items-center justify-center">
-                                                <Iconify icon="heroicons:user-solid" size={12} color="#999"/>
+                                                <Iconify icon="heroicons:user-solid" size={12} color="#999" />
                                             </View>
                                         )}
                                         <AppText
                                             className="ml-3 flex-1 text-text-primary font-medium">{participant.name}</AppText>
                                     </View>
                                     <AppText
-                                        className="font-bold text-text-primary">₹{(participant.amount || 0).toFixed(2)}</AppText>
+                                        className="font-bold text-text-primary">{activeCurrencyConfig?.symbol ?? '₹'}{(participant.amount || 0).toFixed(2)}</AppText>
                                 </View>
                             ))
                         ) : (
@@ -241,7 +264,7 @@ const AddExpenseScreen = () => {
                         <View className="flex-row justify-between items-center mb-4">
                             <AppText variant="h4" className="font-bold text-text-primary">Items</AppText>
                             <Iconify icon="heroicons:pencil-square" size={20}
-                                     color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary}/>
+                                     color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary} />
                         </View>
                         {draft.expenseItems.length > 0 ? (
                             draft.expenseItems.map((item, index) => (
@@ -250,11 +273,11 @@ const AddExpenseScreen = () => {
                                     <View className="flex-row items-center flex-1">
                                         {item.iconUrl ? (
                                             <AppImageV2 id={`selected-item-${item.id}`} url={item.iconUrl}
-                                                        style={{width: 24, height: 24}} contentFit="contain"/>
+                                                        style={{ width: 24, height: 24 }} contentFit="contain" />
                                         ) : (
-                                            <View style={{width: 24, height: 24}}
+                                            <View style={{ width: 24, height: 24 }}
                                                   className="bg-gray-200 rounded-full items-center justify-center">
-                                                <Iconify icon="heroicons:shopping-cart" size={12} color="#999"/>
+                                                <Iconify icon="heroicons:shopping-cart" size={12} color="#999" />
                                             </View>
                                         )}
                                         <View className="ml-3 flex-1">
@@ -264,7 +287,7 @@ const AddExpenseScreen = () => {
                                         </View>
                                     </View>
                                     <AppText
-                                        className="font-bold text-text-primary">₹{(item.cost * item.quantity).toFixed(2)}</AppText>
+                                        className="font-bold text-text-primary">{activeCurrencyConfig?.symbol ?? '₹'}{(item.cost * item.quantity).toFixed(2)}</AppText>
                                 </View>
                             ))
                         ) : (
@@ -275,18 +298,18 @@ const AddExpenseScreen = () => {
 
                     <ExpenseAttachments onAttachmentsChange={(uris) => {
                         draft.setLocalAttachmentUris(uris)
-                    }}/>
+                    }} />
                 </View>
             </ScrollView>
 
             <Modal visible={isItemSelectVisible} animationType="slide" transparent
                    onRequestClose={() => setIsItemSelectVisible(false)}>
                 <View className="flex-1 justify-end bg-black/50">
-                    <Pressable className="absolute inset-0" onPress={() => setIsItemSelectVisible(false)}/>
-                    <View style={{height: '90%', zIndex: 1}}
+                    <Pressable className="absolute inset-0" onPress={() => setIsItemSelectVisible(false)} />
+                    <View style={{ height: '90%', zIndex: 1 }}
                           className={`rounded-t-[32px] overflow-hidden ${isDark ? 'bg-[#121212]' : 'bg-[#F8F9FA]'}`}>
                         <View className="items-center pt-3 pb-1">
-                            <View className={`w-12 h-1.5 rounded-full ${isDark ? 'bg-gray-700' : 'bg-gray-300'}`}/>
+                            <View className={`w-12 h-1.5 rounded-full ${isDark ? 'bg-gray-700' : 'bg-gray-300'}`} />
                         </View>
                         <View className="flex-1">
                             <MultiExpenseItemSelect
@@ -300,6 +323,13 @@ const AddExpenseScreen = () => {
                     </View>
                 </View>
             </Modal>
+
+            <CurrencyBottomSheet
+                isVisible={currencySheetOpen}
+                currentCurrency={draft.currency}
+                onSelect={handleCurrencySelect}
+                onClose={() => setCurrencySheetOpen(false)}
+            />
         </>
     );
 };

@@ -4,7 +4,6 @@ import { Iconify } from "react-native-iconify";
 import { AppText } from '@/src/components/common/AppText';
 import { AppImageV2 } from '@/src/components/common/AppImageV2';
 import { ExpenseDetailsBasicResponse } from "@/src/api/dto/expense/expense";
-import { ExpenseComponentType } from "@/src/api/dto/expense/constant";
 import { RelationWithUserType } from "@/src/api/dto/constants";
 import { getPayerContextText } from "@/src/utils/expense/payers";
 import { Currency, CurrencyCode } from '@/src/constants/expense/currency';
@@ -26,14 +25,12 @@ export const ExpenseRow = ({
                                isDark,
                                onPress
                            }: ExpenseRowProps) => {
-    const isTransfer = item.expense_type === ExpenseComponentType.TRANSFER;
     const isSettled = item.is_settled;
     const baseContribution = item.user_contribution ?? 0;
 
     let displayContribution = baseContribution;
     let displayCurrencySymbol = Currency[item.currency as CurrencyCode]?.symbol || item.currency;
 
-    // Handle currency transformation conversions
     if (viewType === 'custom' && baseContribution !== 0 && item.currency !== userProfileCurrencyCode) {
         const exchangeRates = item.exchange_rate;
         const baseRate = exchangeRates ? (exchangeRates[item.currency as keyof typeof exchangeRates] ?? 1) : 1;
@@ -55,50 +52,6 @@ export const ExpenseRow = ({
         return Currency[code as CurrencyCode]?.symbol || code;
     };
 
-    // --- RENDER FLOW A: Transfer Component Row ---
-    if (isTransfer) {
-        const senderName = item.paid_by_users?.[0]?.name || "Someone";
-        const recipientName = item.sharers?.[0]?.name || "Someone";
-
-        return (
-            <Pressable
-                onPress={() => onPress?.(item)}
-                disabled={!onPress}
-                className="flex-row items-center py-3 border-b border-gray-50 dark:border-zinc-900 last:border-b-0 active:opacity-70"
-            >
-                <View className="relative w-12 h-12 rounded-full bg-blue-50 dark:bg-zinc-800/50 items-center justify-center mr-4">
-                    <Iconify icon="heroicons:arrows-right-left" size={22} color="#2563EB" />
-                    {isSettled && (
-                        <View className="absolute -bottom-1 -right-1 bg-blue-600 rounded-full w-5 h-5 items-center justify-center border border-white dark:border-black">
-                            <Iconify icon="heroicons:tag" size={12} color="white" />
-                        </View>
-                    )}
-                </View>
-
-                <View className="flex-1 justify-center">
-                    <View className="flex-row items-center justify-between">
-                        <AppText variant="body-base" className="font-semibold text-gray-900 dark:text-zinc-100 flex-1 mr-2" numberOfLines={1}>
-                            {`${senderName} paid ${recipientName}`}
-                        </AppText>
-                        <AppText variant="body-small" className="text-gray-400 dark:text-zinc-500 font-medium">
-                            {formattedRowDate}
-                        </AppText>
-                    </View>
-
-                    <View className="flex-row items-center justify-between mt-0.5">
-                        <AppText variant="body-small" className="text-gray-400 dark:text-zinc-500" numberOfLines={1}>
-                            Settlement Payment
-                        </AppText>
-                        <AppText variant="body-base" className="font-bold text-gray-900 dark:text-zinc-50 text-right">
-                            {getCurrencySymbol(item.currency)}{item.total_amount.toFixed(2)}
-                        </AppText>
-                    </View>
-                </View>
-            </Pressable>
-        );
-    }
-
-    // --- RENDER FLOW B: Standard Expense Row ---
     const structuralPayers = (item.paid_by_users || []).map(p => ({
         id: p.id,
         name: p.name,
@@ -114,9 +67,10 @@ export const ExpenseRow = ({
         <Pressable
             onPress={() => onPress?.(item)}
             disabled={!onPress}
-            className="flex-row items-center py-3 border-b border-gray-50 dark:border-zinc-900 last:border-b-0 active:opacity-70"
+            className="flex-row items-center py-3.5 border-b border-gray-50 dark:border-zinc-900 last:border-b-0 active:opacity-70"
         >
-            <View className="relative w-12 h-12 rounded-full bg-emerald-50 dark:bg-zinc-800/60 items-center justify-center mr-4">
+            {/* Left Side Icon Stack */}
+            <View className="relative w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-950/30 items-center justify-center mr-4">
                 {item.category?.icon?.id ? (
                     <AppImageV2
                         id={`${item.category.icon.id}`}
@@ -130,13 +84,15 @@ export const ExpenseRow = ({
                 )}
 
                 {isSettled && (
-                    <View className="absolute -bottom-1 -right-1 bg-emerald-600 rounded-full w-5 h-5 items-center justify-center border border-white dark:border-black">
+                    <View className="absolute -bottom-1 -right-1 bg-emerald-600 rounded-full w-5 h-5 items-center justify-center border border-white dark:border-zinc-950">
                         <Iconify icon="heroicons:check" size={12} color="white" />
                     </View>
                 )}
             </View>
 
+            {/* 3-Row Layout Grid */}
             <View className="flex-1 justify-center">
+                {/* Row 1 */}
                 <View className="flex-row items-center justify-between">
                     <AppText variant="body-base" className="font-semibold text-gray-900 dark:text-zinc-100 flex-1 mr-2" numberOfLines={1}>
                         {item.name}
@@ -146,6 +102,7 @@ export const ExpenseRow = ({
                     </AppText>
                 </View>
 
+                {/* Row 2 */}
                 <View className="flex-row items-center justify-between mt-0.5">
                     <View className="flex-row items-center flex-1 mr-2">
                         <AppText variant="body-small" className="text-gray-500 dark:text-zinc-400" numberOfLines={1}>
@@ -172,6 +129,7 @@ export const ExpenseRow = ({
                     )}
                 </View>
 
+                {/* Row 3 */}
                 <View className="flex-row items-center justify-between mt-0.5">
                     <View className="flex-1 mr-2">
                         {item.place?.name ? (

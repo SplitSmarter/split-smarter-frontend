@@ -3,7 +3,7 @@ import axiosUserInstance from "@/src/api/axiosUserServiceInstance";
 import {SuccessResponse} from "@/src/api/dto/ApiResponse";
 import {handleApiError} from "@/src/api/utils/mapper";
 
-const BASE_PATH = "/settlement/v1"; // Linked securely to your upstream service routing rules
+const BASE_PATH = "/settlement/v1";
 
 /**
  * Links an unmapped standalone transfer against an outstanding line-item record context

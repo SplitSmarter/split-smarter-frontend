@@ -183,6 +183,7 @@ const AddSplitScreen = () => {
                 }
 
                 expenseDraft.setExpenseType(ExpenseComponentType.ITEM);
+
                 const payload = mapDraftToRequest(expenseDraft, uploadedAssetIds);
 
                 console.log("Expense Payload dispatched via HTTP client pipeline:", payload);

@@ -102,7 +102,7 @@ export const mapDraftToRequest = (draftState: ExpenseDraftState, uploadedAssetId
 
     // 4. Construct components union block based on polymorphic layout rules
     let componentsPayload: ComponentTypeUnion;
-
+    console.log(draftState.expenseType);
     if (draftState.expenseType === ExpenseComponentType.ITEM) {
         if (!draftState.expenseItems || draftState.expenseItems.length === 0) {
 
@@ -141,6 +141,7 @@ export const mapDraftToRequest = (draftState: ExpenseDraftState, uploadedAssetId
             };
         }
     } else {
+        console.error("Not implemented");
         componentsPayload = {
             type: ExpenseComponentType.TRANSFER,
             users: draftState.splitParticipants.map((sharerDraft: PayerUser) => ({
