@@ -12,7 +12,7 @@ import { RelationWithUserType } from "@/src/api/dto/constants";
 import { Currency, CurrencyCode } from "@/src/constants/expense/currency";
 import { CurrencyBottomSheet } from "@/src/screens/Onboarding/comps/CurrencyBottomSheet";
 import { router } from 'expo-router';
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Modal, Pressable, ScrollView, View } from 'react-native';
 import { Iconify } from 'react-native-iconify';
 import { AppButtonV2 } from "@/src/components/common/AppButtonV2";
@@ -25,58 +25,21 @@ const AddExpenseScreen = () => {
 
     const [isItemSelectVisible, setIsItemSelectVisible] = useState(false);
     const [currencySheetOpen, setCurrencySheetOpen] = useState(false);
-    const isInitialMount = useRef(true);
 
-    // Bind local UI rendering hooks completely to Zustand Context
+    // Bind completely to Zustand Context
     const draft = useExpenseDraftStore();
 
-    // Format local text field display string wrappers safely
+    // Safe string translation for input display
     const amountString = useMemo(() => {
         return draft.totalAmount === 0 ? "" : draft.totalAmount.toString();
     }, [draft.totalAmount]);
 
-    // Unify initialization context and automatic mathematical allocation safely in a single flow
+    // Handle proportional scaling calculations when total amount varies
     useEffect(() => {
-        let currentPayers = [...draft.payers];
-        let currentParticipants = [...draft.splitParticipants];
+        // If there's an amount but no participants have been assigned yet, stop calculation loop
+        if (draft.payers.length === 0 && draft.splitParticipants.length === 0) return;
 
-        // 1. Fallback Bootstrapping: If the store initialized empty, load it now
-        if (user && currentPayers.length === 0 && currentParticipants.length === 0) {
-            const initialUserObject: PayerUser = {
-                id: String(user.id),
-                name: "You",
-                avatar: user.avatar ? {
-                    id: String(user.avatar.id),
-                    name: '',
-                    url: user.avatar.url,
-                    extension: ''
-                } : null,
-                amount: draft.totalAmount,
-                shares: 1,
-                isLocked: false,
-                user_type: RelationWithUserType.USER
-            };
-            currentPayers = [initialUserObject];
-            currentParticipants = [initialUserObject];
-        }
-
-        // 2. Initial Mount Guard: Stop overwrite steps if data allocations are already distributed
-        if (isInitialMount.current) {
-            isInitialMount.current = false;
-            const totalPayerSum = currentPayers.reduce((sum, p) => sum + (p.amount || 0), 0);
-
-            // If we have populated arrays from initialization or a prior draft state, save them and exit
-            if (totalPayerSum > 0 || draft.totalAmount > 0 || currentPayers.length > 0) {
-                if (draft.payers.length === 0) {
-                    draft.setPayers(currentPayers);
-                    draft.setSplitParticipants(currentParticipants);
-                }
-                return;
-            }
-        }
-
-        // 3. Mathematical Scaling Distribution Sequence
-        const scaleDistribution = (prevList: any[]) => {
+        const scaleDistribution = (prevList: PayerUser[]) => {
             if (prevList.length === 0) return prevList;
 
             const lockedSum = prevList.reduce((sum, u) => sum + (u.isLocked ? (u.amount || 0) : 0), 0);
@@ -94,12 +57,18 @@ const AddExpenseScreen = () => {
             });
         };
 
-        const updatedPayers = scaleDistribution(currentPayers);
-        const updatedParticipants = scaleDistribution(currentParticipants);
+        // Distribute mathematically based on initial store populations smoothly
+        const updatedPayers = scaleDistribution(draft.payers);
+        const updatedParticipants = scaleDistribution(draft.splitParticipants);
 
-        draft.setPayers(updatedPayers);
-        draft.setSplitParticipants(updatedParticipants);
-    }, [draft.totalAmount, user]);
+        // Check if values actually changed to avoid repetitive state mutations
+        const payersChanged = JSON.stringify(updatedPayers) !== JSON.stringify(draft.payers);
+        const participantsChanged = JSON.stringify(updatedParticipants) !== JSON.stringify(draft.splitParticipants);
+
+        if (payersChanged) draft.setPayers(updatedPayers);
+        if (participantsChanged) draft.setSplitParticipants(updatedParticipants);
+
+    }, [draft.totalAmount]); // Only run scaling when the input sum changes
 
     const handleAmountChange = (text: string) => {
         const parsed = parseFloat(text);
@@ -248,7 +217,9 @@ const AddExpenseScreen = () => {
                                             className="ml-3 flex-1 text-text-primary font-medium">{participant.name}</AppText>
                                     </View>
                                     <AppText
-                                        className="font-bold text-text-primary">{activeCurrencyConfig?.symbol ?? '₹'}{(participant.amount || 0).toFixed(2)}</AppText>
+                                        className="font-bold text-text-primary">
+                                        {activeCurrencyConfig?.symbol ?? '₹'}{(participant.amount || 0).toFixed(2)}
+                                    </AppText>
                                 </View>
                             ))
                         ) : (
@@ -269,7 +240,7 @@ const AddExpenseScreen = () => {
                         {draft.expenseItems.length > 0 ? (
                             draft.expenseItems.map((item, index) => (
                                 <View key={item.id}
-                                      className={`flex-row items-center justify-between py-3 ${index !== draft.expenseItems.length - 1 ? 'border-b border-bg-secondary-lighter' : ''}`}>
+                                      className={`flex-row items-center justify-between py-3 ${index !== draft.expenseItems.length - 1 ? 'border-b border-b-secondary-lighter' : ''}`}>
                                     <View className="flex-row items-center flex-1">
                                         {item.iconUrl ? (
                                             <AppImageV2 id={`selected-item-${item.id}`} url={item.iconUrl}
@@ -287,7 +258,9 @@ const AddExpenseScreen = () => {
                                         </View>
                                     </View>
                                     <AppText
-                                        className="font-bold text-text-primary">{activeCurrencyConfig?.symbol ?? '₹'}{(item.cost * item.quantity).toFixed(2)}</AppText>
+                                        className="font-bold text-text-primary">
+                                        {activeCurrencyConfig?.symbol ?? '₹'}{(item.cost * item.quantity).toFixed(2)}
+                                    </AppText>
                                 </View>
                             ))
                         ) : (

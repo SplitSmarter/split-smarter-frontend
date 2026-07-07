@@ -1,9 +1,10 @@
 import {Currency, RelationWithUserType} from "@/src/api/dto/constants";
 import {BasicUserDetails} from "@/src/api/dto/user/user";
 import {CurrencyCode} from "@/src/constants/expense/currency";
-import {BaseGroupDetails, ExchangeRateDetails} from "@/src/api/dto/expense/expense";
+import {ExchangeRateDetails} from "@/src/api/dto/expense/expense";
 import {BasicImage} from "@/src/api/dto/user/asset";
 import {TransferMode} from "@/src/api/dto/expense/constant";
+import {BaseGroupDetails} from "@/src/api/dto/user/group";
 
 // ============================================================================
 // Request / Response Payload Interface Architectures

@@ -1,10 +1,10 @@
 import React from "react";
-import AddSplitScreen from "@/src/screens/expense/AddSplitScreen";
+import AddTransaction from "@/src/screens/expense/AddTransaction";
 
 const AddSplit = () => {
 
     return (
-        <AddSplitScreen />
+        <AddTransaction />
     );
 };
 

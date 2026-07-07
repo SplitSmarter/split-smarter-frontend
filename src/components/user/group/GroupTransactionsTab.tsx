@@ -41,7 +41,7 @@ export const GroupTransactionsTab = ({
             date: e.expense_date,
             currency: e.currency,
             totalAmount: e.total_amount,
-            isSettled: e.is_settled || false,
+            isSettled: e.is_user_settled || false,
             hasAttachment: e.has_attachment || false,
             expenseRaw: e
         }));

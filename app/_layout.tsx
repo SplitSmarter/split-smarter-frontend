@@ -1,6 +1,6 @@
 import "./global.css";
-import {useEffect, useMemo, useState} from "react";
-import {View, Dimensions} from "react-native";
+import {useEffect, useMemo, useRef, useState} from "react";
+import {View, Dimensions, AppState} from "react-native";
 import {Slot, SplashScreen} from 'expo-router';
 import {DarkTheme, DefaultTheme, ThemeProvider} from "@react-navigation/native";
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
@@ -21,6 +21,7 @@ import {ImageCacheManager} from "@/src/utils/system/ImageCacheManager";
 import {GoogleSignin} from "@react-native-google-signin/google-signin";
 import {GOOGLE_IOS_CLIENT_ID, GOOGLE_WEB_CLIENT_ID} from "@/src/config/config";
 import {permissionStore} from "@/src/store/permissionStore";
+import {paymentStore} from "@/src/store/paymentStore";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -33,6 +34,8 @@ export default function RootLayout() {
     const fetchPublicInfo = configStore((state) => state.fetchPublicInfo);
     const updateScreen = deviceStore((state) => state.updateScreen);
     const syncPermissions = permissionStore((state) => state.syncPermissions);
+    const pendingPayment = paymentStore((state) => state.pendingVerification);
+    const appStateRef = useRef(AppState.currentState);
     const [isAppReady, setIsAppReady] = useState(false);
 
     // 1. Setup Global Error Handling once
@@ -49,6 +52,21 @@ export default function RootLayout() {
                 if (originalHandler) originalHandler(error, isFatal);
             });
         }
+    }, []);
+
+    useEffect(() => {
+        const subscription = AppState.addEventListener('change', (nextAppState) => {
+            if (
+                appStateRef.current.match(/inactive|background/) &&
+                nextAppState === 'active'
+            ) {
+                // Trigger checking mechanisms when app awakens if needed
+                console.log("App returned to active foreground");
+            }
+            appStateRef.current = nextAppState;
+        });
+
+        return () => subscription.remove();
     }, []);
 
     // 2. Initialize App Data

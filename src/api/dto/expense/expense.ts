@@ -5,13 +5,15 @@ import {Currency, RelationWithUserType} from "@/src/api/dto/constants";
 import {
     ExpenseComponentType,
     ExpenseExtraDetailType,
-    ExpenseRecurringPeriod, ExpenseStatus,
+    ExpenseRecurringPeriod,
+    ExpenseStatus,
     Month,
     PaidTowards,
     Weekday
 } from "@/src/api/dto/expense/constant";
 import {BasicUserDetails} from "@/src/api/dto/user/user";
 import {BasicImage} from "@/src/api/dto/user/asset";
+import {BaseGroupDetails} from "@/src/api/dto/user/group";
 
 export interface ExpenseSharersDto {
     user_id: number;
@@ -165,7 +167,7 @@ export interface ExpenseDetailsBasicResponse {
     place: LocationDetails | null;
     is_scheduled_blueprint: boolean;
     has_attachment: boolean;
-    is_settled: boolean;
+    is_user_settled: boolean;
 }
 
 export interface ExpensePaidByDetail extends BasicUserDetails {
@@ -212,12 +214,6 @@ export interface ScheduledBlueprintDetail {
     next_run_date: string | null;
     last_expenses: ExpenseDetailsBasicResponse[] | null;
     is_active: boolean;
-}
-
-export interface BaseGroupDetails {
-    id: number;
-    title: string;
-    avatar?: BasicImage | null;
 }
 
 export interface LocationDetails {

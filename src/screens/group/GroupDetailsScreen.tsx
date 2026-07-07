@@ -79,7 +79,7 @@ const GroupDetailsScreen = () => {
                                 {group?.title || 'Loading...'}
                             </AppText>
                             <AppText variant="body-small" className="text-white/70 mt-0.5" numberOfLines={1}>
-                                {group?.members?.length || 1} Members
+                                {group?.no_of_members} Members
                             </AppText>
                         </View>
                     </View>

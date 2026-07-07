@@ -15,6 +15,10 @@ import { CurrencyBottomSheet } from "@/src/screens/Onboarding/comps/CurrencyBott
 
 const QUICK_AMOUNTS = [100, 200, 500, 1000];
 
+// TODO: fix the keyboard avoid view with memo / notes
+// TODO: Add the transfer mode selection
+// TODO: Add the group selection
+
 const AddTransfer = () => {
     const { t } = useTranslation();
     const { theme } = themeStore();
@@ -153,13 +157,13 @@ const AddTransfer = () => {
         <>
             <View className="gap-y-6">
                 {/* 1. Interactive Flow Participant Card Matrix */}
-                <View className="flex-row items-center justify-between p-5 rounded-2xl shadow-sm">
+                <View className="flex-row items-center justify-between p-5 rounded-2xl">
                     {/* Source Payer Box */}
                     <Pressable onPress={() => openSelectorFor('sender')} className="flex-1 items-center active:opacity-75">
                         <View className="w-12 h-12 rounded-full bg-emerald-500/10 items-center justify-center mb-2 border border-emerald-500/20">
                             <Iconify icon="heroicons:user-minus" size={22} color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary} />
                         </View>
-                        <AppText variant="caption-xs" className="text-text-secondary opacity-60 font-semibold uppercase tracking-wider">{t('transfer.from', 'Sender')}</AppText>
+                        <AppText variant="caption-xs" className="text-text-primary opacity-60 font-semibold uppercase tracking-wider">{t('transfer.from', 'Sender')}</AppText>
                         <AppText variant="body-base" className="font-bold text-text-primary text-center mt-1" numberOfLines={1}>
                             {draft.sender ? (isUserSelf(draft.sender) ? t('transfer.you', 'You') : draft.sender.name) : t('transfer.select_user', 'Me')}
                         </AppText>
@@ -180,7 +184,7 @@ const AddTransfer = () => {
                         <View className="w-12 h-12 rounded-full bg-blue-500/10 items-center justify-center mb-2 border border-blue-500/20">
                             <Iconify icon="heroicons:user-plus" size={22} color="#3B82F6" />
                         </View>
-                        <AppText variant="caption-xs" className="text-text-secondary opacity-60 font-semibold uppercase tracking-wider">{t('transfer.to', 'Recipient')}</AppText>
+                        <AppText variant="caption-xs" className="text-text-primary opacity-60 font-semibold uppercase tracking-wider">{t('transfer.to', 'Recipient')}</AppText>
                         <AppText variant="body-base" className="font-bold text-text-primary text-center mt-1" numberOfLines={1}>
                             {draft.recipient ? (isUserSelf(draft.recipient) ? t('transfer.you', 'You') : draft.recipient.name) : t('transfer.choose_recipient', 'Select Peer')}
                         </AppText>
@@ -229,7 +233,7 @@ const AddTransfer = () => {
                                         : 'bg-bg-primary border-bg-secondary-lighter shadow-xs'
                                 }`}
                             >
-                                <AppText variant="body-small" className={`font-semibold ${isSelected ? 'text-green-increase' : 'text-text-secondary'}`}>
+                                <AppText variant="body-small" className={`font-semibold ${isSelected ? 'text-green-increase' : 'text-text-primary-lighter'}`}>
                                     +{activeCurrencyConfig?.symbol ?? ''}{amt}
                                 </AppText>
                             </Pressable>

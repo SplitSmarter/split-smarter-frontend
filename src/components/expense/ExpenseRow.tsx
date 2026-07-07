@@ -25,7 +25,7 @@ export const ExpenseRow = ({
                                isDark,
                                onPress
                            }: ExpenseRowProps) => {
-    const isSettled = item.is_settled;
+    const isSettled = item.is_user_settled;
     const baseContribution = item.user_contribution ?? 0;
 
     let displayContribution = baseContribution;

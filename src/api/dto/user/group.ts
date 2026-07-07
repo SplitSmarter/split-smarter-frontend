@@ -77,12 +77,19 @@ export interface GroupActivityResponse {
     created_at: string;
 }
 
-export interface GroupDetails {
+
+export interface BaseGroupDetails {
     id: number;
-    uuid: string;
     title: string;
-    description: string;
     icon: BasicImage;
+    is_member: boolean;
+    no_of_members: number;
+    last_activity: GroupActivityResponse | null;
+}
+
+export interface GroupDetails extends BaseGroupDetails{
+    uuid: string;
+    description: string;
     background: BasicImage;
     visibility: GroupVisibilityType;
     owner: BasicUserDetails;
@@ -91,7 +98,6 @@ export interface GroupDetails {
     updated_at: string;
     settings: GroupSettings;
     category: BasicGroupCategoryDetails;
-    activities: GroupActivityResponse[];
 }
 
 export interface GroupCategoryDetails {

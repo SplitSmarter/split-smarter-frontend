@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import { BasicImage } from "@/src/api/dto/user/asset";
 
+// TODO: Keep a check for decommissioned api endpoints if current version uses any one of it ask user to update the app
+// TODO: Tier 1: Device-Level Sanction/Snooping Check (On Signup/Login) = Block high-risk IPs immediately at the server level using an IP geolocation API (like MaxMind). If a request originates from an OFAC-sanctioned country (e.g., Iran, North Korea, Russia), block the user from signing up or logging in entirely.
+
 interface SystemState {
     defaults: {
         defaultExpenseCategory: { id: number, asset: BasicImage } | null;

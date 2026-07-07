@@ -15,7 +15,10 @@ module.exports = {
         "googleMapsApiKey": process.env.GOOGLE_MAPS_API_KEY_IOS
       },
       "supportsTablet": true,
-      "bundleIdentifier": "com.onewordmax.splitsmart"
+      "bundleIdentifier": "com.onewordmax.splitsmart",
+      "infoPlist": {
+        "LSApplicationQueriesSchemes": ["upi"] // Whitelists iOS querying
+      }
     },
     "android": {
       "config": {
@@ -31,7 +34,17 @@ module.exports = {
       "minSdkVersion": 26,
       "edgeToEdgeEnabled": true,
       "softwareKeyboardLayoutMode": "resize",
-      "permissions": []
+      "permissions": [],
+      // 🚀 THIS RIGHT HERE WHITELISTS THE UPI SCHEME IN THE MANIFEST
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "category": ["DEFAULT", "BROWSABLE"],
+          "data": {
+            "scheme": "upi"
+          }
+        }
+      ]
     },
     "web": {
       "bundler": "metro",
