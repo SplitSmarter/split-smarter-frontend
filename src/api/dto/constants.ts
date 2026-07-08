@@ -45,6 +45,12 @@ export enum GroupCategorySource {
     CUSTOM = 'CUSTOM'
 }
 
+export enum GroupUserRole {
+    ADMIN = "ADMIN",
+    MEMBER = "MEMBER",
+    COORDINATOR = "COORDINATOR"
+}
+
 export enum AssetStatus {
     ACTIVE = "active",
     ARCHIVED = "archived",

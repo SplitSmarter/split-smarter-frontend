@@ -17,18 +17,22 @@ import {DateComponentPayload} from "@/src/constants/expense/schedule";
 import {ExpenseScheduleModal} from "@/src/components/expense/schedule/ExpenseScheduleModal";
 import {ExpenseComponentType} from "@/src/api/dto/expense/constant";
 import {COLORS} from "@/src/constants/colors";
-
-// Extracted Business Logic Helpers
-import {executeTransactionSubmit} from "@/src/utils/expense/transactionHelpers";
+import {DraftValidationErrorKey} from "@/src/interfaces/expense/draft_validation";
+import {executeTransactionSubmit, validateTransactionSubmit} from "@/src/utils/expense/transactionHelpers";
 import {InlineDatePicker, TabButton, TransactionOptionsModal} from "@/src/screens/expense/AddTransactionHelper";
+import {GenericValidationErrorModal} from "@/src/components/expense/errors/GenericValidationErrorModal";
 
 const AddTransactionScreen = () => {
+    console.log("rendered transaction screen");
     const {theme} = themeStore();
     const isDark = theme === 'dark';
     const activeColors = isDark ? COLORS.dark : COLORS.light;
 
     const [activeTab, setActiveTab] = useState<'expense' | 'transfer'>('expense');
     const [pickerVisible, setPickerVisible] = useState(false);
+    const [mismatchModalVisible, setMismatchModalVisible] = useState(false);
+    const [validationModalVisible, setValidationModalVisible] = useState(false);
+    const [isLocalValidating, setIsLocalValidating] = useState(false);
     const [optionsVisible, setOptionsVisible] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,6 +42,34 @@ const AddTransactionScreen = () => {
     const {handleSingleCamera, handleSingleGallery} = useAssetPicker();
     const expenseDraft = useExpenseDraftStore();
     const transferDraft = useTransferDraftStore();
+
+    const activeValidationContent = useMemo(() => {
+        if (activeTab !== 'expense') return null;
+
+        const errors = expenseDraft.validationErrors;
+        if (errors[DraftValidationErrorKey.TITLE_REQUIRED]) {
+            return {
+                type: 'ERROR',
+                key: DraftValidationErrorKey.TITLE_REQUIRED,
+                payload: errors[DraftValidationErrorKey.TITLE_REQUIRED]
+            };
+        }
+        if (errors[DraftValidationErrorKey.AMOUNT_INVALID]) {
+            return {
+                type: 'ERROR',
+                key: DraftValidationErrorKey.AMOUNT_INVALID,
+                payload: errors[DraftValidationErrorKey.AMOUNT_INVALID]
+            };
+        }
+        if (errors[DraftValidationErrorKey.GROUP_MISMATCH]) {
+            return {
+                type: 'WARNING',
+                key: DraftValidationErrorKey.GROUP_MISMATCH,
+                payload: errors[DraftValidationErrorKey.GROUP_MISMATCH]
+            };
+        }
+        return null;
+    }, [expenseDraft.validationErrors, activeTab]);
 
     const handleTabChange = (tab: 'expense' | 'transfer') => {
         setActiveTab(tab);
@@ -106,6 +138,11 @@ const AddTransactionScreen = () => {
     };
 
     const handleSubmitData = async () => {
+        setIsLocalValidating(true);
+        const isValid = await validateTransactionSubmit(activeTab, expenseDraft, transferDraft);
+        setIsLocalValidating(false);
+        if (!isValid) return;
+
         setIsSubmitting(true);
         try {
             const res = await executeTransactionSubmit(activeTab, expenseDraft, transferDraft);
@@ -194,18 +231,52 @@ const AddTransactionScreen = () => {
                         </View>
 
                         {/* Fixed Bottom Layout Toolbar Footer */}
-                        <View
-                            className="absolute bottom-0 w-full bg-bg-primary pt-4 pb-10 px-6 rounded-t-[40px] shadow-2xl border-t border-bg-secondary-lighter">
+                        <View className="absolute bottom-0 w-full bg-bg-primary pt-4 pb-10 px-6 rounded-t-[40px] shadow-2xl border-t border-bg-secondary-lighter">
                             <View className="flex-row justify-between items-center mb-6">
                                 <Pressable onPress={() => setShowDatePicker(true)}
                                            className="flex-row items-center bg-bg-canvas rounded-full px-5 py-2 active:opacity-80">
                                     <Iconify icon="heroicons:calendar" size={18} color={COLORS.color_red_decrease}/>
-                                    <AppText variant="body-base"
-                                             className="ml-2 text-text-primary font-bold">{readableDate}</AppText>
+                                    <AppText variant="body-base" className="ml-2 text-text-primary font-bold">{readableDate}</AppText>
                                 </Pressable>
-                                <AppText variant="caption-xs" className="text-text-secondary italic">Auto-sync
-                                    enabled</AppText>
+
+                                {/* 👈 CLEAN GENERIC MODAL TRIPPED ON CLICKS */}
+                                {(expenseDraft.isValidating || isLocalValidating) ? (
+                                    <View className="flex-row items-center space-x-1">
+                                        <ActivityIndicator size="small" color="#9CA3AF" />
+                                        <AppText variant="caption-xs" className="text-text-secondary font-medium">Checking group...</AppText>
+                                    </View>
+                                ) : activeValidationContent ? (
+                                    activeValidationContent.type === 'ERROR' ? (
+                                        <Pressable
+                                            onPress={() => setValidationModalVisible(true)}
+                                            className="flex-row items-center space-x-1 bg-red-500/10 dark:bg-red-500/20 px-3 py-1.5 rounded-xl max-w-[55%] active:opacity-70"
+                                        >
+                                            <Iconify icon="heroicons:exclamation-circle" size={14} color="#EF4444" />
+                                            <AppText variant="caption-xs" className="text-red-600 dark:text-red-400 font-semibold mr-1" numberOfLines={1}>
+                                                {activeValidationContent.payload?.message}
+                                            </AppText>
+                                            <Iconify icon="heroicons:information-circle" size={14} color="#EF4444" />
+                                        </Pressable>
+                                    ) : (
+                                        <Pressable
+                                            onPress={() => setValidationModalVisible(true)}
+                                            className="flex-row items-center space-x-1 bg-amber-500/10 dark:bg-amber-500/20 px-3 py-1.5 rounded-xl max-w-[55%] active:opacity-70"
+                                        >
+                                            <Iconify icon="heroicons:exclamation-triangle" size={14} color="#D97706" />
+                                            <AppText variant="caption-xs" className="text-amber-700 dark:text-amber-400 font-bold mr-1 flex-1" numberOfLines={1}>
+                                                {activeValidationContent.payload?.message}
+                                            </AppText>
+                                            <Iconify icon="heroicons:information-circle" size={14} color="#D97706" />
+                                        </Pressable>
+                                    )
+                                ) : (
+                                    <View className="flex-row items-center space-x-1 bg-emerald-500/10 px-3 py-1.5 rounded-xl">
+                                        <Iconify icon="heroicons:check-circle" size={14} color="#10B981" />
+                                        <AppText variant="caption-xs" className="text-emerald-600 dark:text-emerald-400 font-medium">Ready</AppText>
+                                    </View>
+                                )}
                             </View>
+
                             <AppButton variant="primary" size="lg" onPress={handleSubmitData}>SUBMIT</AppButton>
                         </View>
                     </View>
@@ -234,6 +305,14 @@ const AddTransactionScreen = () => {
                             setScheduleModalVisible(true);
                         }}
                         onClear={handleClearForm}
+                    />
+
+                    <GenericValidationErrorModal
+                        visible={validationModalVisible}
+                        errorKey={activeValidationContent?.key || null}
+                        errorData={activeValidationContent?.payload || null}
+                        isDark={isDark}
+                        onClose={() => setValidationModalVisible(false)}
                     />
 
                     <ExpenseScheduleModal visible={scheduleModalVisible} onClose={() => setScheduleModalVisible(false)}

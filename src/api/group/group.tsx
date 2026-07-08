@@ -1,32 +1,35 @@
 import axiosUserInstance from "@/src/api/axiosUserServiceInstance";
 import {SuccessResponse, PaginationResponse} from "@/src/api/dto/ApiResponse";
 import {handleApiError} from "@/src/api/utils/mapper";
-import {AddGroupRequest, AddGroupResponse, GroupDetails} from "@/src/api/dto/user/group";
+import {AddGroupRequest, AddGroupResponse, BaseGroupDetails, GroupDetails} from "@/src/api/dto/user/group";
 import {GroupStatus} from "@/src/api/dto/constants";
 
 const BASE_PATH = "/group/v1"; // Matching your backend router logic
 
+export interface GetGroupsParams {
+    group_ids?: number[]; // Added specific group filter array parameter
+    offset?: number;
+    limit?: number;
+    statuses?: GroupStatus[];
+}
+
 /**
- * Retrieves all groups for the authenticated user with filters and pagination
+ * Retrieves groups for the authenticated user with optional ID structural filtering
  */
-export const GetGroupsApi = async (
-    params: {
-        offset?: number;
-        limit?: number;
-        statuses?: GroupStatus[];
-    } = {}
-) => {
+export const GetGroupsApi = async (params: GetGroupsParams = {}) => {
     const {
+        group_ids,
         offset = 0,
         limit = 100,
         statuses = [GroupStatus.ACTIVE]
     } = params;
 
     try {
-        const res = await axiosUserInstance.get<SuccessResponse<GroupDetails[]>>(
+        const res = await axiosUserInstance.get<SuccessResponse<BaseGroupDetails[]>>(
             `${BASE_PATH}/`,
             {
                 params: {
+                    group_id: group_ids, // Maps array to ?group_id=X&group_id=Y automatically
                     offset,
                     limit,
                     statuses
@@ -46,7 +49,6 @@ export const GetGroupsApi = async (
         return handleApiError(error);
     }
 };
-
 /**
  * Retrieves a specific group by its internal ID
  */

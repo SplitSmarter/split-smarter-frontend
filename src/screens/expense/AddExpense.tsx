@@ -1,26 +1,30 @@
-import { AppButton } from '@/src/components/common/AppButton';
-import { AppImageV2 } from '@/src/components/common/AppImageV2';
-import { AppInput } from '@/src/components/common/AppInput';
-import { AppText } from '@/src/components/common/AppText';
-import { ExpenseAttachments } from "@/src/components/expense/ExpenseAttachments";
+import {AppImageV2} from '@/src/components/common/AppImageV2';
+import {AppInput} from '@/src/components/common/AppInput';
+import {AppText} from '@/src/components/common/AppText';
+import {ExpenseAttachments} from "@/src/components/expense/ExpenseAttachments";
 import MultiExpenseItemSelect from "@/src/components/expense/MultiExpenseItemSelect";
-import { CategoryGroupLocationSelector } from "@/src/screens/expense/CGLSelector";
-import { themeStore } from "@/src/store/themeStore";
-import { userStore } from "@/src/store/userStore";
-import { useExpenseDraftStore, PayerUser } from "@/src/store/draft/expenseDraftStore";
-import { RelationWithUserType } from "@/src/api/dto/constants";
-import { Currency, CurrencyCode } from "@/src/constants/expense/currency";
-import { CurrencyBottomSheet } from "@/src/screens/Onboarding/comps/CurrencyBottomSheet";
-import { router } from 'expo-router';
-import React, { useMemo, useState, useEffect } from 'react';
-import { Modal, Pressable, ScrollView, View } from 'react-native';
-import { Iconify } from 'react-native-iconify';
-import { AppButtonV2 } from "@/src/components/common/AppButtonV2";
-import { COLORS } from "@/src/constants/colors";
+import {CategoryGroupLocationSelector} from "@/src/screens/expense/CGLSelector";
+import {themeStore} from "@/src/store/themeStore";
+import {userStore} from "@/src/store/userStore";
+import {useExpenseDraftStore} from "@/src/store/draft/expenseDraftStore";
+import {Currency, CurrencyCode} from "@/src/constants/expense/currency";
+import {CurrencyBottomSheet} from "@/src/screens/Onboarding/comps/CurrencyBottomSheet";
+import {router} from 'expo-router';
+import React, {useEffect, useMemo, useState} from 'react';
+import {Modal, Pressable, ScrollView, View} from 'react-native';
+import {Iconify} from 'react-native-iconify';
+import {AppButtonV2} from "@/src/components/common/AppButtonV2";
+import {COLORS} from "@/src/constants/colors";
+import {
+    distributeProportionalAmounts,
+    getPayerSummaryText,
+    getSplitSummaryText
+} from "@/src/utils/expense/expenseCalculations";
+import {RelationWithUserType} from "@/src/api/dto/constants";
 
 const AddExpenseScreen = () => {
-    const { user } = userStore();
-    const { theme } = themeStore();
+    const {user} = userStore();
+    const {theme} = themeStore();
     const isDark = theme === 'dark';
 
     const [isItemSelectVisible, setIsItemSelectVisible] = useState(false);
@@ -36,32 +40,12 @@ const AddExpenseScreen = () => {
 
     // Handle proportional scaling calculations when total amount varies
     useEffect(() => {
-        // If there's an amount but no participants have been assigned yet, stop calculation loop
         if (draft.payers.length === 0 && draft.splitParticipants.length === 0) return;
 
-        const scaleDistribution = (prevList: PayerUser[]) => {
-            if (prevList.length === 0) return prevList;
+        const updatedPayers = distributeProportionalAmounts(draft.payers, draft.totalAmount);
+        const updatedParticipants = distributeProportionalAmounts(draft.splitParticipants, draft.totalAmount);
 
-            const lockedSum = prevList.reduce((sum, u) => sum + (u.isLocked ? (u.amount || 0) : 0), 0);
-            const remainingPool = Math.max(0, draft.totalAmount - lockedSum);
-
-            const unlockedParticipants = prevList.filter(u => !u.isLocked);
-            const totalShares = unlockedParticipants.reduce((sum, u) => sum + (u.shares ?? 1), 0);
-
-            return prevList.map(p => {
-                if (p.isLocked) return p;
-                return {
-                    ...p,
-                    amount: totalShares > 0 ? (remainingPool * (p.shares ?? 1)) / totalShares : 0
-                };
-            });
-        };
-
-        // Distribute mathematically based on initial store populations smoothly
-        const updatedPayers = scaleDistribution(draft.payers);
-        const updatedParticipants = scaleDistribution(draft.splitParticipants);
-
-        // Check if values actually changed to avoid repetitive state mutations
+        // Check if values actually changed to avoid repetitive state mutations and unnecessary rerenders
         const payersChanged = JSON.stringify(updatedPayers) !== JSON.stringify(draft.payers);
         const participantsChanged = JSON.stringify(updatedParticipants) !== JSON.stringify(draft.splitParticipants);
 
@@ -69,6 +53,48 @@ const AddExpenseScreen = () => {
         if (participantsChanged) draft.setSplitParticipants(updatedParticipants);
 
     }, [draft.totalAmount]); // Only run scaling when the input sum changes
+
+    // Add this inside your AddExpenseScreen component:
+    useEffect(() => {
+        const currentUser = userStore.getState().user;
+
+        // Fallback hydration if store booted up empty initially
+        if (currentUser) {
+            if (draft.payers.length === 0) {
+                draft.setPayers([{
+                    id: String(currentUser.id),
+                    name: "You",
+                    avatar: currentUser.avatar ? {
+                        id: String(currentUser.avatar.id),
+                        name: '',
+                        url: currentUser.avatar.url,
+                        extension: ''
+                    } : null,
+                    amount: draft.totalAmount, // Give them the full amount immediately
+                    shares: 1,
+                    isLocked: false,
+                    user_type: RelationWithUserType.USER
+                }]);
+            }
+
+            if (draft.splitParticipants.length === 0) {
+                draft.setSplitParticipants([{
+                    id: String(currentUser.id),
+                    name: "You",
+                    avatar: currentUser.avatar ? {
+                        id: String(currentUser.avatar.id),
+                        name: '',
+                        url: currentUser.avatar.url,
+                        extension: ''
+                    } : null,
+                    amount: draft.totalAmount,
+                    shares: 1,
+                    isLocked: false,
+                    user_type: RelationWithUserType.USER
+                }]);
+            }
+        }
+    }, [user]); // Runs reliably when user object resolves on app mount
 
     const handleAmountChange = (text: string) => {
         const parsed = parseFloat(text);
@@ -83,29 +109,23 @@ const AddExpenseScreen = () => {
     const handleOpenPaidBy = () => {
         router.push({
             pathname: '/(authenticated)/expense/user/split',
-            params: { type: 'paidBy', totalExpense: draft.totalAmount.toString() }
+            params: {type: 'paidBy', totalExpense: draft.totalAmount.toString()}
         });
     };
 
     const handleOpenSplitSelect = () => {
         router.push({
             pathname: '/(authenticated)/expense/user/split',
-            params: { type: 'split', totalExpense: draft.totalAmount.toString() }
+            params: {type: 'split', totalExpense: draft.totalAmount.toString()}
         });
     };
 
     const payerText = useMemo(() => {
-        if (draft.payers.length === 0) return "No one paid";
-        const hasMe = draft.payers.some(p => String(p.id) === String(user?.id));
-        if (draft.payers.length === 1) return hasMe ? "Paid by You" : `Paid by ${draft.payers[0].name}`;
-        return hasMe ? `Paid by You and ${draft.payers.length - 1} Others` : `Paid by ${draft.payers[0].name} and ${draft.payers.length - 1} Others`;
+        return getPayerSummaryText(draft.payers, user?.id);
     }, [draft.payers, user]);
 
     const splitTextSummary = useMemo(() => {
-        if (draft.splitParticipants.length === 0) return "Split with no one";
-        const hasMe = draft.splitParticipants.some(p => String(p.id) === String(user?.id));
-        if (draft.splitParticipants.length === 1) return hasMe ? "Split completely with Yourself" : `Split with ${draft.splitParticipants[0].name}`;
-        return hasMe ? `Split between You and ${draft.splitParticipants.length - 1} others` : `Split between ${draft.splitParticipants[0].name} and ${draft.splitParticipants.length - 1} others`;
+        return getSplitSummaryText(draft.splitParticipants, user?.id);
     }, [draft.splitParticipants, user]);
 
     const activeCurrencyConfig = Currency[draft.currency];
@@ -116,7 +136,7 @@ const AddExpenseScreen = () => {
                 className="flex-1"
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
-                contentContainerStyle={{ paddingBottom: 60 }}
+                contentContainerStyle={{paddingBottom: 60}}
             >
                 <View className="gap-y-6">
                     {/* 1. Name Input */}
@@ -159,7 +179,7 @@ const AddExpenseScreen = () => {
                         )}
                     />
 
-                    <CategoryGroupLocationSelector />
+                    <CategoryGroupLocationSelector/>
 
                     {/* 4. Paid By Selection Box */}
                     <AppButtonV2
@@ -194,7 +214,7 @@ const AddExpenseScreen = () => {
                         <View className="flex-row justify-between items-center mb-4">
                             <AppText variant="h4" className="font-bold text-text-primary">Split Between</AppText>
                             <Iconify icon="heroicons:pencil-square" size={20}
-                                     color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary} />
+                                     color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary}/>
                         </View>
 
                         {draft.splitParticipants.length > 0 ? (
@@ -206,11 +226,11 @@ const AddExpenseScreen = () => {
                                     <View className="flex-row items-center flex-1">
                                         {participant.avatar?.url ? (
                                             <AppImageV2 id={`avatar-${participant.name}`} url={participant.avatar.url}
-                                                        style={{ width: 24, height: 24 }} className="rounded-full" />
+                                                        style={{width: 24, height: 24}} className="rounded-full"/>
                                         ) : (
-                                            <View style={{ width: 24, height: 24 }}
+                                            <View style={{width: 24, height: 24}}
                                                   className="bg-gray-200 dark:bg-zinc-800 rounded-full items-center justify-center">
-                                                <Iconify icon="heroicons:user-solid" size={12} color="#999" />
+                                                <Iconify icon="heroicons:user-solid" size={12} color="#999"/>
                                             </View>
                                         )}
                                         <AppText
@@ -223,7 +243,8 @@ const AddExpenseScreen = () => {
                                 </View>
                             ))
                         ) : (
-                            <AppText variant="caption-xs" className="text-text-primary opacity-60 font-medium">{splitTextSummary}</AppText>
+                            <AppText variant="caption-xs"
+                                     className="text-text-primary opacity-60 font-medium">{splitTextSummary}</AppText>
                         )}
                     </Pressable>
 
@@ -235,7 +256,7 @@ const AddExpenseScreen = () => {
                         <View className="flex-row justify-between items-center mb-4">
                             <AppText variant="h4" className="font-bold text-text-primary">Items</AppText>
                             <Iconify icon="heroicons:pencil-square" size={20}
-                                     color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary} />
+                                     color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary}/>
                         </View>
                         {draft.expenseItems.length > 0 ? (
                             draft.expenseItems.map((item, index) => (
@@ -244,11 +265,11 @@ const AddExpenseScreen = () => {
                                     <View className="flex-row items-center flex-1">
                                         {item.iconUrl ? (
                                             <AppImageV2 id={`selected-item-${item.id}`} url={item.iconUrl}
-                                                        style={{ width: 24, height: 24 }} contentFit="contain" />
+                                                        style={{width: 24, height: 24}} contentFit="contain"/>
                                         ) : (
-                                            <View style={{ width: 24, height: 24 }}
+                                            <View style={{width: 24, height: 24}}
                                                   className="bg-gray-200 rounded-full items-center justify-center">
-                                                <Iconify icon="heroicons:shopping-cart" size={12} color="#999" />
+                                                <Iconify icon="heroicons:shopping-cart" size={12} color="#999"/>
                                             </View>
                                         )}
                                         <View className="ml-3 flex-1">
@@ -271,18 +292,18 @@ const AddExpenseScreen = () => {
 
                     <ExpenseAttachments onAttachmentsChange={(uris) => {
                         draft.setLocalAttachmentUris(uris)
-                    }} />
+                    }}/>
                 </View>
             </ScrollView>
 
             <Modal visible={isItemSelectVisible} animationType="slide" transparent
                    onRequestClose={() => setIsItemSelectVisible(false)}>
                 <View className="flex-1 justify-end bg-black/50">
-                    <Pressable className="absolute inset-0" onPress={() => setIsItemSelectVisible(false)} />
-                    <View style={{ height: '90%', zIndex: 1 }}
+                    <Pressable className="absolute inset-0" onPress={() => setIsItemSelectVisible(false)}/>
+                    <View style={{height: '90%', zIndex: 1}}
                           className={`rounded-t-[32px] overflow-hidden ${isDark ? 'bg-[#121212]' : 'bg-[#F8F9FA]'}`}>
                         <View className="items-center pt-3 pb-1">
-                            <View className={`w-12 h-1.5 rounded-full ${isDark ? 'bg-gray-700' : 'bg-gray-300'}`} />
+                            <View className={`w-12 h-1.5 rounded-full ${isDark ? 'bg-gray-700' : 'bg-gray-300'}`}/>
                         </View>
                         <View className="flex-1">
                             <MultiExpenseItemSelect
