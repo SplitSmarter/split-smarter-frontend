@@ -6,8 +6,8 @@ import { AppText } from "@/src/components/common/AppText";
 import { AppImage } from "@/src/components/common/AppImage";
 import { AppButton } from "@/src/components/common/AppButton";
 import { GetGroupCategoriesApi, CreateGroupCategoryApi } from "@/src/api/group/categories";
-import { GroupCategoryDetails } from "@/src/api/dto/user/group";
 import { systemStore } from "@/src/store/systemStore";
+import {GroupCategoryDetails} from "@/src/api/dto/user/addGroupCategoryRequest";
 
 enum PickerView { LIST, ADD }
 

@@ -1,8 +1,12 @@
 import axiosUserInstance from "@/src/api/axiosUserServiceInstance";
 import { SuccessResponse, PaginationResponse } from "@/src/api/dto/ApiResponse";
 import { handleApiError } from "@/src/api/utils/mapper";
-import {AddCategoryResponse, AddGroupCategoryRequest, GroupCategoryDetails} from "@/src/api/dto/user/group";
 import {GroupCategorySource} from "@/src/api/dto/constants";
+import {
+    AddCategoryResponse,
+    AddGroupCategoryRequest,
+    GroupCategoryDetails
+} from "@/src/api/dto/user/addGroupCategoryRequest";
 
 const BASE_PATH = "/group/category/v1"; // Assuming this follows your group router prefix
 

@@ -1,6 +1,7 @@
 import {BasicImage} from "@/src/api/dto/user/asset";
-import {GroupCategorySource, GroupIntent, GroupStatus, GroupVisibilityType, SelectUser} from "@/src/api/dto/constants";
+import {GroupIntent, GroupStatus, GroupUserRole, GroupVisibilityType, SelectUser} from "@/src/api/dto/constants";
 import {BasicUserDetails} from "@/src/api/dto/user/user";
+import {BasicGroupCategoryDetails} from "@/src/api/dto/user/addGroupCategoryRequest";
 
 export interface AddGroupRequest {
     title: string;
@@ -23,13 +24,6 @@ export interface GroupSettings {
     allow_member_expenses: boolean;
     allow_member_approve_member: boolean;
     allow_unknown_member: boolean;
-}
-
-export interface BasicGroupCategoryDetails {
-    id: number;
-    title: string;
-    category_type: string;
-    icon: BasicImage;
 }
 
 export interface GroupCreatedDetail {
@@ -100,21 +94,9 @@ export interface GroupDetails extends BaseGroupDetails{
     category: BasicGroupCategoryDetails;
 }
 
-export interface GroupCategoryDetails {
-    id: number;
-    title: string;
-    description: string;
-    source_type: GroupCategorySource;
-    owner?: BasicUserDetails | null;
-    icon: BasicImage;
-}
-
-export interface AddGroupCategoryRequest {
-    title: string;
-    description: string;
-    icon_asset_id: string; // UUID from your asset picker
-}
-
-export interface AddCategoryResponse {
-    id: number;
+export interface GroupMemberDetails extends BasicUserDetails {
+    role: GroupUserRole;
+    contribution_inr: number; // float -> number
+    contribution_inflation_adjusted_inr: number; // float -> number
+    joined_at: string; // datetime -> ISO String
 }

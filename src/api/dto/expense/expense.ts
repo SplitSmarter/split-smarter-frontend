@@ -1,6 +1,3 @@
-// ============================================================================
-// Sub-DTO Core Interface Schemas
-// ============================================================================
 import {Currency, RelationWithUserType} from "@/src/api/dto/constants";
 import {
     ExpenseComponentType,

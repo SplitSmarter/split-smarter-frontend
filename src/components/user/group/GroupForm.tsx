@@ -6,9 +6,9 @@ import { AppText } from "@/src/components/common/AppText";
 import { AppImage } from "@/src/components/common/AppImage";
 import { AppButton } from "@/src/components/common/AppButton";
 import { systemStore } from "@/src/store/systemStore";
-import { GroupCategoryDetails } from "@/src/api/dto/user/group";
 import { SelectGroupCategoryBottomSheet } from "@/src/components/user/SelectGroupCategoryBottomsheet";
 import {SelectedUserEntity} from "@/src/components/user/SelectMultiPeopleBottomSheet";
+import {GroupCategoryDetails} from "@/src/api/dto/user/addGroupCategoryRequest";
 
 interface GroupFormProps {
     title: string;

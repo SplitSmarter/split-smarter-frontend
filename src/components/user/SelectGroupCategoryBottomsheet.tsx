@@ -17,7 +17,8 @@ import { AppImage } from "@/src/components/common/AppImage";
 import { AppInput } from "@/src/components/common/AppInput";
 import { themeStore } from '@/src/store/themeStore';
 import { GetGroupCategoriesApi } from '@/src/api/group/categories';
-import { GroupCategoryDetails } from "@/src/api/dto/user/group";
+
+import {GroupCategoryDetails} from "@/src/api/dto/user/addGroupCategoryRequest";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 

@@ -30,7 +30,6 @@ const AddTransactionScreen = () => {
 
     const [activeTab, setActiveTab] = useState<'expense' | 'transfer'>('expense');
     const [pickerVisible, setPickerVisible] = useState(false);
-    const [mismatchModalVisible, setMismatchModalVisible] = useState(false);
     const [validationModalVisible, setValidationModalVisible] = useState(false);
     const [isLocalValidating, setIsLocalValidating] = useState(false);
     const [optionsVisible, setOptionsVisible] = useState(false);
@@ -139,13 +138,13 @@ const AddTransactionScreen = () => {
 
     const handleSubmitData = async () => {
         setIsLocalValidating(true);
-        const isValid = await validateTransactionSubmit(activeTab, expenseDraft, transferDraft);
+        const isValid = await validateTransactionSubmit(activeTab);
         setIsLocalValidating(false);
         if (!isValid) return;
 
         setIsSubmitting(true);
         try {
-            const res = await executeTransactionSubmit(activeTab, expenseDraft, transferDraft);
+            const res = await executeTransactionSubmit(activeTab);
             if (res.success) {
                 Alert.alert("Success", res.message, [
                     {

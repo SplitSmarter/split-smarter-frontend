@@ -6,23 +6,25 @@ import { themeStore } from "@/src/store/themeStore";
 import { GroupStatus } from "@/src/api/dto/constants";
 import { GetGroupsApi } from "@/src/api/group/group";
 import { listUserExpensesApi } from "@/src/api/expense/expense";
-import { GroupDetails } from "@/src/api/dto/user/group";
+import {BaseGroupDetails, GroupDetails} from "@/src/api/dto/user/group";
 import { AppText } from '@/src/components/common/AppText';
 
-import { ExpenseDetailsResponse } from "@/src/api/dto/expense/expense";
+import {ExpenseDetailsBasicResponse, ExpenseDetailsResponse} from "@/src/api/dto/expense/expense";
 import { ActivityListItem, UnifiedActivityItem } from "@/src/screens/ExpenseChatGroupListScreen_comps/ActivityListItem";
 import { SearchHeader } from "@/src/screens/ExpenseChatGroupListScreen_comps/SearchHeader";
 import { FilterTabs } from "@/src/screens/ExpenseChatGroupListScreen_comps/FilterTabs";
 
 export type FilterTab = 'All' | 'Chat' | 'Groups' | 'Expenses';
 
+// TODO: Fix the values based on the schema returned by group and expenses
+
 const ExpenseChatGroupListScreen = () => {
     const { t } = useTranslation();
     const isDark = themeStore((state) => state.theme) === 'dark';
 
     // Master centralized API storage arrays
-    const [groups, setGroups] = useState<GroupDetails[]>([]);
-    const [expenses, setExpenses] = useState<ExpenseDetailsResponse[]>([]);
+    const [groups, setGroups] = useState<BaseGroupDetails[]>([]);
+    const [expenses, setExpenses] = useState<ExpenseDetailsBasicResponse[]>([]);
 
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -69,7 +71,7 @@ const ExpenseChatGroupListScreen = () => {
                     title: g.title,
                     subtitle: g.description || null,
                     timestamp: g.updated_at,
-                    avatarUrl: g.icon?.url,
+                    avatarUrl: g.icon.url,
                     rawItem: g
                 });
             });
@@ -89,7 +91,7 @@ const ExpenseChatGroupListScreen = () => {
                     type: 'expense',
                     title: e.name,
                     subtitle: `${e.currency} ${e.total_amount.toFixed(2)} • ${e.status}`,
-                    timestamp: e.created_at,
+                    timestamp: e.expense_date,
                     avatarUrl: e.category?.icon.url,
                     rawItem: e
                 });

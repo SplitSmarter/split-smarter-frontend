@@ -10,12 +10,12 @@ import { systemStore } from "@/src/store/systemStore";
 import { CreateGroupApi } from "@/src/api/group/group";
 import { RelationDetails } from "@/src/api/dto/user/relation";
 import { UserSearchResponse } from "@/src/api/dto/user/user";
-import { GroupCategoryDetails } from "@/src/api/dto/user/group";
 
 // Subcomponents & Bottom Sheet integration
 import { GroupForm } from '@/src/components/user/group/GroupForm';
 import { SelectedUserEntity, SelectMultiPeopleBottomSheet } from '@/src/components/user/SelectMultiPeopleBottomSheet';
 import { RelationWithUserType } from "@/src/api/dto/constants";
+import {GroupCategoryDetails} from "@/src/api/dto/user/addGroupCategoryRequest";
 
 export default function AddGroupScreen() {
     const isDark = themeStore((state) => state.theme === 'dark');
