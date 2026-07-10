@@ -17,6 +17,7 @@ import { listUserTransfersApi } from "@/src/api/expense/transfer";
 import { TransferDetailsBasicResponse } from "@/src/api/dto/expense/transfer";
 import { BaseSettlementDetails } from "@/src/api/dto/expense/settlement";
 import { GroupInfoView } from "@/src/components/user/group/GroupInfoView";
+import {logStore} from "@/src/store/logStore";
 
 type GroupTab = 'Overview' | 'Transactions' | 'Settlements' | 'Members';
 
@@ -124,6 +125,10 @@ const GroupDetailsScreen = () => {
         }
     };
 
+    const handleNavigateToUserProfile = () => {
+        router.push("/(authenticated)/user/details" as any);
+    };
+
     // --- INTERCEPT ROUTE LAYER IF USER CLICKED ROW SUBSECTION ---
     if (showGroupInfo) {
         return (
@@ -132,6 +137,7 @@ const GroupDetailsScreen = () => {
                 groupData={group!}
                 membersData={members}
                 onMemberAdded={fetchSettlementTabMetrics} // 👈 Refresh callback provided here
+                onNavigateToUserProfile={handleNavigateToUserProfile}
             />
         );
     }

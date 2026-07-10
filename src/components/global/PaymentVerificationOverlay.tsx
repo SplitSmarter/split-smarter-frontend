@@ -3,10 +3,10 @@ import React from 'react';
 // FIX: Import TouchableOpacity from 'react-native' instead of gesture-handler
 import { View, StyleSheet, Modal, TouchableOpacity } from 'react-native';
 import { AppText } from '../common/AppText';
-import { paymentStore } from '@/src/store/paymentStore';
+import { expensePaymentStore } from '@/src/store/expensePaymentStore';
 
 export const PaymentVerificationOverlay = ({ context }: { context: any }) => {
-    const clearPayment = paymentStore((state) => state.setPendingPayment);
+    const clearPayment = expensePaymentStore((state) => state.setPendingPayment);
 
     const handleConfirmPayment = () => {
         // 1. Dispatch your FastAPI call to signal PENDING_RECEIPENT_CONFIRMATION

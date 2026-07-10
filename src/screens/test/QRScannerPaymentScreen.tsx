@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { AppText } from '@/src/components/common/AppText';
-import { paymentStore } from '@/src/store/paymentStore';
+import { expensePaymentStore } from '@/src/store/expensePaymentStore';
 import * as Linking from 'expo-linking';
 import { useIsFocused } from '@react-navigation/native'; // Added hook for tab navigation tracking
 import qs from 'qs';
@@ -14,7 +14,7 @@ export default function QRScannerPaymentScreen() {
     const isFocused = useIsFocused(); // Track if this specific tab screen is active
 
     // Connect directly to your persistent compliance store
-    const setPendingPayment = paymentStore((state) => state.setPendingPayment);
+    const setPendingPayment = expensePaymentStore((state) => state.setPendingPayment);
 
     // 1. Guard against unconfigured permissions
     if (!permission) {

@@ -4,7 +4,7 @@ import { networkStore } from '@/src/store/networkStore';
 import {AppText} from "@/src/components/common/AppText";
 import {marketingStore} from "@/src/store/marketingStore";
 import {PaymentVerificationOverlay} from "@/src/components/global/PaymentVerificationOverlay";
-import {paymentStore} from "@/src/store/paymentStore";
+import {expensePaymentStore} from "@/src/store/expensePaymentStore";
 
 export const GlobalLayerController = () => {
     const isMaintenance = configStore((state) => state.isMaintenance);
@@ -13,7 +13,7 @@ export const GlobalLayerController = () => {
     const dismissedIds = marketingStore((state) => state.dismissedOfferIds);
 
     const activeOffers = allOffers.filter(o => !dismissedIds.includes(o.id));
-    const pendingPayment = paymentStore((state) => state.pendingVerification);
+    const pendingPayment = expensePaymentStore((state) => state.pendingVerification);
 
     // 1. HIGHEST PRIORITY: Maintenance
     if (isMaintenance) {

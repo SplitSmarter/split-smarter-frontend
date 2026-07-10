@@ -1,11 +1,15 @@
-import React from 'react';
-import { ScrollView, View, Pressable, Alert, Linking } from 'react-native';
+import React, { useState } from 'react';
+import { ScrollView, View, Pressable } from 'react-native';
 import { Image } from 'expo-image';
 import { Iconify } from 'react-native-iconify';
 import { AppText } from '@/src/components/common/AppText';
 import { GroupMemberDetails } from "@/src/api/dto/user/group";
 import { RelationWithUserType } from "@/src/api/dto/constants";
 import { Currency } from '@/src/constants/expense/currency';
+
+// Component Imports
+import { SettleUpModal } from './SettleUpModal';
+import { RemindModal } from './RemindModal';
 
 interface SettlementActionGridProps {
     members: GroupMemberDetails[];
@@ -19,58 +23,22 @@ export const SettlementActionGrid = ({
                                          currentUserType
                                      }: SettlementActionGridProps) => {
 
-    const handleSettleUpPaymentGatewayRouter = (userName: string, amount: number) => {
-        const absoluteTargetValue = Math.abs(amount).toFixed(2);
-        Alert.alert(
-            "Instant Settlement Initiation",
-            `Redirecting to your native payment interface to dispatch ${absoluteTargetValue} to ${userName}.`,
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Launch Gateway",
-                    onPress: () => {
-                        const targetUpiUriPattern = `upi://pay?pn=${encodeURIComponent(userName)}&am=${absoluteTargetValue}`;
-                        Linking.canOpenURL(targetUpiUriPattern).then((supported) => {
-                            if (supported) {
-                                Linking.openURL(targetUpiUriPattern);
-                            } else {
-                                Alert.alert("Routing Exception", "No integrated local payment ecosystem interfaces detected.");
-                            }
-                        });
-                    }
-                }
-            ]
-        );
-    };
-
-    const handleRemindCommunicationOverlay = (userName: string) => {
-        Alert.alert(
-            "Anti-Awkward Notification Ping",
-            `Select your preferred transmission topology to request processing from ${userName}.`,
-            [
-                { text: "Cancel", style: "cancel" },
-                { text: "Send Anonymously", onPress: () => Alert.alert("Dispatched", "Anonymous system push notification context fired successfully.") },
-                {
-                    text: "Custom Message (WhatsApp)",
-                    onPress: () => {
-                        const prebuiltString = `Hey ${userName}! Just a friendly reminder to settle up on Split Smarter whenever you get a second. thanks!`;
-                        Linking.openURL(`whatsapp://send?text=${encodeURIComponent(prebuiltString)}`);
-                    }
-                }
-            ]
-        );
-    };
+    // Modal Active Pipeline States
+    // const [settleTarget, setSettleTarget] = useState<{ name: string; amount: number } | null>(null);
+    const [settleTarget, setSettleTarget] = useState<{ member: GroupMemberDetails; amount: number } | null>(null);
+    const [remindTarget, setRemindTarget] = useState<{ name: string } | null>(null);
 
     const activeBalancesList = members.filter(
         member => !(member.id === currentUserId && member.user_type === currentUserType)
     );
+
+    const targetCurrencySymbol = Currency['INR']?.symbol || '₹';
 
     return (
         <View className="mb-8">
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 4 }}>
                 {activeBalancesList.map((member) => {
                     const syntheticBalanceEvaluator = member.contribution_inr - 1200;
-                    const targetCurrencySymbol = Currency['INR']?.symbol || '₹';
                     const isOwedToCurrentUser = syntheticBalanceEvaluator > 0;
 
                     if (syntheticBalanceEvaluator === 0) return null;
@@ -101,7 +69,7 @@ export const SettlementActionGrid = ({
 
                             {isOwedToCurrentUser ? (
                                 <Pressable
-                                    onPress={() => handleRemindCommunicationOverlay(member.name)}
+                                    onPress={() => setRemindTarget({ name: member.name })}
                                     className="w-full bg-gray-200 dark:bg-zinc-800 py-2 rounded-xl active:opacity-70"
                                 >
                                     <AppText variant="body-small" className="text-center font-bold text-gray-700 dark:text-zinc-300">
@@ -110,18 +78,33 @@ export const SettlementActionGrid = ({
                                 </Pressable>
                             ) : (
                                 <Pressable
-                                    onPress={() => handleSettleUpPaymentGatewayRouter(member.name, syntheticBalanceEvaluator)}
-                                    className="w-full bg-[#2D6A4F] py-2 rounded-xl active:opacity-70"
+                                    onPress={() => setSettleTarget({ member: member, amount: syntheticBalanceEvaluator })}
+                                    className="w-full bg-gray-200 py-2 rounded-xl active:opacity-70"
+                                    style={{ backgroundColor: '#2D6A4F' }}
                                 >
-                                    <AppText variant="body-small" className="text-center font-bold text-white">
-                                        SETTLE
-                                    </AppText>
+                                    <AppText variant="body-small" className="text-center font-bold text-white">SETTLE</AppText>
                                 </Pressable>
                             )}
                         </View>
                     );
                 })}
             </ScrollView>
+
+            {/* Settle Up Gateway Overlay */}
+            <SettleUpModal
+                visible={settleTarget !== null}
+                onClose={() => setSettleTarget(null)}
+                member={settleTarget?.member || null}
+                amount={settleTarget?.amount || 0}
+                currencySymbol={targetCurrencySymbol}
+            />
+
+            {/* Notification Communication Overlay */}
+            <RemindModal
+                visible={remindTarget !== null}
+                onClose={() => setRemindTarget(null)}
+                userName={remindTarget?.name || ''}
+            />
         </View>
     );
 };

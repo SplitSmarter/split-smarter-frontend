@@ -1,4 +1,4 @@
-// Location: src/store/paymentStore.ts
+// Location: src/store/expensePaymentStore.ts
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -15,7 +15,7 @@ interface PaymentState {
     setPendingPayment: (context: ActivePaymentContext | null) => void;
 }
 
-export const paymentStore = create<PaymentState>()(
+export const expensePaymentStore = create<PaymentState>()(
     persist(
         (set) => ({
             pendingVerification: null,

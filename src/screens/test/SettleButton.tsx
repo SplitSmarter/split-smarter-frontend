@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, Linking, Alert } from 'react-native';
-import { paymentStore } from '@/src/store/paymentStore';
+import { expensePaymentStore } from '@/src/store/expensePaymentStore';
 
 const UPI_ID = "hello@wtf";
 const RECEIVER_NAME = "Nilesh";
@@ -8,7 +8,7 @@ const DEBT_ID_EXAMPLE = "debt_abc123"; // In production, pass this as a prop to 
 
 export default function SettleButton() {
     // Connect to your persistent Zustand payment slice
-    const setPendingPayment = paymentStore((state) => state.setPendingPayment);
+    const setPendingPayment = expensePaymentStore((state) => state.setPendingPayment);
 
     const handleUPISettle = async (amount: string) => {
         const upiUrl = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(RECEIVER_NAME)}&am=${amount}&cu=INR&tn=${encodeURIComponent('Settling split bill')}`;

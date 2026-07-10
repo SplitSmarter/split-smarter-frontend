@@ -1,5 +1,16 @@
 import React, { useState, useMemo } from 'react';
-import { View, ScrollView, Dimensions, Pressable, Platform, StatusBar, Alert, ActivityIndicator } from 'react-native';
+import {
+    View,
+    ScrollView,
+    Dimensions,
+    Pressable,
+    Platform,
+    StatusBar,
+    Alert,
+    ActivityIndicator,
+    Modal,
+    Clipboard
+} from 'react-native';
 import { Iconify } from 'react-native-iconify';
 import { AppText } from "@/src/components/common/AppText";
 import { AppImageV2 } from "@/src/components/common/AppImageV2";
@@ -7,6 +18,10 @@ import { GroupDetails, GroupMemberDetails } from "@/src/api/dto/user/group";
 import { GroupJoinMethod } from "@/src/api/dto/constants";
 import { HiddenUserTarget, SelectSinglePeopleBottomSheet } from "@/src/components/user/SelectSinglePeopleBottomSheet";
 import { JoinGroupApi } from "@/src/api/group/membership";
+import { GroupMemberDetailsBottomSheet } from "@/src/components/user/group/GroupMemberDetailsBottomSheet";
+import { themeStore } from "@/src/store/themeStore";
+import {AppButtonV2} from "@/src/components/common/AppButtonV2";
+import {GroupShareModal} from "@/src/components/user/group/GroupShareModal";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const TOP_IMAGE_HEIGHT = SCREEN_HEIGHT * 0.25;
@@ -17,6 +32,7 @@ interface GroupInfoViewProps {
     groupData: GroupDetails;
     membersData: GroupMemberDetails[];
     onMemberAdded?: () => void;
+    onNavigateToUserProfile: (userId: number, userType: string) => void;
 }
 
 export const GroupInfoView: React.FC<GroupInfoViewProps> = ({
@@ -24,15 +40,27 @@ export const GroupInfoView: React.FC<GroupInfoViewProps> = ({
                                                                 groupData,
                                                                 membersData,
                                                                 onMemberAdded,
+                                                                onNavigateToUserProfile,
                                                             }) => {
+    const theme = themeStore((state) => state.theme);
+    const isDark = theme === 'dark';
     const headerHeight = Platform.OS === 'ios' ? 95 : 75;
 
-    const [isBottomSheetVisible, setIsBottomSheetVisible] = useState(false);
+    // Bottomsheet & Loading States
+    const [isAddUserBottomSheetVisible, setIsAddUserBottomSheetVisible] = useState(false);
     const [isAddingUser, setIsAddingUser] = useState(false);
+    const [selectedMemberProfile, setSelectedMemberProfile] = useState<GroupMemberDetails | null>(null);
+    const [isProfileSheetVisible, setIsProfileSheetVisible] = useState(false);
+
+    // Share Invite System Modal State
+    const [isShareModalVisible, setIsShareModalVisible] = useState(false);
 
     const coverUrl = groupData.background?.url;
     const avatarUrl = groupData.icon?.url;
     const totalMembers = groupData.no_of_members ?? membersData.length;
+
+    // Generated Invite Link Blueprint (Fallback uses groupData id)
+    const shareInviteLink = `https://expensetracker.app/join/group/${groupData.id || 'invite'}`;
 
     const hiddenUsersList = useMemo<HiddenUserTarget[]>(() => {
         if (!membersData) return [];
@@ -55,7 +83,7 @@ export const GroupInfoView: React.FC<GroupInfoViewProps> = ({
 
             if (response && response.data !== undefined) {
                 Alert.alert("Success", "Member successfully added to group.");
-                if (onMemberAdded) onMemberAdded(); // 👈 Triggers re-fetching metrics up top
+                if (onMemberAdded) onMemberAdded();
             } else {
                 Alert.alert("Error", response?.message || "Failed to add member to group.");
             }
@@ -65,6 +93,21 @@ export const GroupInfoView: React.FC<GroupInfoViewProps> = ({
         } finally {
             setIsAddingUser(false);
         }
+    };
+
+    const handleOpenMemberProfile = (member: GroupMemberDetails) => {
+        setSelectedMemberProfile(member);
+        setIsProfileSheetVisible(true);
+    };
+
+    const handleCloseMemberProfile = () => {
+        setIsProfileSheetVisible(false);
+        setSelectedMemberProfile(null);
+    };
+
+    const handleCopyInviteLink = () => {
+        Clipboard.setString(shareInviteLink);
+        Alert.alert("Copied", "Invite link copied to clipboard successfully.");
     };
 
     return (
@@ -82,7 +125,12 @@ export const GroupInfoView: React.FC<GroupInfoViewProps> = ({
                     <Iconify icon="heroicons:arrow-left" size={24} color="#FFFFFF" />
                 </Pressable>
 
-                <View className="w-10 h-10" />
+                <Pressable
+                    onPress={() => setIsShareModalVisible(true)}
+                    className="w-10 h-10 items-center justify-center bg-black/40 rounded-full active:opacity-70"
+                >
+                    <Iconify icon="heroicons:share-20-solid" size={24} color="#FFFFFF" />
+                </Pressable>
             </View>
 
             {/* 2. BACKGROUND LAYER */}
@@ -116,7 +164,16 @@ export const GroupInfoView: React.FC<GroupInfoViewProps> = ({
 
                     {/* FLOATING AVATAR LOCATION */}
                     <View
-                        style={{ top: -40, width: 80, height: 80, elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.35, shadowRadius: 15 }}
+                        style={{
+                            top: -40,
+                            width: 80,
+                            height: 80,
+                            elevation: 8,
+                            shadowColor: '#000',
+                            shadowOffset: { width: 0, height: 10 },
+                            shadowOpacity: 0.35,
+                            shadowRadius: 15
+                        }}
                         className="absolute self-center rounded-full bg-background z-50 overflow-hidden items-center justify-center"
                     >
                         {avatarUrl ? (
@@ -143,7 +200,7 @@ export const GroupInfoView: React.FC<GroupInfoViewProps> = ({
                             <ActivityIndicator size="small" color="#2D6A4F" className="py-1" />
                         ) : (
                             <Pressable
-                                onPress={() => setIsBottomSheetVisible(true)}
+                                onPress={() => setIsAddUserBottomSheetVisible(true)}
                                 className="flex-row items-center py-1 active:opacity-60"
                             >
                                 <Iconify icon="heroicons:user-plus" size={16} color="#2D6A4F" />
@@ -169,9 +226,10 @@ export const GroupInfoView: React.FC<GroupInfoViewProps> = ({
 
                         {membersData && membersData.length > 0 ? (
                             membersData.map((membership) => (
-                                <View
+                                <Pressable
                                     key={`${membership.id}_${membership.user_type}`}
-                                    className="flex-row items-center justify-between p-4 rounded-2xl mb-3 bg-bg-primary-lighter border border-bg-primary-darker"
+                                    onPress={() => handleOpenMemberProfile(membership)}
+                                    className="flex-row items-center justify-between p-4 rounded-2xl mb-3 bg-bg-primary-lighter border border-bg-primary-darker active:opacity-70"
                                 >
                                     <View className="flex-row items-center flex-1 pr-4">
                                         <View className="p-0.5 rounded-full w-10 h-10 overflow-hidden items-center justify-center border border-text-primary-placeholder">
@@ -198,7 +256,7 @@ export const GroupInfoView: React.FC<GroupInfoViewProps> = ({
                                             {membership.role?.toLowerCase() || 'member'}
                                         </AppText>
                                     </View>
-                                </View>
+                                </Pressable>
                             ))
                         ) : (
                             <View className="p-4 rounded-2xl bg-bg-primary border border-bg-primary-darker items-center">
@@ -218,11 +276,30 @@ export const GroupInfoView: React.FC<GroupInfoViewProps> = ({
                 </View>
             </ScrollView>
 
+            {/* BOTTOM SHEETS FOR ACTIONS */}
             <SelectSinglePeopleBottomSheet
-                visible={isBottomSheetVisible}
+                visible={isAddUserBottomSheetVisible}
                 hideUsers={hiddenUsersList}
-                onClose={() => setIsBottomSheetVisible(false)}
+                onClose={() => setIsAddUserBottomSheetVisible(false)}
                 onSelect={handleSelectPerson}
+            />
+
+            <GroupMemberDetailsBottomSheet
+                visible={isProfileSheetVisible}
+                member={selectedMemberProfile}
+                onClose={handleCloseMemberProfile}
+                onNavigateToProfile={onNavigateToUserProfile}
+                onRoleChanged={onMemberAdded}
+                onMemberRemoved={onMemberAdded}
+            />
+
+            {/* 4. MODAL FOR DISPLAYING GROUP QR CODE AND COPY INVITE LINK */}
+            <GroupShareModal
+                visible={isShareModalVisible}
+                onClose={() => setIsShareModalVisible(false)}
+                groupTitle={groupData.title || 'Workspace'}
+                groupId={groupData.id || 'invite'}
+                isDark={isDark}
             />
         </View>
     );

@@ -225,7 +225,7 @@ export const SelectSinglePeopleBottomSheet = ({
                         Select Person
                     </AppText>
                     <Pressable onPress={handleAddNewUser} className="p-2 rounded-full active:opacity-60">
-                        <Iconify icon="heroicons:user-plus" size={24} color={COLORS.icon_primary_darker_light} />
+                        <Iconify icon="heroicons:user-plus" size={24} color={!isDark ? COLORS.light.icon.darker : COLORS.light.text.contrast} />
                     </Pressable>
                 </View>
 
