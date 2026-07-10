@@ -23,10 +23,16 @@ import { RelationWithUserType } from "@/src/api/dto/constants";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
+export interface HiddenUserTarget {
+    id: number;
+    user_type: RelationWithUserType;
+}
+
 interface SelectSinglePeopleBottomSheetProps {
     visible: boolean;
     selectedId?: number;
     selectedType?: RelationWithUserType;
+    hideUsers?: HiddenUserTarget[];
     onClose: () => void;
     onSelect: (userId: number, userType: RelationWithUserType, relations: RelationDetails[], globalUsers: UserSearchResponse[]) => void;
 }
@@ -35,6 +41,7 @@ export const SelectSinglePeopleBottomSheet = ({
                                                   visible,
                                                   selectedId,
                                                   selectedType,
+                                                  hideUsers = [],
                                                   onClose,
                                                   onSelect
                                               }: SelectSinglePeopleBottomSheetProps) => {
@@ -124,11 +131,16 @@ export const SelectSinglePeopleBottomSheet = ({
 
         // 1. Map local contact network matches
         filteredRelations.forEach(item => {
-            list.push({
-                type: 'rel',
-                key: `rel-${item.with_user.user_type}-${item.with_user.id}`,
-                data: item.with_user
-            });
+            const isHidden = hideUsers.some(
+                hu => hu.id === item.with_user.id && hu.user_type === item.with_user.user_type
+            );
+            if (!isHidden) {
+                list.push({
+                    type: 'rel',
+                    key: `rel-${item.with_user.user_type}-${item.with_user.id}`,
+                    data: item.with_user
+                });
+            }
         });
 
         // 2. Map global network query results if search is active
@@ -138,7 +150,10 @@ export const SelectSinglePeopleBottomSheet = ({
                 const matchesLocal = relations.some(
                     r => r.with_user.id === user.id && r.with_user.user_type === globalUserType
                 );
-                if (!matchesLocal) {
+                const isHiddenGlobal = hideUsers.some(
+                    hu => hu.id === user.id && hu.user_type === globalUserType
+                );
+                if (!isHiddenGlobal && !matchesLocal) {
                     list.push({
                         type: 'gl',
                         key: `gl-${globalUserType}-${user.id}`,
@@ -149,7 +164,7 @@ export const SelectSinglePeopleBottomSheet = ({
         }
 
         return list;
-    }, [isSheetReady, filteredRelations, globalResults, search, relations]);
+    }, [isSheetReady, filteredRelations, globalResults, search, relations, hideUsers]);
 
     return (
         <Modal

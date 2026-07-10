@@ -1,5 +1,5 @@
-import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
+import {create} from "zustand";
+import {persist, createJSONStorage} from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import {PlaceSource} from "@/src/api/dto/constants";
@@ -19,6 +19,8 @@ export interface CachedPlace {
     lastFetched: number;
     photos: { id: string; url: string }[];
 }
+
+// TODO: Analyze if place and location store can be in single
 
 interface PlaceStoreState {
     // Keyed by osm_id (the primary map reference)
@@ -62,7 +64,7 @@ export const placeStore = create<PlaceStoreState>()(
                 return get().places[cacheKey] || null;
             },
 
-            clearCache: () => set({ places: {}, mappings: {} }),
+            clearCache: () => set({places: {}, mappings: {}}),
         }),
         {
             name: "place-metadata-storage",

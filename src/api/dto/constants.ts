@@ -71,3 +71,10 @@ export enum ExpenseItemSource {
 }
 
 export type Currency = 'USD' | 'EUR' | 'INR' | 'GBP'; // Update with your actual supported Currency tokens
+
+export enum GroupJoinMethod {
+    GROUP_INVITE = "group_invite",
+    USER_INVITE = "user_invite",
+    ADD_USER = "add_user",
+    SELF = "self"
+}

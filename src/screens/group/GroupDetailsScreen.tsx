@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {ActivityIndicator, Pressable, RefreshControl, ScrollView, View, Platform} from 'react-native';
+import {ActivityIndicator, Pressable, RefreshControl, ScrollView, View, Platform, BackHandler} from 'react-native';
 import {Iconify} from "react-native-iconify";
 import {useLocalSearchParams, useRouter} from 'expo-router';
 import {Image} from 'expo-image';
@@ -16,6 +16,7 @@ import {GroupSettlementsTab} from "@/src/components/user/group/GroupSettlementsT
 import {listUserTransfersApi} from "@/src/api/expense/transfer";
 import {TransferDetailsBasicResponse} from "@/src/api/dto/expense/transfer";
 import {BaseSettlementDetails} from "@/src/api/dto/expense/settlement";
+import {GroupInfoView} from "@/src/components/user/group/GroupInfoView";
 
 type GroupTab = 'Overview' | 'Transactions' | 'Settlements' | 'Members';
 
@@ -27,6 +28,9 @@ const GroupDetailsScreen = () => {
     const groupId = Number(id);
 
     const [activeTab, setActiveTab] = useState<GroupTab>('Settlements');
+
+    // UI Routing State to switch to the info view
+    const [showGroupInfo, setShowGroupInfo] = useState(false);
 
     // 1. Group Core Information States
     const [group, setGroup] = useState<GroupDetails | null>(null);
@@ -41,6 +45,19 @@ const GroupDetailsScreen = () => {
     const [members, setMembers] = useState<GroupMemberDetails[]>([]);
     const [settlementHistory, setSettlementHistory] = useState<BaseSettlementDetails[]>([]);
     const [settlementsLoading, setSettlementsLoading] = useState(true);
+
+    useEffect(() => {
+        const onBackPress = () => {
+            if (showGroupInfo) {
+                setShowGroupInfo(false);
+                return true; // Stop standard route pop navigation routine
+            }
+            return false; // Default pop
+        };
+
+        const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+        return () => subscription.remove();
+    }, [showGroupInfo]);
 
     const fetchGroupMeta = async () => {
         if (!groupId) return;
@@ -78,7 +95,7 @@ const GroupDetailsScreen = () => {
             setSettlementsLoading(true);
             const [membersRes, historyRes] = await Promise.all([
                 GetGroupMembershipsApi(groupId),
-                GetGroupSettlementsApi(groupId, { limit: 50 }) // Using target endpoint scoped by group ID
+                GetGroupSettlementsApi(groupId, { limit: 50 })
             ]);
             if (membersRes?.data) setMembers(membersRes.data);
             if (historyRes?.data) setSettlementHistory(historyRes.data);
@@ -89,7 +106,6 @@ const GroupDetailsScreen = () => {
         }
     };
 
-    // Orchestrated parallel background execution lifecycle initialization hooks
     useEffect(() => {
         if (groupId) {
             fetchGroupMeta();
@@ -108,12 +124,28 @@ const GroupDetailsScreen = () => {
         }
     };
 
+    // --- INTERCEPT ROUTE LAYER IF USER CLICKED ROW SUBSECTION ---
+    if (showGroupInfo) {
+        return (
+            <GroupInfoView
+                onBackPress={() => setShowGroupInfo(false)}
+                groupData={group}
+                membersData={members}
+            />
+        );
+    }
+
     return (
         <ScreenWrapper backgroundColor="#2D6A4F" statusBarStyle="light-content" withPadding={false}>
             {/* --- FIXED HEADER CONTAINER --- */}
             <View className="bg-[#2D6A4F] pt-4 pb-6 w-full">
                 <View className="flex-row items-center justify-between w-full px-4 mb-6">
-                    <View className="flex-row items-center flex-1 mr-4">
+
+                    {/* TOUCH TARGET INTERCEPTOR LAYER: CLicking avatar or title updates state */}
+                    <Pressable
+                        onPress={() => setShowGroupInfo(true)}
+                        className="flex-row items-center flex-1 mr-4 active:opacity-80"
+                    >
                         <Pressable onPress={() => router.back()} className="p-2 mr-1">
                             <Iconify icon="heroicons:arrow-left" size={24} color="white"/>
                         </Pressable>
@@ -136,7 +168,7 @@ const GroupDetailsScreen = () => {
                                 {groupLoading ? '--' : group?.no_of_members} Members
                             </AppText>
                         </View>
-                    </View>
+                    </Pressable>
 
                     <View className="flex-row items-center space-x-1">
                         <Pressable className="p-2">

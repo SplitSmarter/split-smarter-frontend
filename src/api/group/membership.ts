@@ -1,7 +1,8 @@
 import axiosUserInstance from "@/src/api/axiosUserServiceInstance";
 import { SuccessResponse, PaginationResponse } from "@/src/api/dto/ApiResponse";
 import { handleApiError } from "@/src/api/utils/mapper";
-import {AllGroupMembershipsDetails} from "@/src/api/dto/user/group/membership";
+import {AddMembershipRequest, AllGroupMembershipsDetails} from "@/src/api/dto/user/group/membership";
+import {GroupJoinMethod} from "@/src/api/dto/constants";
 
 const BASE_PATH = "/group/membership/v1";
 
@@ -36,6 +37,33 @@ export const GetGroupMembershipsApi = async (
                 message: res.data.message,
                 data: res.data.data,
                 pagination: res.data.pagination as PaginationResponse
+            };
+        }
+        throw new Error("Invalid Response Schema");
+    } catch (error: any) {
+        return handleApiError(error);
+    }
+};
+
+export const JoinGroupApi = async (
+    data: AddMembershipRequest,
+    mode: GroupJoinMethod
+) => {
+    try {
+        const res = await axiosUserInstance.post<SuccessResponse<null, null>>(
+            `${BASE_PATH}/`,
+            data,
+            {
+                params: {
+                    mode
+                }
+            }
+        );
+
+        if (res.data && res.data.success) {
+            return {
+                message: res.data.message,
+                data: res.data.data
             };
         }
         throw new Error("Invalid Response Schema");
