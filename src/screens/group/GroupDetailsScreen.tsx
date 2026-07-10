@@ -1,30 +1,30 @@
-import React, {useEffect, useState} from 'react';
-import {ActivityIndicator, Pressable, RefreshControl, ScrollView, View, Platform, BackHandler} from 'react-native';
-import {Iconify} from "react-native-iconify";
-import {useLocalSearchParams, useRouter} from 'expo-router';
-import {Image} from 'expo-image';
-import {ScreenWrapper} from "@/src/components/common/ScreenWrapper";
-import {AppText} from '@/src/components/common/AppText';
-import {themeStore} from "@/src/store/themeStore";
-import {GroupDetails, GroupMemberDetails} from "@/src/api/dto/user/group";
-import {GetGroupByIdApi, GetGroupMembershipsApi, GetGroupSettlementsApi} from "@/src/api/group/group";
-import {listUserExpensesApi} from "@/src/api/expense/expense";
-import {ExpenseDetailsBasicResponse} from "@/src/api/dto/expense/expense";
-import {GroupOverviewTab} from "@/src/components/user/group/GroupOverviewTab";
-import {GroupTransactionsTab} from "@/src/components/user/group/GroupTransactionsTab";
-import {GroupSettlementsTab} from "@/src/components/user/group/GroupSettlementsTab";
-import {listUserTransfersApi} from "@/src/api/expense/transfer";
-import {TransferDetailsBasicResponse} from "@/src/api/dto/expense/transfer";
-import {BaseSettlementDetails} from "@/src/api/dto/expense/settlement";
-import {GroupInfoView} from "@/src/components/user/group/GroupInfoView";
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, View, Platform, BackHandler } from 'react-native';
+import { Iconify } from "react-native-iconify";
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Image } from 'expo-image';
+import { ScreenWrapper } from "@/src/components/common/ScreenWrapper";
+import { AppText } from '@/src/components/common/AppText';
+import { themeStore } from "@/src/store/themeStore";
+import { GroupDetails, GroupMemberDetails } from "@/src/api/dto/user/group";
+import { GetGroupByIdApi, GetGroupMembershipsApi, GetGroupSettlementsApi } from "@/src/api/group/group";
+import { listUserExpensesApi } from "@/src/api/expense/expense";
+import { ExpenseDetailsBasicResponse } from "@/src/api/dto/expense/expense";
+import { GroupOverviewTab } from "@/src/components/user/group/GroupOverviewTab";
+import { GroupTransactionsTab } from "@/src/components/user/group/GroupTransactionsTab";
+import { GroupSettlementsTab } from "@/src/components/user/group/GroupSettlementsTab";
+import { listUserTransfersApi } from "@/src/api/expense/transfer";
+import { TransferDetailsBasicResponse } from "@/src/api/dto/expense/transfer";
+import { BaseSettlementDetails } from "@/src/api/dto/expense/settlement";
+import { GroupInfoView } from "@/src/components/user/group/GroupInfoView";
 
 type GroupTab = 'Overview' | 'Transactions' | 'Settlements' | 'Members';
 
 const GroupDetailsScreen = () => {
-    const {theme} = themeStore();
+    const { theme } = themeStore();
     const router = useRouter();
     const isDark = theme === 'dark';
-    const {id} = useLocalSearchParams<{ id: string }>();
+    const { id } = useLocalSearchParams<{ id: string }>();
     const groupId = Number(id);
 
     const [activeTab, setActiveTab] = useState<GroupTab>('Settlements');
@@ -50,9 +50,9 @@ const GroupDetailsScreen = () => {
         const onBackPress = () => {
             if (showGroupInfo) {
                 setShowGroupInfo(false);
-                return true; // Stop standard route pop navigation routine
+                return true;
             }
-            return false; // Default pop
+            return false;
         };
 
         const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
@@ -77,8 +77,8 @@ const GroupDetailsScreen = () => {
         try {
             setTransactionsLoading(true);
             const [expensesRes, transfersRes] = await Promise.all([
-                listUserExpensesApi({group_id: [groupId], limit: 50}),
-                listUserTransfersApi({group_id: [groupId], limit: 50})
+                listUserExpensesApi({ group_id: [groupId], limit: 50 }),
+                listUserTransfersApi({ group_id: [groupId], limit: 50 })
             ]);
             if (expensesRes?.data) setExpenses(expensesRes.data);
             if (transfersRes?.data) setTransfers(transfersRes.data);
@@ -129,8 +129,9 @@ const GroupDetailsScreen = () => {
         return (
             <GroupInfoView
                 onBackPress={() => setShowGroupInfo(false)}
-                groupData={group}
+                groupData={group!}
                 membersData={members}
+                onMemberAdded={fetchSettlementTabMetrics} // 👈 Refresh callback provided here
             />
         );
     }
@@ -141,21 +142,22 @@ const GroupDetailsScreen = () => {
             <View className="bg-[#2D6A4F] pt-4 pb-6 w-full">
                 <View className="flex-row items-center justify-between w-full px-4 mb-6">
 
-                    {/* TOUCH TARGET INTERCEPTOR LAYER: CLicking avatar or title updates state */}
+                    {/* 👈 FIXED BACK BUTTON: Moved completely out of the inner touch target container */}
+                    <Pressable onPress={() => router.back()} className="p-2 mr-1 active:opacity-70 z-50">
+                        <Iconify icon="heroicons:arrow-left" size={24} color="white"/>
+                    </Pressable>
+
+                    {/* TOUCH TARGET INTERCEPTOR LAYER */}
                     <Pressable
                         onPress={() => setShowGroupInfo(true)}
                         className="flex-row items-center flex-1 mr-4 active:opacity-80"
                     >
-                        <Pressable onPress={() => router.back()} className="p-2 mr-1">
-                            <Iconify icon="heroicons:arrow-left" size={24} color="white"/>
-                        </Pressable>
-
                         <View
                             className="w-12 h-12 rounded-full bg-white/20 items-center justify-center border border-white/30 overflow-hidden mr-3">
                             {groupLoading ? (
                                 <ActivityIndicator color="white" size="small"/>
                             ) : (
-                                <Image source={{uri: group?.icon?.url}} style={{width: 30, height: 30}}
+                                <Image source={{ uri: group?.icon?.url }} style={{ width: 30, height: 30 }}
                                        contentFit="contain"/>
                             )}
                         </View>
@@ -181,7 +183,7 @@ const GroupDetailsScreen = () => {
                 </View>
 
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}
-                            contentContainerStyle={{paddingHorizontal: 24}}>
+                            contentContainerStyle={{ paddingHorizontal: 24 }}>
                     {(['Overview', 'Transactions', 'Settlements', 'Members'] as GroupTab[]).map((tab) => {
                         const isActive = activeTab === tab;
                         return (
@@ -262,13 +264,13 @@ const GroupDetailsScreen = () => {
                 <Pressable
                     className="absolute bottom-10 right-6 w-16 h-16 bg-[#2D6A4F] rounded-full items-center justify-center z-50"
                     onPress={() => router.push("/expense/add")}
-                    style={({pressed}) => [
+                    style={({ pressed }) => [
                         {
-                            transform: [{scale: pressed ? 0.95 : 1}],
+                            transform: [{ scale: pressed ? 0.95 : 1 }],
                             ...Platform.select({
                                 ios: {
                                     shadowColor: '#000',
-                                    shadowOffset: {width: 0, height: 4},
+                                    shadowOffset: { width: 0, height: 4 },
                                     shadowOpacity: 0.3,
                                     shadowRadius: 4.65,
                                 },

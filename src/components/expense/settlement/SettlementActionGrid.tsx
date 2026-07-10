@@ -67,10 +67,6 @@ export const SettlementActionGrid = ({
 
     return (
         <View className="mb-8">
-            <AppText variant="body-small" className="font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-3 px-1">
-                Active Pending Balances
-            </AppText>
-
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 4 }}>
                 {activeBalancesList.map((member) => {
                     const syntheticBalanceEvaluator = member.contribution_inr - 1200;

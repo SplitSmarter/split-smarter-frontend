@@ -3,6 +3,7 @@ import {
     View,
     ActivityIndicator,
     Pressable,
+    ScrollView,
     StyleSheet
 } from 'react-native';
 import {
@@ -16,7 +17,9 @@ import { Iconify } from 'react-native-iconify';
 import { useRouter } from 'expo-router';
 import { AppText } from "@/src/components/common/AppText";
 import { AppImage } from "@/src/components/common/AppImage";
+import { AppButton } from "@/src/components/common/AppButton";
 import { themeStore } from '@/src/store/themeStore';
+import { userStore } from '@/src/store/userStore';
 import { COLORS } from "@/src/constants/colors";
 import { RelationDetails } from "@/src/api/dto/user/relation";
 import { GetRelationsApi } from "@/src/api/relations/relation";
@@ -24,54 +27,64 @@ import { SearchUsersApi } from "@/src/api/user/user";
 import { UserSearchResponse } from "@/src/api/dto/user/user";
 import { RelationWithUserType } from "@/src/api/dto/constants";
 
+export interface SelectedUserEntity {
+    id: number;
+    name: string;
+    user_type: RelationWithUserType;
+    avatar?: { url?: string } | null;
+}
+
 export interface HiddenUserTarget {
     id: number;
     user_type: RelationWithUserType;
 }
 
-interface SelectSinglePeopleBottomSheetProps {
+interface SelectMultiPeopleBottomSheetProps {
     visible: boolean;
-    selectedId?: number;
-    selectedType?: RelationWithUserType;
+    initialSelectedUsers?: SelectedUserEntity[];
     hideUsers?: HiddenUserTarget[];
     onClose: () => void;
-    onSelect: (userId: number, userType: RelationWithUserType, relations: RelationDetails[], globalUsers: UserSearchResponse[]) => void;
+    onConfirmed: (selectedUsers: SelectedUserEntity[], relations: RelationDetails[], globalUsers: UserSearchResponse[]) => void;
 }
 
-export const SelectSinglePeopleBottomSheet = ({
-                                                  visible,
-                                                  selectedId,
-                                                  selectedType,
-                                                  hideUsers = [],
-                                                  onClose,
-                                                  onSelect
-                                              }: SelectSinglePeopleBottomSheetProps) => {
+export const SelectMultiPeopleBottomSheet = ({
+                                                 visible,
+                                                 initialSelectedUsers = [],
+                                                 hideUsers = [],
+                                                 onClose,
+                                                 onConfirmed
+                                             }: SelectMultiPeopleBottomSheetProps) => {
     const theme = themeStore((state) => state.theme);
     const isDark = theme === 'dark';
     const router = useRouter();
+    const currentUser = userStore((state) => state.user);
 
     const bottomSheetModalRef = useRef<BottomSheetModal>(null);
 
     const [search, setSearch] = useState('');
+    const [localSelectedUsers, setLocalSelectedUsers] = useState<SelectedUserEntity[]>([]);
     const [relations, setRelations] = useState<RelationDetails[]>([]);
     const [globalResults, setGlobalResults] = useState<UserSearchResponse[]>([]);
     const [loadingRelations, setLoadingRelations] = useState(false);
     const [isSearchingGlobal, setIsSearchingGlobal] = useState(false);
     const [isSheetReady, setIsSheetReady] = useState(false);
 
+    // Sync visibility matching Single Select rules perfectly
     useEffect(() => {
         if (visible) {
+            setLocalSelectedUsers(initialSelectedUsers);
             bottomSheetModalRef.current?.present();
             setIsSheetReady(true);
             fetchRelations();
         } else {
             bottomSheetModalRef.current?.dismiss();
             setSearch('');
+            setLocalSelectedUsers([]);
             setRelations([]);
             setGlobalResults([]);
             setIsSheetReady(false);
         }
-    }, [visible]);
+    }, [visible, initialSelectedUsers]);
 
     const fetchRelations = async () => {
         setLoadingRelations(true);
@@ -113,22 +126,26 @@ export const SelectSinglePeopleBottomSheet = ({
         return relations.filter(r => r.with_user.name.toLowerCase().includes(lowercaseSearch));
     }, [relations, search]);
 
-    const handleSelectUser = useCallback((userId: number, userType: RelationWithUserType) => {
-        onSelect(userId, userType, relations, globalResults);
-        onClose();
-    }, [onSelect, relations, globalResults, onClose]);
+    // O(1) Local Selections Set Lookup
+    const selectedUsersKeys = useMemo(() => {
+        return new Set(localSelectedUsers.map(u => `${u.user_type}-${u.id}`));
+    }, [localSelectedUsers]);
 
-    const handleAddNewUser = () => {
-        onClose();
-        setTimeout(() => {
-            router.push('/(authenticated)/user/add');
-        }, 200);
-    };
-
-    // Create an O(1) Lookup Map to eliminate repeated nested array traversal loops
+    // O(1) Hidden Group Members Set Lookup
     const hiddenUsersKeys = useMemo(() => {
         return new Set(hideUsers.map(hu => `${hu.user_type}-${hu.id}`));
     }, [hideUsers]);
+
+    const toggleUser = useCallback((user: SelectedUserEntity) => {
+        setLocalSelectedUsers(prev => {
+            const exists = prev.some(u => u.id === user.id && u.user_type === user.user_type);
+            if (exists) {
+                return prev.filter(u => !(u.id === user.id && u.user_type === user.user_type));
+            } else {
+                return [...prev, user];
+            }
+        });
+    }, []);
 
     const combinedListData = useMemo(() => {
         if (!isSheetReady) return [];
@@ -136,11 +153,13 @@ export const SelectSinglePeopleBottomSheet = ({
         const list: Array<{ type: 'rel' | 'gl'; key: string; data: any }> = [];
 
         filteredRelations.forEach(item => {
+            if (item.with_user.user_type === RelationWithUserType.CUSTOM) return;
             const compositeKey = `${item.with_user.user_type}-${item.with_user.id}`;
+
             if (!hiddenUsersKeys.has(compositeKey)) {
                 list.push({
                     type: 'rel',
-                    key: `rel-${compositeKey}`,
+                    key: `multi-rel-${compositeKey}`,
                     data: item.with_user
                 });
             }
@@ -158,7 +177,7 @@ export const SelectSinglePeopleBottomSheet = ({
                 if (!hiddenUsersKeys.has(compositeKey) && !matchesLocal) {
                     list.push({
                         type: 'gl',
-                        key: `gl-${compositeKey}`,
+                        key: `multi-gl-${compositeKey}`,
                         data: { ...user, user_type: globalUserType }
                     });
                 }
@@ -166,6 +185,18 @@ export const SelectSinglePeopleBottomSheet = ({
         }
         return list;
     }, [isSheetReady, filteredRelations, globalResults, search, relations, hiddenUsersKeys]);
+
+    const handleConfirmSelection = () => {
+        onConfirmed(localSelectedUsers, relations, globalResults);
+        onClose();
+    };
+
+    const handleAddNewUser = () => {
+        onClose();
+        setTimeout(() => {
+            router.push('/(authenticated)/user/add');
+        }, 200);
+    };
 
     const snapPoints = useMemo(() => ['85%'], []);
 
@@ -183,18 +214,35 @@ export const SelectSinglePeopleBottomSheet = ({
 
     const renderItem = useCallback(({ item }: any) => {
         const user = item.data;
-        const isSelected = selectedId === user.id && selectedType === user.user_type;
-        const subtext = item.type === 'rel' ? user.user_type : "Not in your network";
+        const compositeKey = `${user.user_type}-${user.id}`;
+        const isSelected = selectedUsersKeys.has(compositeKey);
+
+        const isMe = currentUser?.id === user.id && user.user_type === RelationWithUserType.USER;
+        const subtext = isMe ? "You" : item.type === 'rel' ? user.user_type : "Not in your network";
 
         return (
-            <UserRowItem
+            <UserMultiRowItem
                 user={user}
                 isSelected={isSelected}
                 subtext={subtext}
-                onPress={handleSelectUser}
+                onPress={toggleUser}
             />
         );
-    }, [selectedId, selectedType, handleSelectUser]);
+    }, [selectedUsersKeys, currentUser, toggleUser]);
+
+    const renderListFooter = useCallback(() => (
+        <View className="mt-4 mb-8">
+            {localSelectedUsers.length > 0 ? (
+                <AppButton variant="primary" onPress={handleConfirmSelection}>
+                    Done ({localSelectedUsers.length})
+                </AppButton>
+            ) : (
+                <AppButton variant="secondary" onPress={onClose}>
+                    Cancel
+                </AppButton>
+            )}
+        </View>
+    ), [localSelectedUsers.length, onClose, handleConfirmSelection]);
 
     return (
         <BottomSheetModal
@@ -216,20 +264,44 @@ export const SelectSinglePeopleBottomSheet = ({
             }}
         >
             <BottomSheetView className="flex-1 px-4">
-                {/* Custom Header */}
+                {/* Header Layout */}
                 <View className="flex-row items-center justify-between pb-4 border-b border-gray-500/10">
                     <Pressable onPress={onClose} className="p-2 rounded-full active:opacity-60">
                         <Iconify icon="heroicons:chevron-left" size={24} color={isDark ? "#FFF" : "#000"} />
                     </Pressable>
                     <AppText variant="h4" className="font-bold text-text-primary text-center">
-                        Select Person
+                        Select People
                     </AppText>
                     <Pressable onPress={handleAddNewUser} className="p-2 rounded-full active:opacity-60">
                         <Iconify icon="heroicons:user-plus" size={24} color={COLORS.icon_primary_darker_light} />
                     </Pressable>
                 </View>
 
-                {/* Input with balanced 600ms debounce system */}
+                {/* Horizontal Selected Display Tray */}
+                {localSelectedUsers.length > 0 && (
+                    <View className="mt-4 px-1">
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                            {localSelectedUsers.map(user => (
+                                <View key={`selected-tray-${user.id}-${user.user_type}`} className="mr-4 items-center">
+                                    <View className="relative">
+                                        <AppImage url={user.avatar?.url} size="md" variant="circular" />
+                                        <Pressable
+                                            onPress={() => toggleUser(user)}
+                                            className="absolute -top-1 -right-1 bg-red-500 rounded-full border border-white dark:border-zinc-900 p-0.5"
+                                        >
+                                            <Iconify icon="heroicons:x-mark" size={10} color="white" />
+                                        </Pressable>
+                                    </View>
+                                    <AppText variant="caption-xs" className="mt-1 font-medium text-text-primary">
+                                        {currentUser?.id === user.id && user.user_type === RelationWithUserType.USER ? "You" : user.name.split(' ')[0]}
+                                    </AppText>
+                                </View>
+                            ))}
+                        </ScrollView>
+                    </View>
+                )}
+
+                {/* Search Input Control */}
                 <View className="my-4 flex-row items-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl px-4 h-12">
                     <Iconify icon="heroicons:magnifying-glass" size={20} color={isDark ? '#71717A' : '#A1A1AA'} />
                     <BottomSheetTextInput
@@ -256,8 +328,11 @@ export const SelectSinglePeopleBottomSheet = ({
                         maxToRenderPerBatch={10}
                         windowSize={5}
                         showsVerticalScrollIndicator={false}
-                        contentContainerStyle={{ paddingBottom: 40 }}
+                        contentContainerStyle={{ paddingBottom: 20 }}
                         renderItem={renderItem}
+                        extraData={selectedUsersKeys}
+                        ListFooterComponent={renderListFooter}
+                        keyboardShouldPersistTaps="handled"
                     />
                 )}
             </BottomSheetView>
@@ -265,10 +340,10 @@ export const SelectSinglePeopleBottomSheet = ({
     );
 };
 
-const UserRowItem = React.memo(({ user, isSelected, onPress, subtext }: any) => {
+const UserMultiRowItem = React.memo(({ user, isSelected, onPress, subtext }: { user: any; isSelected: boolean; onPress: (user: any) => void; subtext: string }) => {
     return (
         <Pressable
-            onPress={() => onPress(user.id, user.user_type)}
+            onPress={() => onPress(user)}
             className={`flex-row items-center p-3 rounded-2xl mb-2 ${
                 isSelected
                     ? 'bg-bg-secondary/10 border border-bg-secondary/30'
@@ -278,7 +353,12 @@ const UserRowItem = React.memo(({ user, isSelected, onPress, subtext }: any) => 
             <AppImage url={user.avatar?.url} size="sm" variant="circular" />
             <View className="flex-1 ml-3">
                 <AppText className="font-semibold text-text-primary">{user.name}</AppText>
-                <AppText variant="caption-xs" className="text-text-secondary opacity-60">{subtext}</AppText>
+                <AppText
+                    variant="caption-xs"
+                    className={`text-text-secondary ${subtext === 'You' ? 'text-bg-secondary font-bold opacity-100' : 'text-text-secondary opacity-60'}`}
+                >
+                    {subtext}
+                </AppText>
             </View>
             {isSelected ? (
                 <Iconify icon="heroicons:check-circle-solid" size={24} color={COLORS.icon_primary_darker_light} />
@@ -304,5 +384,5 @@ const styles = StyleSheet.create({
     }
 });
 
-UserRowItem.displayName = 'UserRowItem';
-SelectSinglePeopleBottomSheet.displayName = 'SelectSinglePeopleBottomSheet';
+UserMultiRowItem.displayName = 'UserMultiRowItem';
+SelectMultiPeopleBottomSheet.displayName = 'SelectMultiPeopleBottomSheet';

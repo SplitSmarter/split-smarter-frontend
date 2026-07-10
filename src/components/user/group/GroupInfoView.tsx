@@ -1,9 +1,12 @@
-import React from 'react';
-import { View, ScrollView, Dimensions, Pressable, Platform, StatusBar } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import { View, ScrollView, Dimensions, Pressable, Platform, StatusBar, Alert, ActivityIndicator } from 'react-native';
 import { Iconify } from 'react-native-iconify';
 import { AppText } from "@/src/components/common/AppText";
 import { AppImageV2 } from "@/src/components/common/AppImageV2";
 import { GroupDetails, GroupMemberDetails } from "@/src/api/dto/user/group";
+import { GroupJoinMethod } from "@/src/api/dto/constants";
+import { HiddenUserTarget, SelectSinglePeopleBottomSheet } from "@/src/components/user/SelectSinglePeopleBottomSheet";
+import { JoinGroupApi } from "@/src/api/group/membership";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const TOP_IMAGE_HEIGHT = SCREEN_HEIGHT * 0.25;
@@ -13,18 +16,56 @@ interface GroupInfoViewProps {
     onBackPress: () => void;
     groupData: GroupDetails;
     membersData: GroupMemberDetails[];
+    onMemberAdded?: () => void;
 }
 
 export const GroupInfoView: React.FC<GroupInfoViewProps> = ({
                                                                 onBackPress,
                                                                 groupData,
                                                                 membersData,
+                                                                onMemberAdded,
                                                             }) => {
     const headerHeight = Platform.OS === 'ios' ? 95 : 75;
-    console.log(membersData);
+
+    const [isBottomSheetVisible, setIsBottomSheetVisible] = useState(false);
+    const [isAddingUser, setIsAddingUser] = useState(false);
+
     const coverUrl = groupData.background?.url;
-    const avatarUrl = groupData.icon.url;
+    const avatarUrl = groupData.icon?.url;
     const totalMembers = groupData.no_of_members ?? membersData.length;
+
+    const hiddenUsersList = useMemo<HiddenUserTarget[]>(() => {
+        if (!membersData) return [];
+        return membersData.map(member => ({
+            id: member.id,
+            user_type: member.user_type
+        }));
+    }, [membersData]);
+
+    const handleSelectPerson = async (userId: number, userType: any) => {
+        try {
+            setIsAddingUser(true);
+            const payload = {
+                group_id: groupData.id,
+                user_id: userId,
+                user_type: userType
+            };
+
+            const response = await JoinGroupApi(payload, GroupJoinMethod.ADD_USER);
+
+            if (response && response.data !== undefined) {
+                Alert.alert("Success", "Member successfully added to group.");
+                if (onMemberAdded) onMemberAdded(); // 👈 Triggers re-fetching metrics up top
+            } else {
+                Alert.alert("Error", response?.message || "Failed to add member to group.");
+            }
+        } catch (err) {
+            console.error("Failed to add user payload:", err);
+            Alert.alert("Error", "A network tracking error occurred.");
+        } finally {
+            setIsAddingUser(false);
+        }
+    };
 
     return (
         <View className="flex-1 bg-background">
@@ -41,22 +82,22 @@ export const GroupInfoView: React.FC<GroupInfoViewProps> = ({
                     <Iconify icon="heroicons:arrow-left" size={24} color="#FFFFFF" />
                 </Pressable>
 
-                {/* Right side empty space layout balance placeholder */}
                 <View className="w-10 h-10" />
             </View>
 
-            {/* 2. BACKGROUND LAYER (Cover Image Canvas or Brand Green Fallback) */}
+            {/* 2. BACKGROUND LAYER */}
             <View
                 style={{ height: TOP_IMAGE_HEIGHT }}
                 className="absolute top-0 left-0 right-0 w-full z-1 overflow-hidden rounded-b-[40px]"
             >
-                {!coverUrl ? (
+                {coverUrl ? (
                     <AppImageV2
-                        id={groupData.background.id}
+                        id={groupData.background?.id ? `${groupData.background.id}` : "group_cover_bg"}
                         url={coverUrl}
+                        style={{ width: '100%', height: '100%' }}
+                        contentFit="cover"
                     />
                 ) : (
-                    // Absolute fallback layout matches your main screen canvas color
                     <View style={{ backgroundColor: '#2D6A4F', width: '100%', height: '100%' }} />
                 )}
             </View>
@@ -67,12 +108,10 @@ export const GroupInfoView: React.FC<GroupInfoViewProps> = ({
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ top: -40 }}
             >
-                {/* A. TRANSPARENT HEADER ZONE */}
                 <View style={{ height: TOP_IMAGE_HEIGHT }} className="relative justify-end">
                     <View className="absolute inset-0 bg-black/10 rounded-b-[40px]" />
                 </View>
 
-                {/* B. SOLID CARD BASE BLOCK */}
                 <View className="bg-background rounded-t-[40px] px-6 pt-16 pb-20 min-h-[600px] relative -mt-6 shadow-2xl">
 
                     {/* FLOATING AVATAR LOCATION */}
@@ -100,12 +139,19 @@ export const GroupInfoView: React.FC<GroupInfoViewProps> = ({
                             {groupData.title || 'Group Details'}
                         </AppText>
 
-                        <View className="flex-row items-center py-1">
-                            <Iconify icon="heroicons:user-plus" size={16} color="#2D6A4F" />
-                            <AppText className="text-[#2D6A4F] font-semibold ml-1.5 text-sm">
-                                Add Members
-                            </AppText>
-                        </View>
+                        {isAddingUser ? (
+                            <ActivityIndicator size="small" color="#2D6A4F" className="py-1" />
+                        ) : (
+                            <Pressable
+                                onPress={() => setIsBottomSheetVisible(true)}
+                                className="flex-row items-center py-1 active:opacity-60"
+                            >
+                                <Iconify icon="heroicons:user-plus" size={16} color="#2D6A4F" />
+                                <AppText className="text-[#2D6A4F] font-semibold ml-1.5 text-sm">
+                                    Add Members
+                                </AppText>
+                            </Pressable>
+                        )}
                     </View>
 
                     {/* MEMBERS SECTION LIST ROUTINE */}
@@ -147,7 +193,6 @@ export const GroupInfoView: React.FC<GroupInfoViewProps> = ({
                                         </AppText>
                                     </View>
 
-                                    {/* Role Badge Mapping */}
                                     <View className="px-4 py-1.5 rounded-full bg-bg-primary border border-bg-primary-darker">
                                         <AppText className="font-medium tracking-wide text-xs text-text-primary-lighter capitalize">
                                             {membership.role?.toLowerCase() || 'member'}
@@ -172,6 +217,13 @@ export const GroupInfoView: React.FC<GroupInfoViewProps> = ({
 
                 </View>
             </ScrollView>
+
+            <SelectSinglePeopleBottomSheet
+                visible={isBottomSheetVisible}
+                hideUsers={hiddenUsersList}
+                onClose={() => setIsBottomSheetVisible(false)}
+                onSelect={handleSelectPerson}
+            />
         </View>
     );
 };
