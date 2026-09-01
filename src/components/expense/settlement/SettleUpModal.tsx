@@ -121,7 +121,7 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
     const handlePayViaGateway = async () => {
         if (!gatewayDetails?.hasValidGateway || !member) return;
 
-        const upiTargetUrl = `upi://pay?pa=hello@wtf&pn=${encodeURIComponent(member.name)}&am=${payingAmount}&cu=INR&tn=${encodeURIComponent('Settling split ledger')}`;
+        const upiTargetUrl = `upi://pay?pa=9285264228@ibl&pn=${encodeURIComponent(member.name)}&am=${payingAmount}&cu=INR&tn=${encodeURIComponent('Settling split ledger')}`;
 
         try {
             setPendingPayment({
@@ -131,14 +131,10 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
                 timestamp: new Date().toISOString()
             });
 
-            const supported = await Linking.canOpenURL(upiTargetUrl);
-            if (supported) {
-                await Linking.openURL(upiTargetUrl);
-                onClose();
-            } else {
-                throw new Error("Direct application handler unavailable");
-            }
+            await Linking.openURL(upiTargetUrl);
+            onClose();
         } catch (error) {
+            console.log(error);
             setPendingPayment(null);
             Alert.alert(
                 "Gateway Interface Exception",

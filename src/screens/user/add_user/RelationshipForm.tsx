@@ -1,6 +1,3 @@
-// ============================================================================
-// ISOLATED WORKER SUB-COMPONENT
-// ============================================================================
 import React, { useEffect, useState } from "react";
 import { useRouter, Href } from "expo-router";
 import { UserSearchResponse } from "@/src/api/dto/user/user";

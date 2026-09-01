@@ -1,29 +1,32 @@
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
+import { SplashScreen, Stack } from 'expo-router';
+import { useEffect, useMemo, useRef, useState } from "react";
+import { AppState, Dimensions, Platform, UIManager, View } from "react-native";
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import "./global.css";
-import {useEffect, useMemo, useRef, useState} from "react";
-import {View, Dimensions, AppState} from "react-native";
-import {Slot, SplashScreen} from 'expo-router';
-import {DarkTheme, DefaultTheme, ThemeProvider} from "@react-navigation/native";
-import {GestureHandlerRootView} from 'react-native-gesture-handler';
-import {BottomSheetModalProvider} from "@gorhom/bottom-sheet";
 
 import AlertDisplay from "@/src/components/global/AlertDisplay";
-import {setupI18n} from "@/src/i18n/index";
-import {AlertProvider} from "@/src/context/alertContext";
-import {configStore} from "@/src/store/configStore";
-import {themeStore} from "@/src/store/themeStore";
-import {i18nStore} from "@/src/store/i18nStore";
-import {deviceStore} from "@/src/store/deviceStore";
-import {logStore} from "@/src/store/logStore";
-import {CustomErrorBoundary} from "@/src/components/global/CustomErrorBoundary";
-import {networkStore} from "@/src/store/networkStore";
-import {GlobalLayerController} from "@/src/components/GlobalLayerController";
-import {ImageCacheManager} from "@/src/utils/system/ImageCacheManager";
-import {GoogleSignin} from "@react-native-google-signin/google-signin";
-import {GOOGLE_IOS_CLIENT_ID, GOOGLE_WEB_CLIENT_ID} from "@/src/config/config";
-import {permissionStore} from "@/src/store/permissionStore";
-import {paymentStore} from "@/src/store/paymentStore";
+import { CustomErrorBoundary } from "@/src/components/global/CustomErrorBoundary";
+import { GlobalLayerController } from "@/src/components/GlobalLayerController";
+import { GOOGLE_IOS_CLIENT_ID, GOOGLE_WEB_CLIENT_ID } from "@/src/config/config";
+import { AlertProvider } from "@/src/context/alertContext";
+import { setupI18n } from "@/src/i18n/index";
+import { configStore } from "@/src/store/configStore";
+import { deviceStore } from "@/src/store/deviceStore";
+import { i18nStore } from "@/src/store/i18nStore";
+import { logStore } from "@/src/store/logStore";
+import { networkStore } from "@/src/store/networkStore";
+import { permissionStore } from "@/src/store/permissionStore";
+import { themeStore } from "@/src/store/themeStore";
+import { ImageCacheManager } from "@/src/utils/system/ImageCacheManager";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
 
 SplashScreen.preventAutoHideAsync();
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 export default function RootLayout() {
     const initNetwork = networkStore((state) => state.initNetworkListener);
@@ -34,11 +37,10 @@ export default function RootLayout() {
     const fetchPublicInfo = configStore((state) => state.fetchPublicInfo);
     const updateScreen = deviceStore((state) => state.updateScreen);
     const syncPermissions = permissionStore((state) => state.syncPermissions);
-    const pendingPayment = paymentStore((state) => state.pendingVerification);
     const appStateRef = useRef(AppState.currentState);
     const [isAppReady, setIsAppReady] = useState(false);
 
-    // 1. Setup Global Error Handling once
+    // 1. Setup Global Error Handling
     useEffect(() => {
         const globalObj = global as any;
         if (globalObj.ErrorUtils) {
@@ -60,7 +62,6 @@ export default function RootLayout() {
                 appStateRef.current.match(/inactive|background/) &&
                 nextAppState === 'active'
             ) {
-                // Trigger checking mechanisms when app awakens if needed
                 console.log("App returned to active foreground");
             }
             appStateRef.current = nextAppState;
@@ -89,14 +90,19 @@ export default function RootLayout() {
                     });
 
                     await setupI18n();
-                    // NetInfo might fail if native module isn't linked, wrap in try/catch
                     try {
                         networkUnsubscribe = initNetwork();
                     } catch (netError) {
                         console.error("NetInfo native module link missing:", netError);
                     }
 
-                    await Promise.all([initTheme(), initI18n(), fetchPublicInfo(), syncPermissions(), ImageCacheManager.ensureCacheDir()]);
+                    await Promise.all([
+                        initTheme(),
+                        initI18n(),
+                        fetchPublicInfo(),
+                        syncPermissions(),
+                        ImageCacheManager.ensureCacheDir()
+                    ]);
                 } catch (e) {
                     console.warn("App preparation failed:", e);
                 } finally {
@@ -119,20 +125,19 @@ export default function RootLayout() {
         }
     }, [isAppReady]);
 
-    // Use useMemo for the theme to prevent unnecessary provider re-renders
     const navigationTheme = useMemo(() => (theme === "dark" ? DarkTheme : DefaultTheme), [theme]);
 
     if (!hasHydrated || !isAppReady) return null;
 
     return (
-        <View key={theme} style={{flex: 1}} className={theme}>
+        <View style={{flex: 1}} className={theme}>
             <ThemeProvider value={navigationTheme}>
                 <AlertProvider>
                     <View className="flex-1 bg-background">
                         <GestureHandlerRootView style={{flex: 1}}>
                             <BottomSheetModalProvider>
                                 <CustomErrorBoundary>
-                                    <Slot/>
+                                    <Stack screenOptions={{ headerShown: false }} />
                                 </CustomErrorBoundary>
                                 <GlobalLayerController/>
                                 <AlertDisplay/>

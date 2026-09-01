@@ -13,7 +13,7 @@ const GroupsScreen = () => {
         <View className="flex-1 p-4">
             <AppButton
                 // 3. Use router.push to navigate to the path
-                onPress={() => router.push("/expense/add")}
+                onPress={() => router.push("/payment/account/add")}
                 variant="primary"
                 size="sm"
                 className="w-full"

@@ -2,6 +2,14 @@
 import {BasicImage} from "@/src/api/dto/user/asset";
 import {RelationshipSource} from "@/src/api/dto/constants";
 
+export interface BasicUserRelationshipDetails {
+    id: number;
+    title: string;
+    source_type: RelationshipSource;
+    icon: BasicImage
+}
+
+
 export interface RelationshipDetails {
     id: number;
     title: string;

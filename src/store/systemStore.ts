@@ -57,7 +57,7 @@ export const systemStore = create<SystemState>((set) => ({
                     defaultExpenseCategory: {
                         id: 1,
                         asset: {
-                            id: "8060ec87-356e-4367-9d4c-5777d3df6ef5",
+                            id: "2653632e-28ba-4997-a8a4-f3270156839e",
                             name: "default_expense",
                             url: "https://res.cloudinary.com/dstdxd60k/image/upload/s--wRnZNEV8--/v1/splitsmarter/assets/a9981ab3-223b-423d-af76-6ec1a00949ee",
                             extension: "png",
@@ -66,7 +66,7 @@ export const systemStore = create<SystemState>((set) => ({
                     defaultGroupCategory: {
                         id: 1,
                         asset: {
-                            id: "8060ec87-356e-4367-9d4c-5777d3df6ef5",
+                            id: "2653632e-28ba-4997-a8a4-f3270156839e",
                             name: "default_group",
                             url: "https://res.cloudinary.com/dstdxd60k/image/upload/s--wRnZNEV8--/v1/splitsmarter/assets/a9981ab3-223b-423d-af76-6ec1a00949ee",
                             extension: "png",
@@ -75,44 +75,44 @@ export const systemStore = create<SystemState>((set) => ({
                     defaultExpenseItem: {
                         id: 1,
                         asset: {
-                            id: "8060ec87-356e-4367-9d4c-5777d3df6ef5",
+                            id: "2653632e-28ba-4997-a8a4-f3270156839e",
                             name: "default_expense_item",
                             url: "https://res.cloudinary.com/dstdxd60k/image/upload/s--wRnZNEV8--/v1/splitsmarter/assets/a9981ab3-223b-423d-af76-6ec1a00949ee",
                             extension: "png",
                         },
                     },
                     placeholderImage: {
-                        id: "8060ec87-356e-4367-9d4c-5777d3df6ef5",
+                        id: "2653632e-28ba-4997-a8a4-f3270156839e",
                         name: "placeholder",
                         url: "https://res.cloudinary.com/dstdxd60k/image/upload/s--wRnZNEV8--/v1/splitsmarter/assets/a9981ab3-223b-423d-af76-6ec1a00949ee",
                         extension: "png",
                     },
                     defaultGroupIconImage: {
-                        id: "8060ec87-356e-4367-9d4c-5777d3df6ef5",
+                        id: "2653632e-28ba-4997-a8a4-f3270156839e",
                         name: "default_group_icon",
                         url: "https://res.cloudinary.com/dstdxd60k/image/upload/s--wRnZNEV8--/v1/splitsmarter/assets/a9981ab3-223b-423d-af76-6ec1a00949ee",
                         extension: "png",
                     },
                     defaultGroupCategoryIconImage: {
-                        id: "8060ec87-356e-4367-9d4c-5777d3df6ef5",
+                        id: "2653632e-28ba-4997-a8a4-f3270156839e",
                         name: "default_group_icon",
                         url: "https://res.cloudinary.com/dstdxd60k/image/upload/s--wRnZNEV8--/v1/splitsmarter/assets/a9981ab3-223b-423d-af76-6ec1a00949ee",
                         extension: "png",
                     },
                     defaultGroupBackgroundImage: {
-                        id: "8060ec87-356e-4367-9d4c-5777d3df6ef5",
+                        id: "2653632e-28ba-4997-a8a4-f3270156839e",
                         name: "default_group_background",
                         url: "https://res.cloudinary.com/dstdxd60k/image/upload/s--wRnZNEV8--/v1/splitsmarter/assets/a9981ab3-223b-423d-af76-6ec1a00949ee",
                         extension: "png",
                     },
                     defaultRelationshipImage: {
-                        id: "8060ec87-356e-4367-9d4c-5777d3df6ef5",
+                        id: "2653632e-28ba-4997-a8a4-f3270156839e",
                         name: "default_group_background",
                         url: "https://res.cloudinary.com/dstdxd60k/image/upload/s--wRnZNEV8--/v1/splitsmarter/assets/a9981ab3-223b-423d-af76-6ec1a00949ee",
                         extension: "png",
                     },
                     defaultUserAvatarImage: {
-                        id: "8060ec87-356e-4367-9d4c-5777d3df6ef5",
+                        id: "2653632e-28ba-4997-a8a4-f3270156839e",
                         name: "default_group_background",
                         url: "https://res.cloudinary.com/dstdxd60k/image/upload/s--wRnZNEV8--/v1/splitsmarter/assets/a9981ab3-223b-423d-af76-6ec1a00949ee",
                         extension: "png",

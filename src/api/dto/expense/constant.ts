@@ -14,6 +14,18 @@ export enum ExpenseRecurringPeriod {
     CUSTOM = "CUSTOM"
 }
 
+export enum ExpenseItemSource {
+    CUSTOM = "CUSTOM",
+    SYSTEM = "SYSTEM",
+}
+
+export enum SearchScope {
+    ALL = "ALL",
+    CUSTOM = "CUSTOM",
+    GLOBAL = "GLOBAL",
+}
+
+
 export enum ExpenseComponentType {
     ITEM = "ITEM",
     TRANSFER = "TRANSFER"

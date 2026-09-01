@@ -6,6 +6,10 @@
 @layer base {
     /* LIGHT THEME (Default) */
     :root {
+        --color-cat-purple: 139 92 246;    --color-cat-purple-bg: 243 232 255;
+        --color-cat-blue: 59 130 246;      --color-cat-blue-bg: 219 234 254;
+        --color-cat-amber: 245 158 11;     --color-cat-amber-bg: 254 243 199;
+
         /* Backgrounds */
         --color-bg-primary: 242 242 242;          /* #F2F2F2 - General App Background */
         --color-bg-primary-lighter: 255 255 255;  /* #FFFFFF */
@@ -56,6 +60,10 @@
 
     /* DARK THEME (Activated by .dark class) */
     .dark {
+        --color-cat-purple: 167 139 250;   --color-cat-purple-bg: 53 35 80;
+        --color-cat-blue: 96 165 250;      --color-cat-blue-bg: 25 50 85;
+        --color-cat-amber: 251 191 36;     --color-cat-amber-bg: 70 50 20;
+
         /* Backgrounds */
         --color-bg-primary: 26 26 26;             /* Deep slate/dark background */
         --color-bg-primary-lighter: 30 30 30;

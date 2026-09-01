@@ -12,6 +12,14 @@ module.exports = {
         secondary: ["var(--font-secondary)", "sans-serif"],
       },
       colors: {
+        // Add these to tailwind.config.js under colors
+        'cat-purple': "rgb(var(--color-cat-purple) / <alpha-value>)",
+        'cat-purple-bg': "rgb(var(--color-cat-purple-bg) / <alpha-value>)",
+        'cat-blue': "rgb(var(--color-cat-blue) / <alpha-value>)",
+        'cat-blue-bg': "rgb(var(--color-cat-blue-bg) / <alpha-value>)",
+        'cat-amber': "rgb(var(--color-cat-amber) / <alpha-value>)",
+        'cat-amber-bg': "rgb(var(--color-cat-amber-bg) / <alpha-value>)",
+
         // --- Background Colors ---
         'bg-primary': "rgb(var(--color-bg-primary) / <alpha-value>)",
         'bg-primary-lighter': "rgb(var(--color-bg-primary-lighter) / <alpha-value>)",

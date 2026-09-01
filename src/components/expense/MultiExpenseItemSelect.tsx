@@ -1,5 +1,5 @@
 import { ExpenseItemSource } from "@/src/api/dto/constants";
-import { GetExpenseItemsApi } from "@/src/api/expense/items";
+import { GetExpenseItemsApi } from "@/src/api/expense/item";
 import { AppImageV2 } from "@/src/components/common/AppImageV2";
 import { AppInput } from '@/src/components/common/AppInput';
 import { AppText } from '@/src/components/common/AppText';

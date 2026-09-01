@@ -1,5 +1,5 @@
 import React from "react";
-import AddTransactionScreen from "@/src/screens/expense/AddTransaction";
+import AddTransactionScreen from "@/src/screens/expense/AddTransactionScreen";
 
 const AddSplit = () => {
 

@@ -42,9 +42,10 @@ export default function QRScannerPaymentScreen() {
     const handleBarcodeScanned = async ({ data }: { data: string }) => {
         if (scanned) return; // Prevent multiple rapid scanner events
         setScanned(true);
+        console.log(data);
 
         // Verify if it contains a standard payment schema
-        if (!data.startsWith('upi://pay')) {
+        if (!data.startsWith('upi.ts://pay')) {
             Alert.alert(
                 "Invalid QR Code",
                 "This code does not contain valid UPI payment parameters.",
@@ -62,7 +63,7 @@ export default function QRScannerPaymentScreen() {
 
             const upiId = parsedParams.pa as string | undefined;
             const receiverName = (parsedParams.pn as string) || 'Unknown Recipient';
-            const amount = (parsedParams.am as string) || '0.00';
+            const amount = (parsedParams.am as string) || '5';
 
             if (!upiId) {
                 throw new Error("Missing payee routing address (pa parameter).");
@@ -80,6 +81,7 @@ export default function QRScannerPaymentScreen() {
                     },
                     {
                         text: "Proceed to Pay",
+                        // TODO: ensure we send the amount details and other details with the full url
                         onPress: () => executeExternalRedirect(data, upiId, receiverName, amount)
                     }
                 ],
@@ -94,6 +96,7 @@ export default function QRScannerPaymentScreen() {
 
     // 4. Fire the Deep Link and Activate the Global Persistent Overlay
     const executeExternalRedirect = async (fullUrl: string, upiId: string, name: string, amount: string) => {
+        console.log(fullUrl, upiId, name, amount);
         try {
             // Commit metadata to disk storage before shifting device focus
             setPendingPayment({
@@ -110,7 +113,7 @@ export default function QRScannerPaymentScreen() {
             setPendingPayment(null);
             Alert.alert(
                 "No Compatible Apps Found",
-                "Your mobile operating system could not locate an application configured to resolve native upi:// frameworks."
+                "Your mobile operating system could not locate an application configured to resolve native upi.ts:// frameworks."
             );
         } finally {
             // Allow the viewfinder region to be reactivated when they return
