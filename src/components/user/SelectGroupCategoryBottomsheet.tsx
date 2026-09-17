@@ -60,7 +60,7 @@ export const SelectGroupCategoryBottomSheet = ({
             }
         } catch (error) {
             console.error("Failed fetching group categories:", error);
-        } finally { // 👈 FIXED: Cleaned up the broken label layout syntax anomaly
+        } finally {
             setLoading(false);
         }
     };

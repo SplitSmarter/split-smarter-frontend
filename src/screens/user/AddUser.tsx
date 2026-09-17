@@ -16,7 +16,7 @@ export default function AddUserScreen() {
     const {defaults} = systemStore();
     const router = useRouter();
 
-    const defaultAvatarAssetId = defaults?.defaultGroupIconImage?.id || "2653632e-28ba-4997-a8a4-f3270156839e";
+    const defaultAvatarAssetId = defaults?.defaultGroupIconImage?.id;
 
     const safeNavigateBack = () => {
         try {

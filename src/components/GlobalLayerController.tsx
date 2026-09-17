@@ -1,10 +1,10 @@
-import React from 'react';
+import { AppText } from "@/src/components/common/AppText";
+import { PaymentVerificationOverlay } from "@/src/components/global/PaymentVerificationOverlay";
 import { configStore } from '@/src/store/configStore';
+import { expensePaymentStore } from "@/src/store/expensePaymentStore";
+import { marketingStore } from "@/src/store/marketingStore";
 import { networkStore } from '@/src/store/networkStore';
-import {AppText} from "@/src/components/common/AppText";
-import {marketingStore} from "@/src/store/marketingStore";
-import {PaymentVerificationOverlay} from "@/src/components/global/PaymentVerificationOverlay";
-import {expensePaymentStore} from "@/src/store/expensePaymentStore";
+import React from 'react';
 
 export const GlobalLayerController = () => {
     const isMaintenance = configStore((state) => state.isMaintenance);

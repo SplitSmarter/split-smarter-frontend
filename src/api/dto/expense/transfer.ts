@@ -13,11 +13,16 @@ import {BaseGroupDetails} from "@/src/api/dto/user/group";
 export interface AddTransferRequest {
     amount: number;
     currency: Currency;
-    transfer_date: string | null; // ISO Date String format: YYYY-MM-DD
+    transfer_date: string | null;
     from_user_id: number;
     from_user_type: RelationWithUserType;
-    to_user_id: number;
-    to_user_type: RelationWithUserType;
+    to_user_id: number | null;
+    to_user_type: RelationWithUserType | null;
+    to_payment_account_mapping_id: string | null;
+    to_merchant_id: number | null;
+    to_merchant_location_id: number | null;
+    payment_category_id: string
+    payment_account_mapping_id: string | null;
     group_id: number | null;
     description: string | null;
     mode: TransferMode;

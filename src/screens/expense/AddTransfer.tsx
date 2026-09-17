@@ -1,27 +1,25 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { View, Pressable } from 'react-native';
-import { Iconify } from 'react-native-iconify';
-import { useTranslation } from 'react-i18next';
-import { AppText } from '@/src/components/common/AppText';
-import { AppInput } from '@/src/components/common/AppInput';
-import { themeStore } from "@/src/store/themeStore";
-import { userStore } from "@/src/store/userStore";
-import { RelationWithUserType } from "@/src/api/dto/constants";
-import { Currency, CurrencyCode } from "@/src/constants/expense/currency";
-import { useTransferDraftStore, TransferParticipant } from "@/src/store/draft/transferDraftStore";
-import { SelectSinglePeopleBottomSheet } from "@/src/components/user/SelectSinglePeopleBottomSheet";
-import { COLORS } from "@/src/constants/colors";
-import { CurrencyBottomSheet } from "@/src/screens/Onboarding/comps/CurrencyBottomSheet";
+import {RelationWithUserType} from "@/src/api/dto/constants";
+import {UserMerchantDetails} from "@/src/api/dto/expense/merchant";
+import {AppInput} from '@/src/components/common/AppInput';
+import {AppText} from '@/src/components/common/AppText';
+import {SelectEntityBottomSheet} from "@/src/components/user/SelectEntityBottomSheet";
+import {COLORS} from "@/src/constants/colors";
+import {Currency, CurrencyCode} from "@/src/constants/expense/currency";
+import {CurrencyBottomSheet} from "@/src/screens/Onboarding/comps/CurrencyBottomSheet";
+import {TransferParticipant, useTransferDraftStore} from "@/src/store/draft/transferDraftStore";
+import {themeStore} from "@/src/store/themeStore";
+import {userStore} from "@/src/store/userStore";
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import {useTranslation} from 'react-i18next';
+import {Pressable, View} from 'react-native';
+import {Iconify} from 'react-native-iconify';
+import {PaymentCategorySelector} from "@/src/components/user/transfer/PaymentCategorySelector";
 
 const QUICK_AMOUNTS = [100, 200, 500, 1000];
 
-// TODO: fix the keyboard avoid view with memo / notes
-// TODO: Add the transfer mode selection
-// TODO: Add the group selection
-
 const AddTransfer = () => {
-    const { t } = useTranslation();
-    const { theme } = themeStore();
+    const {t} = useTranslation();
+    const {theme} = themeStore();
     const isDark = theme === 'dark';
 
     const draft = useTransferDraftStore();
@@ -104,12 +102,20 @@ const AddTransfer = () => {
         return participant ? Number(participant.id) : undefined;
     };
 
-    const getCurrentlySelectedType = (): RelationWithUserType | undefined => {
+    const getCurrentlySelectedMerchantId = (): number | undefined => {
         if (!activeSelectionTarget) return undefined;
-        return activeSelectionTarget === 'sender' ? draft.sender?.user_type : draft.recipient?.user_type;
+        // If your app tracks merchant IDs explicitly or within participant state
+        const participant = activeSelectionTarget === 'sender' ? draft.sender : draft.recipient;
+        // Assuming merchants might share IDs or you track them via participant id/type
+        return participant ? Number(participant.id) : undefined;
     };
 
-    const handleUserSelected = (userId: number, userType: RelationWithUserType, relations: any[], globalUsers: any[]) => {
+    const getCurrentlySelectedType = useCallback(() => {
+        if (!activeSelectionTarget) return undefined;
+        return activeSelectionTarget === 'sender' ? draft.sender?.user_type : draft.recipient?.user_type;
+    }, [activeSelectionTarget, draft]);
+
+    const handleUserSelected = useCallback((userId: number, userType: RelationWithUserType, relations: any[], globalUsers: any[]) => {
         if (!activeSelectionTarget) return;
 
         const matchedRelation = relations.find(r => r.with_user.id === userId && r.with_user.user_type === userType);
@@ -135,7 +141,20 @@ const AddTransfer = () => {
         }
 
         if (selectedParticipant) {
-            if (activeSelectionTarget === 'sender') {
+            const target = activeSelectionTarget;
+            const oppositeTarget = target === 'sender' ? 'recipient' : 'sender';
+            const currentOpposite = target === 'sender' ? draft.recipient : draft.sender;
+
+            // If the selected user is already in the opposite slot, clear the opposite slot
+            if (currentOpposite && currentOpposite.id === selectedParticipant.id && currentOpposite.user_type === selectedParticipant.user_type) {
+                if (target === 'sender') {
+                    draft.setRecipient(null);
+                } else {
+                    draft.setSender(null);
+                }
+            }
+
+            if (target === 'sender') {
                 draft.setSender(selectedParticipant);
             } else {
                 draft.setRecipient(selectedParticipant);
@@ -144,8 +163,40 @@ const AddTransfer = () => {
 
         setBottomSheetOpen(false);
         setActiveSelectionTarget(null);
-    };
+    }, [activeSelectionTarget, draft]);
 
+    const handleMerchantSelected = useCallback((merchantId: number, merchant: UserMerchantDetails) => {
+        if (!activeSelectionTarget) return;
+
+        const selectedParticipant: TransferParticipant = {
+            id: String(merchant.id),
+            name: merchant.name,
+            avatar: merchant.logo || null,
+            // Assuming merchants use USER or a specific merchant type based on your DTO
+            user_type: RelationWithUserType.USER
+        };
+
+        const target = activeSelectionTarget;
+        const currentOpposite = target === 'sender' ? draft.recipient : draft.sender;
+
+        // Clear opposite slot if the merchant matches the opposite participant
+        if (currentOpposite && currentOpposite.id === selectedParticipant.id) {
+            if (target === 'sender') {
+                draft.setRecipient(null);
+            } else {
+                draft.setSender(null);
+            }
+        }
+
+        if (target === 'sender') {
+            draft.setSender(selectedParticipant);
+        } else {
+            draft.setRecipient(selectedParticipant);
+        }
+
+        setBottomSheetOpen(false);
+        setActiveSelectionTarget(null);
+    }, [activeSelectionTarget, draft]);
     const isUserSelf = (participant: TransferParticipant | null): boolean => {
         if (!participant || !currentUser) return false;
         return participant.id === String(currentUser.id) && participant.user_type === RelationWithUserType.USER;
@@ -158,34 +209,41 @@ const AddTransfer = () => {
             <View className="gap-y-6">
                 {/* 1. Interactive Flow Participant Card Matrix */}
                 <View className="flex-row items-center justify-between p-5 rounded-2xl">
-                    {/* Source Payer Box */}
-                    <Pressable onPress={() => openSelectorFor('sender')} className="flex-1 items-center active:opacity-75">
-                        <View className="w-12 h-12 rounded-full bg-emerald-500/10 items-center justify-center mb-2 border border-emerald-500/20">
-                            <Iconify icon="heroicons:user-minus" size={22} color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary} />
+                    <Pressable onPress={() => openSelectorFor('sender')}
+                               className="flex-1 items-center active:opacity-75">
+                        <View
+                            className="w-12 h-12 rounded-full bg-emerald-500/10 items-center justify-center mb-2 border border-emerald-500/20">
+                            <Iconify icon="heroicons:user-minus" size={22}
+                                     color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary}/>
                         </View>
-                        <AppText variant="caption-xs" className="text-text-primary opacity-60 font-semibold uppercase tracking-wider">{t('transfer.from', 'Sender')}</AppText>
-                        <AppText variant="body-base" className="font-bold text-text-primary text-center mt-1" numberOfLines={1}>
+                        <AppText variant="caption-xs"
+                                 className="text-text-primary opacity-60 font-semibold uppercase tracking-wider">{t('transfer.from', 'Sender')}</AppText>
+                        <AppText variant="body-base" className="font-bold text-text-primary text-center mt-1"
+                                 numberOfLines={1}>
                             {draft.sender ? (isUserSelf(draft.sender) ? t('transfer.you', 'You') : draft.sender.name) : t('transfer.select_user', 'Me')}
                         </AppText>
                     </Pressable>
 
-                    {/* Flow Direction Vector */}
                     <View className="px-2 items-center justify-center">
                         <Pressable
                             onPress={handleSwapParticipants}
                             className="bg-bg-primary p-2.5 rounded-full border border-bg-secondary-lighter shadow-sm active:bg-gray-100 dark:active:bg-zinc-800"
                         >
-                            <Iconify icon="heroicons:arrows-right-left" size={18} color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary} />
+                            <Iconify icon="heroicons:arrows-right-left" size={18}
+                                     color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary}/>
                         </Pressable>
                     </View>
 
-                    {/* Target Recipient Box */}
-                    <Pressable onPress={() => openSelectorFor('recipient')} className="flex-1 items-center active:opacity-75">
-                        <View className="w-12 h-12 rounded-full bg-blue-500/10 items-center justify-center mb-2 border border-blue-500/20">
-                            <Iconify icon="heroicons:user-plus" size={22} color="#3B82F6" />
+                    <Pressable onPress={() => openSelectorFor('recipient')}
+                               className="flex-1 items-center active:opacity-75">
+                        <View
+                            className="w-12 h-12 rounded-full bg-blue-500/10 items-center justify-center mb-2 border border-blue-500/20">
+                            <Iconify icon="heroicons:user-plus" size={22} color="#3B82F6"/>
                         </View>
-                        <AppText variant="caption-xs" className="text-text-primary opacity-60 font-semibold uppercase tracking-wider">{t('transfer.to', 'Recipient')}</AppText>
-                        <AppText variant="body-base" className="font-bold text-text-primary text-center mt-1" numberOfLines={1}>
+                        <AppText variant="caption-xs"
+                                 className="text-text-primary opacity-60 font-semibold uppercase tracking-wider">{t('transfer.to', 'Recipient')}</AppText>
+                        <AppText variant="body-base" className="font-bold text-text-primary text-center mt-1"
+                                 numberOfLines={1}>
                             {draft.recipient ? (isUserSelf(draft.recipient) ? t('transfer.you', 'You') : draft.recipient.name) : t('transfer.choose_recipient', 'Select Peer')}
                         </AppText>
                     </Pressable>
@@ -208,12 +266,15 @@ const AddTransfer = () => {
                                 <AppText className="text-green-increase text-heading-h3 font-bold">
                                     {activeCurrencyConfig?.symbol ?? '₹'}
                                 </AppText>
-                                <Iconify icon="heroicons:chevron-down" size={14} color={isDark ? COLORS.dark.brand.primary : COLORS.light.brand.primary} className="ml-1" />
+                                <Iconify icon="heroicons:chevron-down" size={14}
+                                         color={isDark ? COLORS.dark.brand.primary : COLORS.light.brand.primary}
+                                         className="ml-1"/>
                             </Pressable>
                         )}
                         renderRightIcon={() => (
                             <Pressable onPress={() => draft.setAmount(0)}>
-                                <AppText variant="body-small" className="text-green-increase font-medium">Clear</AppText>
+                                <AppText variant="body-small"
+                                         className="text-green-increase font-medium">Clear</AppText>
                             </Pressable>
                         )}
                     />
@@ -233,7 +294,8 @@ const AddTransfer = () => {
                                         : 'bg-bg-primary border-bg-secondary-lighter shadow-xs'
                                 }`}
                             >
-                                <AppText variant="body-small" className={`font-semibold ${isSelected ? 'text-green-increase' : 'text-text-primary-lighter'}`}>
+                                <AppText variant="body-small"
+                                         className={`font-semibold ${isSelected ? 'text-green-increase' : 'text-text-primary-lighter'}`}>
                                     +{activeCurrencyConfig?.symbol ?? ''}{amt}
                                 </AppText>
                             </Pressable>
@@ -241,7 +303,10 @@ const AddTransfer = () => {
                     })}
                 </View>
 
-                {/* 4. Descriptive Notes Input Box */}
+                {/* 4. Horizontal Scrollable Payment Categories Component */}
+                <PaymentCategorySelector/>
+
+                {/* 5. Descriptive Notes Input Box */}
                 <View>
                     <AppInput
                         label={t('transfer.description_label', 'Memo / Notes')}
@@ -253,22 +318,26 @@ const AddTransfer = () => {
                         maxLength={150}
                         renderLeftIcon={() => (
                             <View className="mt-0.5 mr-1">
-                                <Iconify icon="heroicons:document-text" size={20} color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary} />
+                                <Iconify icon="heroicons:document-text" size={20}
+                                         color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary}/>
                             </View>
                         )}
                     />
                 </View>
             </View>
 
-            <SelectSinglePeopleBottomSheet
+            <SelectEntityBottomSheet
                 visible={bottomSheetOpen}
+                initialTab="people"
                 selectedId={getCurrentlySelectedId()}
                 selectedType={getCurrentlySelectedType()}
+                selectedMerchantId={getCurrentlySelectedMerchantId()}
                 onClose={() => {
                     setBottomSheetOpen(false);
                     setActiveSelectionTarget(null);
                 }}
-                onSelect={handleUserSelected}
+                onSelectPerson={handleUserSelected}
+                onSelectMerchant={handleMerchantSelected}
             />
 
             <CurrencyBottomSheet

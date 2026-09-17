@@ -1,27 +1,23 @@
 // /src/screens/SendOtp.tsx
-import React, {useRef, useState} from 'react';
-import {View, Pressable, KeyboardAvoidingView, ScrollView, TextInput} from 'react-native';
-import {useTranslation} from 'react-i18next';
-import {useRouter} from 'expo-router';
-import {Iconify} from "react-native-iconify";
-import {AppText} from '@/src/components/common/AppText';
-import {AppButton} from '@/src/components/common/AppButton';
-import {ScreenWrapper} from "@/src/components/common/ScreenWrapper";
-import {AppInput} from "@/src/components/common/AppInput";
-import {i18n as i18nInstance} from "@/src/i18n/index";
-import {themeStore} from "@/src/store/themeStore";
-import {COLORS} from "@/src/constants/colors";
-import {OtpSendApi} from "@/src/api/auth/otp";
-import {useAlert} from "@/src/context/alertContext";
-import {ErrorCode} from "@/src/api/dto/defaults/gateway/ErrorCode";
-import {deviceStore} from "@/src/store/deviceStore";
-import {validateEmail, validateIdentifier} from "@/src/utils/validation";
-import {googleSignIn} from "@/src/utils/googleAuth";
-import {GoogleLoginApi} from "@/src/api/auth/login";
-import {userStore} from "@/src/store/userStore";
-import {GoogleSignin} from "@react-native-google-signin/google-signin";
-import {authStore} from "@/src/store/authStore";
-import {GoogleSignupApi} from "@/src/api/auth/signup";
+import { OtpSendApi } from "@/src/api/auth/otp";
+import { ErrorCode } from "@/src/api/dto/defaults/gateway/ErrorCode";
+import { AppButton } from '@/src/components/common/AppButton';
+import { AppInput } from "@/src/components/common/AppInput";
+import { AppText } from '@/src/components/common/AppText';
+import { ScreenWrapper } from "@/src/components/common/ScreenWrapper";
+import { COLORS } from "@/src/constants/colors";
+import { useAlert } from "@/src/context/alertContext";
+import { i18n as i18nInstance } from "@/src/i18n/index";
+import { authStore } from "@/src/store/authStore";
+import { deviceStore } from "@/src/store/deviceStore";
+import { themeStore } from "@/src/store/themeStore";
+import { googleSignIn } from "@/src/utils/googleAuth";
+import { validateEmail } from "@/src/utils/validation";
+import { useRouter } from 'expo-router';
+import React, { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { KeyboardAvoidingView, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Iconify } from "react-native-iconify";
 
 const SendOtpScreen = () => {
     const {t} = useTranslation('translation', {i18n: i18nInstance});

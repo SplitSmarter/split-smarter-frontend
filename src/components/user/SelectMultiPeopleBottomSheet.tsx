@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useEffect, useState } from 'react';
+import React, {useCallback, useMemo, useEffect, useState} from 'react';
 import {
     Modal,
     View,
@@ -8,21 +8,21 @@ import {
     Dimensions,
     FlatList
 } from 'react-native';
-import { Iconify } from 'react-native-iconify';
-import { useRouter } from 'expo-router';
-import { AppText } from "@/src/components/common/AppText";
-import { AppInput } from "@/src/components/common/AppInput";
-import { AppImage } from "@/src/components/common/AppImage";
-import { AppButton } from "@/src/components/common/AppButton";
-import { themeStore } from '@/src/store/themeStore';
-import { userStore } from '@/src/store/userStore';
-import { COLORS } from "@/src/constants/colors";
-import { RelationDetails } from "@/src/api/dto/user/relation";
-import { GetRelationsApi } from "@/src/api/relations/relation";
-import { SearchUsersApi } from "@/src/api/user/user";
-import { UserSearchResponse } from "@/src/api/dto/user/user";
+import {Iconify} from 'react-native-iconify';
+import {useRouter} from 'expo-router';
+import {AppText} from "@/src/components/common/AppText";
+import {AppInput} from "@/src/components/common/AppInput";
+import {AppImage} from "@/src/components/common/AppImage";
+import {AppButton} from "@/src/components/common/AppButton";
+import {themeStore} from '@/src/store/themeStore';
+import {userStore} from '@/src/store/userStore';
+import {COLORS} from "@/src/constants/colors";
+import {RelationDetails} from "@/src/api/dto/user/relation";
+import {GetRelationsApi} from "@/src/api/relations/relation";
+import {SearchUsersApi} from "@/src/api/user/user";
+import {UserSearchResponse} from "@/src/api/dto/user/user";
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const {height: SCREEN_HEIGHT} = Dimensions.get('window');
 
 export interface SelectedUserEntity {
     id: number;
@@ -70,7 +70,7 @@ export const SelectMultiPeopleBottomSheet = ({
 
     const fetchRelations = async () => {
         setLoadingRelations(true);
-        const response = await GetRelationsApi({ limit: 50 });
+        const response = await GetRelationsApi({limit: 50});
         if (response.data) setRelations(response.data);
         console.log("relations from api: ", response.data);
         setLoadingRelations(false);
@@ -83,7 +83,7 @@ export const SelectMultiPeopleBottomSheet = ({
         }
         const timer = setTimeout(async () => {
             setIsSearchingGlobal(true);
-            const res = await SearchUsersApi({ q: search });
+            const res = await SearchUsersApi({q: search});
             if (res.data) setGlobalResults(res.data);
             setIsSearchingGlobal(false);
         }, 500);
@@ -101,7 +101,7 @@ export const SelectMultiPeopleBottomSheet = ({
             if (exists) {
                 return prev.filter(u => !(u.id === user.id && u.user_type === user.user_type));
             } else {
-                return [...prev, { id: user.id, name: user.name, user_type: user.user_type, avatar: user.avatar }];
+                return [...prev, {id: user.id, name: user.name, user_type: user.user_type, avatar: user.avatar}];
             }
         });
     };
@@ -181,7 +181,7 @@ export const SelectMultiPeopleBottomSheet = ({
 
     const hasSelection = localSelectedUsers.length > 0;
 
-    const renderRowItem = useCallback(({ item }: { item: typeof computedListItems[0] }) => (
+    const renderRowItem = useCallback(({item}: { item: typeof computedListItems[0] }) => (
         <UserMultiRowItem
             user={item.rawData}
             isSelected={isUserChecked(item.rawData.id, item.rawData.user_type)}
@@ -210,19 +210,20 @@ export const SelectMultiPeopleBottomSheet = ({
             onRequestClose={onClose}
         >
             <View className="flex-1 justify-end bg-black/60">
-                <Pressable className="absolute inset-0" onPress={onClose} />
+                <Pressable className="absolute inset-0" onPress={onClose}/>
 
                 <View
-                    style={{ height: SCREEN_HEIGHT * 0.85 }}
+                    style={{height: SCREEN_HEIGHT * 0.85}}
                     className={`rounded-t-[40px] overflow-hidden flex-col ${isDark ? 'bg-[#121212]' : 'bg-[#F8F9FA]'}`}
                 >
                     <View className="flex-row items-center justify-between py-4 px-6 border-b border-gray-500/10">
                         <Pressable onPress={onClose} className="p-2">
-                            <Iconify icon="heroicons:chevron-left" size={24} color={isDark ? "#FFF" : "#000"} />
+                            <Iconify icon="heroicons:chevron-left" size={24} color={isDark ? "#FFF" : "#000"}/>
                         </Pressable>
-                        <AppText variant="h4" className="font-bold text-text-primary text-center">Select People</AppText>
+                        <AppText variant="h4" className="font-bold text-text-primary text-center">Select
+                            People</AppText>
                         <Pressable onPress={handleAddNewUser} className="p-2">
-                            <Iconify icon="heroicons:user-plus" size={24} color={COLORS.icon_primary_darker_light} />
+                            <Iconify icon="heroicons:user-plus" size={24} color={COLORS.icon_primary_darker_light}/>
                         </Pressable>
                     </View>
 
@@ -232,14 +233,17 @@ export const SelectMultiPeopleBottomSheet = ({
                             <View className="mb-4 px-1">
                                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                                     {localSelectedUsers.map(user => (
-                                        <View key={`multi-sel-${user.id}-${user.user_type}`} className="mr-4 items-center">
+                                        <View key={`multi-sel-${user.id}-${user.user_type}`}
+                                              className="mr-4 items-center">
                                             <View className="relative">
-                                                <AppImage url={user.avatar?.url} size="md" variant="circular" />
-                                                <Pressable onPress={() => toggleUser(user)} className="absolute -top-1 -right-1 bg-red-500 rounded-full border-2 border-bg-primary">
-                                                    <Iconify icon="heroicons:x-mark" size={12} color="white" />
+                                                <AppImage url={user.avatar?.url} size="md" variant="circular"/>
+                                                <Pressable onPress={() => toggleUser(user)}
+                                                           className="absolute -top-1 -right-1 bg-red-500 rounded-full border-2 border-bg-primary">
+                                                    <Iconify icon="heroicons:x-mark" size={12} color="white"/>
                                                 </Pressable>
                                             </View>
-                                            <AppText variant="caption-xs" className="mt-1 font-medium text-text-primary">
+                                            <AppText variant="caption-xs"
+                                                     className="mt-1 font-medium text-text-primary">
                                                 {/* UPDATED: Displays "You" in the carousel selection tracking loop */}
                                                 {currentUser?.id === user.id && user.user_type === 'USER' ? "You" : user.name.split(' ')[0]}
                                             </AppText>
@@ -253,15 +257,16 @@ export const SelectMultiPeopleBottomSheet = ({
                             placeholder="Search name, email, or phone..."
                             value={search}
                             onChangeText={setSearch}
-                            renderLeftIcon={(c) => <Iconify icon="heroicons:magnifying-glass" size={20} color={c} />}
-                            renderRightIcon={() => isSearchingGlobal ? <ActivityIndicator size="small" color={COLORS.icon_primary_darker_light} /> : null}
+                            renderLeftIcon={(c) => <Iconify icon="heroicons:magnifying-glass" size={20} color={c}/>}
+                            renderRightIcon={() => isSearchingGlobal ?
+                                <ActivityIndicator size="small" color={COLORS.icon_primary_darker_light}/> : null}
                         />
 
                         <FlatList
                             data={computedListItems}
                             keyExtractor={(item) => item.id}
                             renderItem={renderRowItem}
-                            contentContainerStyle={{ paddingTop: 16, paddingBottom: 20 }}
+                            contentContainerStyle={{paddingTop: 16, paddingBottom: 20}}
                             ListFooterComponent={renderListFooter}
                             showsVerticalScrollIndicator={false}
                             keyboardShouldPersistTaps="handled"
@@ -275,7 +280,12 @@ export const SelectMultiPeopleBottomSheet = ({
 
 SelectMultiPeopleBottomSheet.displayName = 'SelectMultiPeopleBottomSheet';
 
-const UserMultiRowItem = React.memo(({ user, isSelected, onPress, subtext }: { user: SelectedUserEntity; isSelected: boolean; onPress: () => void; subtext: string }) => (
+const UserMultiRowItem = React.memo(({user, isSelected, onPress, subtext}: {
+    user: SelectedUserEntity;
+    isSelected: boolean;
+    onPress: () => void;
+    subtext: string
+}) => (
     <Pressable
         onPress={onPress}
         className={`flex-row items-center p-3 rounded-2xl mb-2 ${
@@ -284,7 +294,7 @@ const UserMultiRowItem = React.memo(({ user, isSelected, onPress, subtext }: { u
                 : 'bg-white dark:bg-zinc-900 border border-transparent'
         }`}
     >
-        <AppImage url={user.avatar?.url} size="sm" variant="circular" />
+        <AppImage url={user.avatar?.url} size="sm" variant="circular"/>
         <View className="flex-1 ml-3">
             <AppText className="font-semibold text-text-primary">{user.name}</AppText>
             {/* UPDATED: Custom styling text weight rule applied if identity string matches "You" */}
@@ -296,9 +306,9 @@ const UserMultiRowItem = React.memo(({ user, isSelected, onPress, subtext }: { u
             </AppText>
         </View>
         {isSelected ? (
-            <Iconify icon="heroicons:check-circle-solid" size={24} color={COLORS.icon_primary_darker_light} />
+            <Iconify icon="heroicons:check-circle-solid" size={24} color={COLORS.icon_primary_darker_light}/>
         ) : (
-            <Iconify icon="heroicons:check-circle" size={24} color={COLORS.icon_secondary_light} />
+            <Iconify icon="heroicons:check-circle" size={24} color={COLORS.icon_secondary_light}/>
         )}
     </Pressable>
 ));

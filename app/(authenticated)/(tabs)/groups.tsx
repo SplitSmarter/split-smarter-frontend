@@ -13,7 +13,7 @@ const GroupsScreen = () => {
         <View className="flex-1 p-4">
             <AppButton
                 // 3. Use router.push to navigate to the path
-                onPress={() => router.push("/payment/account/add")}
+                onPress={() => router.push("/expense/add")}
                 variant="primary"
                 size="sm"
                 className="w-full"
@@ -21,6 +21,18 @@ const GroupsScreen = () => {
                 loading={false}
             >
                 Add Expense
+            </AppButton>
+
+            <AppButton
+                // 3. Use router.push to navigate to the path
+                onPress={() => router.push("/payment/account/add")}
+                variant="primary"
+                size="sm"
+                className="w-full"
+                hasShadow={true}
+                loading={false}
+            >
+                Add Account
             </AppButton>
             <ThemeToggle></ThemeToggle>
         </View>

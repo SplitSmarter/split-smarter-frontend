@@ -1,23 +1,23 @@
 // /src/screens/OnBoarding.tsx
-import React, {useState} from 'react';
-import {View, Image, SafeAreaView, FlatList, NativeSyntheticEvent, NativeScrollEvent} from 'react-native';
-import {useTranslation} from 'react-i18next';
-import {AppText} from '@/src/components/common/AppText';
-import {AppButton} from '@/src/components/common/AppButton';
-import {Iconify} from "react-native-iconify";
-import {images} from "@/src/constants/images";
-import {LanguageBottomSheet} from '@/src/screens/Onboarding/comps/LanguageBottomSheet';
-import {deviceStore} from '@/src/store/deviceStore';
-import {ScreenWrapper} from "@/src/components/common/ScreenWrapper";
-import {useRouter} from "expo-router";
-import {themeStore} from "@/src/store/themeStore";
-import {useAlert} from "@/src/context/alertContext";
-import {GoogleLoginApi} from "@/src/api/auth/login";
-import {ErrorCode} from "@/src/api/dto/defaults/gateway/ErrorCode";
+import { GoogleLoginApi } from "@/src/api/auth/login";
+import { ErrorCode } from "@/src/api/dto/defaults/gateway/ErrorCode";
+import { AppButton } from '@/src/components/common/AppButton';
+import { AppText } from '@/src/components/common/AppText';
+import { ScreenWrapper } from "@/src/components/common/ScreenWrapper";
+import { images } from "@/src/constants/images";
+import { useAlert } from "@/src/context/alertContext";
+import { LanguageBottomSheet } from '@/src/screens/Onboarding/comps/LanguageBottomSheet';
+import { authStore } from "@/src/store/authStore";
+import { deviceStore } from '@/src/store/deviceStore';
+import { themeStore } from "@/src/store/themeStore";
+import { userStore } from "@/src/store/userStore";
 import { googleSignIn } from "@/src/utils/googleAuth";
-import {GoogleSignin} from "@react-native-google-signin/google-signin";
-import {userStore} from "@/src/store/userStore";
-import {authStore} from "@/src/store/authStore";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import { useRouter } from "expo-router";
+import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { FlatList, Image, NativeScrollEvent, NativeSyntheticEvent, View } from 'react-native';
+import { Iconify } from "react-native-iconify";
 
 const ONBOARDING_DATA = [
     {

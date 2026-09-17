@@ -50,6 +50,7 @@ const SignupScreen = () => {
     const [password, setPassword] = useState("");
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
     const [loading, setLoading] = useState(false);
+    const setHasCompletedOnboarding = configStore((state) => state.setHasCompletedOnboarding);
 
     // 2. Refs for Keyboard Navigation
     const passwordRef = useRef<TextInput>(null);
@@ -148,6 +149,9 @@ const SignupScreen = () => {
 
                 // 3. Optional: Sync full details if your API provides more fields than meta
                 // await userStore.getState().syncUserFromServer();
+
+                setHasCompletedOnboarding(true);
+
 
                 router.replace("/(authenticated)/(tabs)");
             } else {

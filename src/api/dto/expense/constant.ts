@@ -54,3 +54,15 @@ export enum TransferMode {
     NET_BANKING = "NET_BANKING",
     OTHER = "OTHER"
 }
+
+export enum UserMerchantSource {
+    MANUAL = "MANUAL",
+    BANK_SYNC = "BANK_SYNC",
+    OCR = "OCR",
+    SYSTEM = "SYSTEM",
+}
+
+export enum UserMerchantLocationSource {
+    MANUAL = "MANUAL",
+    SYSTEM = "SYSTEM"
+}

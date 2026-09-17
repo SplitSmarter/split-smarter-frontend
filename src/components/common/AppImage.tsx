@@ -1,12 +1,12 @@
-import React, { useEffect, useState, ReactNode } from 'react';
-import { ActivityIndicator, View, ViewStyle } from 'react-native';
+import { CACHE_FOLDER } from "@/src/constants/system";
+import { deviceStore } from "@/src/store/deviceStore";
+import { themeStore } from "@/src/store/themeStore";
+import { ImageCacheManager } from "@/src/utils/system/ImageCacheManager";
 import * as FileSystem from 'expo-file-system';
 import { Image as ExpoImage, ImageProps as ExpoImageProps } from "expo-image";
+import React, { ReactNode, useEffect, useState } from 'react';
+import { ActivityIndicator, View, ViewStyle } from 'react-native';
 import { Iconify } from 'react-native-iconify';
-import { themeStore } from "@/src/store/themeStore";
-import { CACHE_FOLDER } from "@/src/constants/system";
-import { ImageCacheManager } from "@/src/utils/system/ImageCacheManager";
-import { deviceStore } from "@/src/store/deviceStore";
 
 const IMAGE_SIZES = {
     xs: 24, sm: 32, md: 48, lg: 64, xl: 80, xxl: 120,
@@ -186,8 +186,8 @@ export const AppImage = ({
         borderColor: borderColor || (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'),
     };
 
+    // 3. The outer wrapper now respects the size prop OR the passed className (flex/h/w)
     return (
-        /* 3. The outer wrapper now respects the size prop OR the passed className (flex/h/w) */
         <View
             className={className}
             style={(!className || isResponsive) ? { width: width as any, height: height as any } : undefined}

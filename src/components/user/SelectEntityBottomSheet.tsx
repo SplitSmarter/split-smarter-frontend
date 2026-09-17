@@ -1,19 +1,20 @@
-import React, {useMemo, useEffect, useState, useCallback, useRef} from 'react';
-import {View, Pressable, StyleSheet} from 'react-native';
+import React, { useMemo, useEffect, useState, useCallback, useRef } from 'react';
+import { View, Pressable } from 'react-native';
 import {
     BottomSheetModal,
     BottomSheetBackdrop,
     BottomSheetView,
 } from '@gorhom/bottom-sheet';
-import {Iconify} from 'react-native-iconify';
-import {AppText} from "@/src/components/common/AppText";
-import {themeStore} from '@/src/store/themeStore';
-import {RelationWithUserType} from "@/src/api/dto/constants";
-import {HiddenUserTarget, SelectPeopleTab} from './SelectPeopleTab';
-import {SelectMerchantTab} from './SelectMerchantTab';
-import {UserMerchantDetails} from '@/src/api/dto/expense/merchant';
-import {RelationDetails} from '@/src/api/dto/user/relation';
-import {UserSearchResponse} from '@/src/api/dto/user/user';
+import { Iconify } from 'react-native-iconify';
+import { AppText } from "@/src/components/common/AppText";
+import { themeStore } from '@/src/store/themeStore';
+import { COLORS } from "@/src/constants/colors";
+import { RelationWithUserType } from "@/src/api/dto/constants";
+import { HiddenUserTarget, SelectPeopleTab } from './SelectPeopleTab';
+import { SelectMerchantTab } from './SelectMerchantTab';
+import { UserMerchantDetails } from '@/src/api/dto/expense/merchant';
+import { RelationDetails } from '@/src/api/dto/user/relation';
+import { UserSearchResponse } from '@/src/api/dto/user/user';
 
 type EntityTabType = 'people' | 'merchant';
 
@@ -89,51 +90,46 @@ export const SelectEntityBottomSheet = ({
             }}
         >
             <BottomSheetView className="flex-1 px-4">
-                {/* Header Back Button & Title */}
+                {/* Header with Close and Title */}
                 <View className="flex-row items-center justify-between pb-3 border-b border-gray-500/10">
-                    <Pressable
-                        onPress={onClose}
-                        style={({pressed}) => [{opacity: pressed ? 0.6 : 1}, styles.iconButton]}
-                    >
-                        <Iconify icon="heroicons:chevron-left" size={24} color={isDark ? "#FFF" : "#000"}/>
+                    <Pressable onPress={onClose} className="p-2 rounded-full active:opacity-60">
+                        <Iconify icon="heroicons:chevron-left" size={24} color={isDark ? "#FFF" : "#000"} />
                     </Pressable>
                     <AppText variant="h4" className="font-bold text-text-primary text-center">
                         Select Entity
                     </AppText>
-                    <View style={{width: 40}}/>
+                    <View style={{ width: 40 }} />
                 </View>
 
                 {/* Switcher Segmented Control */}
                 <View className="flex-row my-3 p-1 bg-gray-200 dark:bg-zinc-800 rounded-2xl">
                     <Pressable
                         onPress={() => setActiveTab('people')}
-                        style={({pressed}) => [
-                            {opacity: pressed ? 0.8 : 1},
-                            styles.tabButton,
-                            activeTab === 'people' ? (isDark ? styles.activeTabDark : styles.activeTabLight) : styles.inactiveTab
-                        ]}
+                        className={`flex-1 py-2.5 items-center rounded-xl ${
+                            activeTab === 'people'
+                                ? 'bg-white dark:bg-zinc-900'
+                                : 'bg-transparent'
+                        }`}
                     >
-                        <AppText
-                            className={`font-semibold ${activeTab === 'people' ? 'text-text-primary' : 'text-text-secondary'}`}>
+                        <AppText className={`font-semibold ${activeTab === 'people' ? 'text-text-primary' : 'text-text-secondary'}`}>
                             People
                         </AppText>
                     </Pressable>
                     <Pressable
                         onPress={() => setActiveTab('merchant')}
-                        style={({pressed}) => [
-                            {opacity: pressed ? 0.8 : 1},
-                            styles.tabButton,
-                            activeTab === 'merchant' ? (isDark ? styles.activeTabDark : styles.activeTabLight) : styles.inactiveTab
-                        ]}
+                        className={`flex-1 py-2.5 items-center rounded-xl ${
+                            activeTab === 'merchant'
+                                ? 'bg-white dark:bg-zinc-900'
+                                : 'bg-transparent'
+                        }`}
                     >
-                        <AppText
-                            className={`font-semibold ${activeTab === 'merchant' ? 'text-text-primary' : 'text-text-secondary'}`}>
+                        <AppText className={`font-semibold ${activeTab === 'merchant' ? 'text-text-primary' : 'text-text-secondary'}`}>
                             Merchants
                         </AppText>
                     </Pressable>
                 </View>
 
-                {/* Dynamically Render Corresponding Tab Component */}
+                {/* Tab Views Content */}
                 {activeTab === 'people' ? (
                     <SelectPeopleTab
                         isDark={isDark}
@@ -159,13 +155,5 @@ export const SelectEntityBottomSheet = ({
         </BottomSheetModal>
     );
 };
-
-const styles = StyleSheet.create({
-    iconButton: {padding: 8, borderRadius: 20},
-    tabButton: {flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 12},
-    inactiveTab: {backgroundColor: 'transparent'},
-    activeTabLight: {backgroundColor: '#FFFFFF'},
-    activeTabDark: {backgroundColor: '#18181B'}
-});
 
 SelectEntityBottomSheet.displayName = 'SelectEntityBottomSheet';

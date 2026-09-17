@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { BasicImage } from "@/src/api/dto/user/asset";
+import {GetSystemDefaultsApi} from "@/src/api/system/defaults";
+import {SystemDefaultsResponse} from "@/src/api/dto/system/defaults";
 
 // TODO: Keep a check for decommissioned api endpoints if current version uses any one of it ask user to update the app
 // TODO: Tier 1: Device-Level Sanction/Snooping Check (On Signup/Login) = Block high-risk IPs immediately at the server level using an IP geolocation API (like MaxMind). If a request originates from an OFAC-sanctioned country (e.g., Iran, North Korea, Russia), block the user from signing up or logging in entirely.
@@ -47,83 +49,57 @@ export const systemStore = create<SystemState>((set) => ({
 
     fetchSystemDefaults: async () => {
         try {
-            // TODO: call an actual backend instead of mocking api
-            // Note: In production, replace this with your API call:
-            // const response = await GetSystemDefaultsApi();
-            // set({ defaults: response.data, isInitialized: true });
+            const response = await GetSystemDefaultsApi();
 
-            set({
-                defaults: {
-                    defaultExpenseCategory: {
-                        id: 1,
-                        asset: {
-                            id: "2653632e-28ba-4997-a8a4-f3270156839e",
-                            name: "default_expense",
-                            url: "https://res.cloudinary.com/dstdxd60k/image/upload/s--wRnZNEV8--/v1/splitsmarter/assets/a9981ab3-223b-423d-af76-6ec1a00949ee",
-                            extension: "png",
-                        },
-                    },
-                    defaultGroupCategory: {
-                        id: 1,
-                        asset: {
-                            id: "2653632e-28ba-4997-a8a4-f3270156839e",
-                            name: "default_group",
-                            url: "https://res.cloudinary.com/dstdxd60k/image/upload/s--wRnZNEV8--/v1/splitsmarter/assets/a9981ab3-223b-423d-af76-6ec1a00949ee",
-                            extension: "png",
-                        },
-                    },
-                    defaultExpenseItem: {
-                        id: 1,
-                        asset: {
-                            id: "2653632e-28ba-4997-a8a4-f3270156839e",
-                            name: "default_expense_item",
-                            url: "https://res.cloudinary.com/dstdxd60k/image/upload/s--wRnZNEV8--/v1/splitsmarter/assets/a9981ab3-223b-423d-af76-6ec1a00949ee",
-                            extension: "png",
-                        },
-                    },
-                    placeholderImage: {
-                        id: "2653632e-28ba-4997-a8a4-f3270156839e",
-                        name: "placeholder",
-                        url: "https://res.cloudinary.com/dstdxd60k/image/upload/s--wRnZNEV8--/v1/splitsmarter/assets/a9981ab3-223b-423d-af76-6ec1a00949ee",
-                        extension: "png",
-                    },
-                    defaultGroupIconImage: {
-                        id: "2653632e-28ba-4997-a8a4-f3270156839e",
-                        name: "default_group_icon",
-                        url: "https://res.cloudinary.com/dstdxd60k/image/upload/s--wRnZNEV8--/v1/splitsmarter/assets/a9981ab3-223b-423d-af76-6ec1a00949ee",
-                        extension: "png",
-                    },
-                    defaultGroupCategoryIconImage: {
-                        id: "2653632e-28ba-4997-a8a4-f3270156839e",
-                        name: "default_group_icon",
-                        url: "https://res.cloudinary.com/dstdxd60k/image/upload/s--wRnZNEV8--/v1/splitsmarter/assets/a9981ab3-223b-423d-af76-6ec1a00949ee",
-                        extension: "png",
-                    },
-                    defaultGroupBackgroundImage: {
-                        id: "2653632e-28ba-4997-a8a4-f3270156839e",
-                        name: "default_group_background",
-                        url: "https://res.cloudinary.com/dstdxd60k/image/upload/s--wRnZNEV8--/v1/splitsmarter/assets/a9981ab3-223b-423d-af76-6ec1a00949ee",
-                        extension: "png",
-                    },
-                    defaultRelationshipImage: {
-                        id: "2653632e-28ba-4997-a8a4-f3270156839e",
-                        name: "default_group_background",
-                        url: "https://res.cloudinary.com/dstdxd60k/image/upload/s--wRnZNEV8--/v1/splitsmarter/assets/a9981ab3-223b-423d-af76-6ec1a00949ee",
-                        extension: "png",
-                    },
-                    defaultUserAvatarImage: {
-                        id: "2653632e-28ba-4997-a8a4-f3270156839e",
-                        name: "default_group_background",
-                        url: "https://res.cloudinary.com/dstdxd60k/image/upload/s--wRnZNEV8--/v1/splitsmarter/assets/a9981ab3-223b-423d-af76-6ec1a00949ee",
-                        extension: "png",
-                    },
-                },
-                isInitialized: true,
-            });
+            if (response && response.data) {
+                const data: SystemDefaultsResponse = response.data;
+                console.log("Received response", data);
 
-            console.log("✅ System defaults loaded with placeholders");
+                // Extract a safe fallback icon from the returned API items if available
+                const firstAvailableIcon: BasicImage =
+                    (data.category && data.category?.icon) ||
+                    (data.relationship && data.relationship?.icon) ||
+                    (data.expense_item && data.expense_item?.icon) ||
+                    emptyAsset;
+                console.log("Icon found: ", firstAvailableIcon);
+                // Map API response to store defaults with robust fallbacks
+                set({
+                    defaults: {
+                        defaultExpenseCategory: data.category && data.category ? {
+                            id: data.category.id,
+                            asset: data.category.icon || firstAvailableIcon
+                        } : null,
+
+                        defaultGroupCategory: {
+                            id: data.category && data.category ? data.category.id : 0,
+                            asset: (data.category && data.category?.icon) || firstAvailableIcon
+                        },
+
+                        defaultExpenseItem: {
+                            id: data.expense_item && data.expense_item ? data.expense_item.id : 0,
+                            asset: (data.expense_item && data.expense_item?.icon) || firstAvailableIcon
+                        },
+
+                        placeholderImage: firstAvailableIcon.url ? firstAvailableIcon : null,
+
+                        defaultGroupIconImage: firstAvailableIcon,
+                        defaultGroupCategoryIconImage: firstAvailableIcon,
+                        defaultGroupBackgroundImage: firstAvailableIcon,
+
+                        defaultRelationshipImage:
+                            (data.relationship && data.relationship?.icon) || firstAvailableIcon,
+
+                        defaultUserAvatarImage: firstAvailableIcon,
+                    },
+                    isInitialized: true,
+                });
+
+                console.log("✅ System defaults loaded successfully from API");
+            } else {
+                throw new Error("Invalid response format received from system defaults API");
+            }
         } catch (error) {
-            console.error("❌ Failed to fetch authenticated system defaults", error);
+            console.error("❌ Failed to fetch system defaults", error);
         }
     },
 

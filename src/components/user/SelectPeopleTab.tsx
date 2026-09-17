@@ -1,22 +1,10 @@
-import React, { useMemo, useEffect, useState, useCallback, useRef } from 'react';
-import {
-    View,
-    ActivityIndicator,
-    Pressable,
-    StyleSheet
-} from 'react-native';
-import {
-    BottomSheetModal,
-    BottomSheetBackdrop,
-    BottomSheetTextInput,
-    BottomSheetView,
-    BottomSheetFlatList
-} from '@gorhom/bottom-sheet';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { View, ActivityIndicator, Pressable, StyleSheet } from 'react-native';
+import { BottomSheetTextInput, BottomSheetFlatList } from '@gorhom/bottom-sheet';
 import { Iconify } from 'react-native-iconify';
 import { useRouter } from 'expo-router';
 import { AppText } from "@/src/components/common/AppText";
 import { AppImage } from "@/src/components/common/AppImage";
-import { themeStore } from '@/src/store/themeStore';
 import { COLORS } from "@/src/constants/colors";
 import { RelationDetails } from "@/src/api/dto/user/relation";
 import { GetRelationsApi } from "@/src/api/relations/relation";
@@ -29,8 +17,8 @@ export interface HiddenUserTarget {
     user_type: RelationWithUserType;
 }
 
-interface SelectSinglePeopleBottomSheetProps {
-    visible: boolean;
+interface SelectPeopleTabProps {
+    isDark: boolean;
     selectedId?: number;
     selectedType?: RelationWithUserType;
     hideUsers?: HiddenUserTarget[];
@@ -38,40 +26,24 @@ interface SelectSinglePeopleBottomSheetProps {
     onSelect: (userId: number, userType: RelationWithUserType, relations: RelationDetails[], globalUsers: UserSearchResponse[]) => void;
 }
 
-export const SelectSinglePeopleBottomSheet = ({
-                                                  visible,
-                                                  selectedId,
-                                                  selectedType,
-                                                  hideUsers = [],
-                                                  onClose,
-                                                  onSelect
-                                              }: SelectSinglePeopleBottomSheetProps) => {
-    const theme = themeStore((state) => state.theme);
-    const isDark = theme === 'dark';
+export const SelectPeopleTab = ({
+                                    isDark,
+                                    selectedId,
+                                    selectedType,
+                                    hideUsers = [],
+                                    onClose,
+                                    onSelect
+                                }: SelectPeopleTabProps) => {
     const router = useRouter();
-
-    const bottomSheetModalRef = useRef<BottomSheetModal>(null);
-
     const [search, setSearch] = useState('');
     const [relations, setRelations] = useState<RelationDetails[]>([]);
     const [globalResults, setGlobalResults] = useState<UserSearchResponse[]>([]);
     const [loadingRelations, setLoadingRelations] = useState(false);
     const [isSearchingGlobal, setIsSearchingGlobal] = useState(false);
-    const [isSheetReady, setIsSheetReady] = useState(false);
 
     useEffect(() => {
-        if (visible) {
-            bottomSheetModalRef.current?.present();
-            setIsSheetReady(true);
-            fetchRelations();
-        } else {
-            bottomSheetModalRef.current?.dismiss();
-            setSearch('');
-            setRelations([]);
-            setGlobalResults([]);
-            setIsSheetReady(false);
-        }
-    }, [visible]);
+        fetchRelations();
+    }, []);
 
     const fetchRelations = async () => {
         setLoadingRelations(true);
@@ -113,11 +85,6 @@ export const SelectSinglePeopleBottomSheet = ({
         return relations.filter(r => r.with_user.name.toLowerCase().includes(lowercaseSearch));
     }, [relations, search]);
 
-    const handleSelectUser = useCallback((userId: number, userType: RelationWithUserType) => {
-        onSelect(userId, userType, relations, globalResults);
-        onClose();
-    }, [onSelect, relations, globalResults, onClose]);
-
     const handleAddNewUser = () => {
         onClose();
         setTimeout(() => {
@@ -125,14 +92,11 @@ export const SelectSinglePeopleBottomSheet = ({
         }, 200);
     };
 
-    // Create an O(1) Lookup Map to eliminate repeated nested array traversal loops
     const hiddenUsersKeys = useMemo(() => {
         return new Set(hideUsers.map(hu => `${hu.user_type}-${hu.id}`));
     }, [hideUsers]);
 
     const combinedListData = useMemo(() => {
-        if (!isSheetReady) return [];
-
         const list: Array<{ type: 'rel' | 'gl'; key: string; data: any }> = [];
 
         filteredRelations.forEach(item => {
@@ -165,21 +129,7 @@ export const SelectSinglePeopleBottomSheet = ({
             });
         }
         return list;
-    }, [isSheetReady, filteredRelations, globalResults, search, relations, hiddenUsersKeys]);
-
-    const snapPoints = useMemo(() => ['85%'], []);
-
-    const renderBackdrop = useCallback(
-        (props: any) => (
-            <BottomSheetBackdrop
-                {...props}
-                disappearsOnIndex={-1}
-                appearsOnIndex={0}
-                pressBehavior="close"
-            />
-        ),
-        []
-    );
+    }, [filteredRelations, globalResults, search, relations, hiddenUsersKeys]);
 
     const renderItem = useCallback(({ item }: any) => {
         const user = item.data;
@@ -191,75 +141,50 @@ export const SelectSinglePeopleBottomSheet = ({
                 user={user}
                 isSelected={isSelected}
                 subtext={subtext}
-                onPress={handleSelectUser}
+                onPress={(id: number, type: RelationWithUserType) => {
+                    onSelect(id, type, relations, globalResults);
+                    onClose();
+                }}
             />
         );
-    }, [selectedId, selectedType, handleSelectUser]);
+    }, [selectedId, selectedType, relations, globalResults, onClose, onSelect]);
 
     return (
-        <BottomSheetModal
-            ref={bottomSheetModalRef}
-            snapPoints={snapPoints}
-            enablePanDownToClose
-            onDismiss={onClose}
-            backdropComponent={renderBackdrop}
-            keyboardBehavior="interactive"
-            keyboardBlurBehavior="restore"
-            backgroundStyle={{
-                backgroundColor: isDark ? '#121212' : '#F8F8F8',
-                borderRadius: 40,
-            }}
-            handleIndicatorStyle={{
-                backgroundColor: isDark ? '#3F3F46' : '#D4D4D8',
-                width: 48,
-                height: 6,
-            }}
-        >
-            <BottomSheetView className="flex-1 px-4">
-                <View className="flex-row items-center justify-between pb-4 border-b border-gray-500/10">
-                    <Pressable onPress={onClose} className="p-2 rounded-full active:opacity-60">
-                        <Iconify icon="heroicons:chevron-left" size={24} color={isDark ? "#FFF" : "#000"} />
-                    </Pressable>
-                    <AppText variant="h4" className="font-bold text-text-primary text-center">
-                        Select Person
-                    </AppText>
-                    <Pressable onPress={handleAddNewUser} className="p-2 rounded-full active:opacity-60">
-                        <Iconify icon="heroicons:user-plus" size={24} color={!isDark ? COLORS.light.icon.darker : COLORS.light.text.contrast} />
-                    </Pressable>
-                </View>
-
-                <View className="my-4 flex-row items-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl px-4 h-12">
-                    <Iconify icon="heroicons:magnifying-glass" size={20} color={isDark ? '#71717A' : '#A1A1AA'} />
-                    <BottomSheetTextInput
-                        style={[styles.input, { color: isDark ? '#FFF' : '#000' }]}
-                        placeholder="Search name, email, or phone..."
-                        placeholderTextColor={isDark ? '#71717A' : '#A1A1AA'}
-                        value={search}
-                        onChangeText={setSearch}
-                    />
-                    {isSearchingGlobal && (
-                        <ActivityIndicator size="small" color={COLORS.icon_primary_darker_light} />
-                    )}
-                </View>
-
-                {loadingRelations && combinedListData.length === 0 ? (
-                    <View className="flex-1 justify-center items-center py-20">
-                        <ActivityIndicator size="large" color="#2D6A4F" />
-                    </View>
-                ) : (
-                    <BottomSheetFlatList
-                        data={combinedListData}
-                        keyExtractor={(item) => item.key}
-                        initialNumToRender={10}
-                        maxToRenderPerBatch={10}
-                        windowSize={5}
-                        showsVerticalScrollIndicator={false}
-                        contentContainerStyle={{ paddingBottom: 40 }}
-                        renderItem={renderItem}
-                    />
+        <View className="flex-1">
+            <View className="my-3 flex-row items-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl px-4 h-12">
+                <Iconify icon="heroicons:magnifying-glass" size={20} color={isDark ? '#71717A' : '#A1A1AA'} />
+                <BottomSheetTextInput
+                    style={[styles.input, { color: isDark ? '#FFF' : '#000' }]}
+                    placeholder="Search name, email, or phone..."
+                    placeholderTextColor={isDark ? '#71717A' : '#A1A1AA'}
+                    value={search}
+                    onChangeText={setSearch}
+                />
+                {isSearchingGlobal && (
+                    <ActivityIndicator size="small" color={COLORS.icon_primary_darker_light} />
                 )}
-            </BottomSheetView>
-        </BottomSheetModal>
+                <Pressable onPress={handleAddNewUser} className="ml-2 p-1.5 rounded-full bg-gray-100 dark:bg-zinc-800">
+                    <Iconify icon="heroicons:user-plus" size={18} color={!isDark ? COLORS.light.icon.darker : COLORS.light.text.contrast} />
+                </Pressable>
+            </View>
+
+            {loadingRelations && combinedListData.length === 0 ? (
+                <View className="flex-1 justify-center items-center py-20">
+                    <ActivityIndicator size="large" color="#2D6A4F" />
+                </View>
+            ) : (
+                <BottomSheetFlatList
+                    data={combinedListData}
+                    keyExtractor={(item) => item.key}
+                    initialNumToRender={10}
+                    maxToRenderPerBatch={10}
+                    windowSize={5}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{ paddingBottom: 40 }}
+                    renderItem={renderItem}
+                />
+            )}
+        </View>
     );
 };
 
@@ -293,6 +218,8 @@ const UserRowItem = React.memo(({ user, isSelected, onPress, subtext }: any) => 
         prevProps.subtext === nextProps.subtext;
 });
 
+UserRowItem.displayName = 'UserRowItem';
+
 const styles = StyleSheet.create({
     input: {
         flex: 1,
@@ -301,6 +228,3 @@ const styles = StyleSheet.create({
         height: '100%'
     }
 });
-
-UserRowItem.displayName = 'UserRowItem';
-SelectSinglePeopleBottomSheet.displayName = 'SelectSinglePeopleBottomSheet';
