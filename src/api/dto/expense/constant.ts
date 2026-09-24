@@ -1,5 +1,5 @@
 // ============================================================================
-// Enums & String Literal Fallbacks (Mirrored from python src.constant)
+// Enums & String Literal Fallbacks (Mirrored from python src.constants)
 // ============================================================================
 export enum PaidTowards {
     TOTAL = "total",

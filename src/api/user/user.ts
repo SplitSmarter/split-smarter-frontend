@@ -1,6 +1,6 @@
 import axiosUserInstance from "@/src/api/axiosUserServiceInstance";
-import { SuccessResponse, PaginationResponse } from "@/src/api/dto/ApiResponse";
-import { handleApiError } from "@/src/api/utils/mapper";
+import {SuccessResponse, PaginationResponse} from "@/src/api/dto/ApiResponse";
+import {handleApiError} from "@/src/api/utils/mapper";
 import {UserProfileResponse, UserSearchResponse} from "@/src/api/dto/user/user";
 
 const BASE_PATH = "/user/v1"; // Match your backend router prefix
@@ -16,7 +16,7 @@ export const SearchUsersApi = async (params: {
     try {
         const res = await axiosUserInstance.get<SuccessResponse<UserSearchResponse[]>>(
             `${BASE_PATH}/search`,
-            { params }
+            {params}
         );
 
         if (res.data && res.data.success) {
@@ -38,6 +38,36 @@ export const UserInfoApi = async () => {
         const res = await axiosUserInstance.get<SuccessResponse<UserProfileResponse>>(
             `${BASE_PATH}/`,
         );
+        if (res.data && res.data.success) {
+            return {
+                message: res.data.message,
+                data: res.data.data,
+            };
+        }
+        throw new Error("Invalid Response Schema");
+    } catch (error: any) {
+        return handleApiError(error);
+    }
+};
+
+/**
+ * Fetches user details by user ID and user type (USER or CUSTOM_USER)
+ */
+export const GetUserDetailsByIdAndTypeApi = async (params: {
+    userId: number;
+    userType?: "USER" | "CUSTOM_USER";
+}) => {
+    try {
+        const {userId, userType = "USER"} = params;
+        const res = await axiosUserInstance.get<SuccessResponse<UserSearchResponse>>(
+            `${BASE_PATH}/${userId}/details`,
+            {
+                params: {
+                    user_type: userType,
+                },
+            }
+        );
+
         if (res.data && res.data.success) {
             return {
                 message: res.data.message,

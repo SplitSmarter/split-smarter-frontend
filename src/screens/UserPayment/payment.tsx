@@ -27,10 +27,20 @@ import {
     UserPaymentAccountItemDTO,
     UPIRegistrySummaryDTO,
 } from '@/src/api/dto/user_payments/account';
+import {
+    GetMerchantByIdApi
+} from '@/src/api/expense/merchant';
 
 // Native Module Utilities
 import {getInstalledUPIApps, openUPIPayment, UPIInstalledApp} from '@/src/utils/upiNativeModule';
 import {FailureReasonType, UserTransactionStatus} from "@/src/api/dto/user_payments/constant";
+import {GetUserDetailsByIdAndTypeApi} from "@/src/api/user/user";
+
+// Payee Entity Interface for State
+interface PayeeEntity {
+    name: string;
+    iconUrl?: string | null;
+}
 
 export default function PaymentScreen() {
     const router = useRouter();
@@ -50,6 +60,7 @@ export default function PaymentScreen() {
     // Screen States
     const [loading, setLoading] = useState<boolean>(true);
     const [verifying, setVerifying] = useState<boolean>(false);
+    const [payeeEntity, setPayeeEntity] = useState<PayeeEntity | null>(null);
     const [upiApps, setUpiApps] = useState<UPIInstalledApp[]>([]);
     const [payeeAccounts, setPayeeAccounts] = useState<UserPaymentAccountItemDTO[]>([]);
     const [selectedAccount, setSelectedAccount] = useState<UserPaymentAccountItemDTO | null>(null);
@@ -95,11 +106,35 @@ export default function PaymentScreen() {
 
         setLoading(true);
         try {
-            // Step A: Fetch installed local UPI apps
+            // Step A: Fetch Payee / Receiver Entity Details (Merchant or User)
+            if (params.merchantId) {
+                const merchantRes = await GetMerchantByIdApi(Number(params.merchantId));
+                if (merchantRes && 'data' in merchantRes && merchantRes.data) {
+                    const merchantData = merchantRes.data;
+                    setPayeeEntity({
+                        name: merchantData.name,
+                        iconUrl: merchantData.logo?.url || merchantData.mcc_code?.icon?.url,
+                    });
+                }
+            } else if (params.userId) {
+                const userRes = await GetUserDetailsByIdAndTypeApi({
+                    userId: Number(params.userId),
+                    userType: params.userType,
+                });
+                if (userRes && 'data' in userRes && userRes.data) {
+                    const userData = userRes.data;
+                    setPayeeEntity({
+                        name: userData.name,
+                        iconUrl: userData.avatar?.url,
+                    });
+                }
+            }
+
+            // Step B: Fetch installed local UPI apps
             const apps = await getInstalledUPIApps();
             setUpiApps(apps);
 
-            // Step B: Fetch Payee / Receiver Payment Accounts
+            // Step C: Fetch Payee / Receiver Payment Accounts
             let accountsData: UserPaymentAccountItemDTO[] = [];
             if (params.merchantId) {
                 const res = await GetMerchantPaymentAccountsApi(Number(params.merchantId));
@@ -212,7 +247,7 @@ export default function PaymentScreen() {
             // 2. Launch Gateway Native App
             const response = await openUPIPayment(app.packageName, {
                 pa: upiDetails.vpa,
-                pn: selectedAccount.provider?.display_name || 'SplitSmarter Merchant',
+                pn: payeeEntity?.name || selectedAccount.provider?.display_name || 'SplitSmarter Payee',
                 am: amount,
                 tn: `TxnRef: ${transactionId}`,
                 tr: transactionId,
@@ -234,7 +269,6 @@ export default function PaymentScreen() {
                         [{text: 'Done', onPress: () => router.replace('/')}]
                     );
                 } else {
-                    // Payment failed on verification -> Update backend and navigate back
                     const rawReason =
                         verifyRes.data.failure_reason_raw || `Transaction status: ${finalStatus}`;
                     await handlePaymentFailure(
@@ -271,6 +305,8 @@ export default function PaymentScreen() {
         );
     }
 
+    const firstLetter = payeeEntity?.name?.charAt(0).toUpperCase() || 'P';
+
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content"/>
@@ -284,8 +320,22 @@ export default function PaymentScreen() {
                 <View style={{width: 60}}/>
             </View>
 
-            {/* Amount Display */}
+            {/* Payee Info & Amount Card */}
             <View style={styles.amountCard}>
+                {/* Entity Name & Avatar / Icon */}
+                <View style={styles.payeeInfoContainer}>
+                    {payeeEntity?.iconUrl ? (
+                        <Image source={{uri: payeeEntity.iconUrl}} style={styles.payeeAvatar}/>
+                    ) : (
+                        <View style={styles.payeeAvatarPlaceholder}>
+                            <Text style={styles.payeeInitialText}>{firstLetter}</Text>
+                        </View>
+                    )}
+                    <Text style={styles.payeeNameText} numberOfLines={1}>
+                        {payeeEntity?.name || 'Paying Recipient'}
+                    </Text>
+                </View>
+
                 <Text style={styles.amountLabel}>Total Payable Amount</Text>
                 <Text style={styles.amountValue}>₹{parseFloat(amount).toFixed(2)}</Text>
                 <Text style={styles.txnIdText}>Ref ID: {transactionId}</Text>
@@ -416,18 +466,50 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
         elevation: 2,
     },
+    payeeInfoContainer: {
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    payeeAvatar: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        marginBottom: 8,
+        backgroundColor: '#E9ECEF',
+    },
+    payeeAvatarPlaceholder: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: '#0066CC',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    payeeInitialText: {
+        color: '#FFFFFF',
+        fontSize: 22,
+        fontWeight: '700',
+    },
+    payeeNameText: {
+        fontSize: 17,
+        fontWeight: '700',
+        color: '#212529',
+        textAlign: 'center',
+    },
     amountLabel: {
-        fontSize: 13,
+        fontSize: 12,
         color: '#868E96',
         textTransform: 'uppercase',
         letterSpacing: 0.8,
         fontWeight: '600',
+        marginTop: 4,
     },
     amountValue: {
         fontSize: 34,
         fontWeight: '800',
         color: '#111827',
-        marginVertical: 6,
+        marginVertical: 4,
     },
     txnIdText: {
         fontSize: 12,
