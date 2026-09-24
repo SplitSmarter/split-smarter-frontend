@@ -1,6 +1,6 @@
 import {create} from 'zustand';
 import {RelationWithUserType} from "@/src/api/dto/constants";
-import {Currency, CurrencyCode} from "@/src/constants/expense/currency";
+import {CurrencyCode} from "@/src/constants/expense/currency";
 import {userStore} from "@/src/store/userStore";
 import {ImageInfo} from "@/src/constants/user/asset";
 import {TransferMode} from "@/src/api/dto/expense/constant";
@@ -17,6 +17,7 @@ export interface TransferParticipant {
 }
 
 export interface TransferDraftState {
+    name: string;
     amount: number;
     currency: CurrencyCode;
     transferDate: string;
@@ -24,7 +25,6 @@ export interface TransferDraftState {
     recipient: TransferParticipant | null;
     groupId: number | undefined;
     description: string;
-    mode: TransferMode;
 
     // Additional tracking fields
     paymentAccountId: string | null;
@@ -34,6 +34,7 @@ export interface TransferDraftState {
     paymentCategoryId: string | null;
 
     // Core Form Setters
+    setName: (name: string) => void;
     setAmount: (amount: number) => void;
     setCurrency: (currency: CurrencyCode) => void;
     setTransferDate: (date: string) => void;
@@ -41,7 +42,6 @@ export interface TransferDraftState {
     setRecipient: (recipient: TransferParticipant | null) => void;
     setGroupId: (id: number | undefined) => void;
     setDescription: (description: string) => void;
-    setMode: (mode: TransferMode) => void;
 
     // Setter updates for missing context parameters
     setPaymentAccountId: (id: string | null) => void;
@@ -67,6 +67,7 @@ const getInitialUserContext = (): TransferParticipant | null => {
 };
 
 export const useTransferDraftStore = create<TransferDraftState>((set) => ({
+    name: '',
     amount: 0.0,
     currency: (userStore.getState().user?.currency as CurrencyCode) || 'INR',
     transferDate: new Date().toISOString(),
@@ -82,6 +83,7 @@ export const useTransferDraftStore = create<TransferDraftState>((set) => ({
     toMerchantLocationId: null,
     paymentCategoryId: null,
 
+    setName: (name) => set({name}),
     setAmount: (amount) => set({amount}),
     setCurrency: (currency) => set({currency}),
     setTransferDate: (transferDate) => set({transferDate}),
@@ -89,7 +91,6 @@ export const useTransferDraftStore = create<TransferDraftState>((set) => ({
     setRecipient: (recipient) => set({recipient}),
     setGroupId: (groupId) => set({groupId}),
     setDescription: (description) => set({description}),
-    setMode: (mode) => set({mode}),
 
     setPaymentAccountId: (paymentAccountId) => set({paymentAccountId}),
     setToPaymentAccountId: (toPaymentAccountId) => set({toPaymentAccountId}),
@@ -98,6 +99,7 @@ export const useTransferDraftStore = create<TransferDraftState>((set) => ({
     setPaymentCategoryId: (paymentCategoryId) => set({paymentCategoryId}),
 
     resetDraft: () => set({
+        name: '',
         amount: 0.0,
         currency: (userStore.getState().user?.currency as CurrencyCode) || 'INR',
         transferDate: new Date().toISOString(),
@@ -105,7 +107,6 @@ export const useTransferDraftStore = create<TransferDraftState>((set) => ({
         recipient: null,
         groupId: undefined,
         description: '',
-        mode: TransferMode.OTHER,
         paymentAccountId: null,
         toPaymentAccountId: null,
         toMerchantId: null,

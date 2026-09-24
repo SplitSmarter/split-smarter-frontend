@@ -9,7 +9,7 @@ import {
     VerifyVPAQueryRequest,
     VerifyVPAResponse,
     VerifyAndLookupUPIAccountRequest,
-    VerifyAndLookupUPIAccountDTO,
+    VerifyAndLookupUPIAccountDTO, AddMerchantUPIAccountRequest, MerchantUPIAccountMappingResponse,
 } from "@/src/api/dto/user_payments/upi";
 
 const BASE_PATH = "/upi/v1"; // Match the APIRouter prefix
@@ -87,6 +87,26 @@ export const VerifyAndLookupVPAApi = async (data: VerifyAndLookupUPIAccountReque
     try {
         const res = await axiosUserInstance.post<SuccessResponse<VerifyAndLookupUPIAccountDTO>>(
             `${BASE_PATH}/account/verify-and-lookup`,
+            data
+        );
+
+        if (res.data && res.data.success) {
+            return {
+                message: res.data.message,
+                data: res.data.data,
+            };
+        }
+        throw new Error("Invalid Response Schema");
+    } catch (error: any) {
+        return handleApiError(error);
+    }
+};
+
+
+export const AddMerchantUPIAccountApi = async (data: AddMerchantUPIAccountRequest) => {
+    try {
+        const res = await axiosUserInstance.post<SuccessResponse<MerchantUPIAccountMappingResponse>>(
+            `${BASE_PATH}/merchant/account/add`,
             data
         );
 

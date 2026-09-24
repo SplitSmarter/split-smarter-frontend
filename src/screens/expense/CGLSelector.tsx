@@ -1,24 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { View, Pressable, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
-import { AppText } from '@/src/components/common/AppText';
-import { AppImageV2 } from '@/src/components/common/AppImageV2';
-import { images } from "@/src/constants/images";
-import { SelectExpenseCategoryBottomSheet } from "@/src/components/expense/SelectExpenseCategoryBottomSheet";
-import { SelectGroupBottomSheet } from "@/src/components/user/SelectGroupBottomSheet";
-import { systemStore } from "@/src/store/systemStore";
-import { useExpenseDraftStore } from "@/src/store/draft/expenseDraftStore";
-import { GetExpenseCategoryByIdApi } from "@/src/api/expense/categories";
-import { GetGroupByIdApi } from "@/src/api/group/group";
-import { ExpenseCategoryResponse } from "@/src/api/dto/expense/category";
-import { GroupDetails } from "@/src/api/dto/user/group";
-import { Iconify } from "react-native-iconify";
-import { GetUserPlaceByIdApi } from "@/src/api/user/place/location";
-import { useLocationStore } from "@/src/store/locationStore";
+import React, {useState, useEffect} from 'react';
+import {View, Pressable, ActivityIndicator} from 'react-native';
+import {useRouter} from 'expo-router';
+import {AppText} from '@/src/components/common/AppText';
+import {AppImageV2} from '@/src/components/common/AppImageV2';
+import {images} from "@/src/constants/images";
+import {SelectExpenseCategoryBottomSheet} from "@/src/components/expense/SelectExpenseCategoryBottomSheet";
+import {SelectGroupBottomSheet} from "@/src/components/user/SelectGroupBottomSheet";
+import {systemStore} from "@/src/store/systemStore";
+import {useExpenseDraftStore} from "@/src/store/draft/expenseDraftStore";
+import {GetExpenseCategoryByIdApi} from "@/src/api/expense/categories";
+import {GetGroupByIdApi} from "@/src/api/group/group";
+import {ExpenseCategoryResponse} from "@/src/api/dto/expense/category";
+import {GroupDetails} from "@/src/api/dto/user/group";
+import {Iconify} from "react-native-iconify";
+import {GetUserPlaceByIdApi} from "@/src/api/user/place/location";
+import {useLocationStore} from "@/src/store/locationStore";
 
 export const CategoryGroupLocationSelector = () => {
     const router = useRouter();
-    const { defaults } = systemStore();
+    const {defaults} = systemStore();
     const draft = useExpenseDraftStore();
 
     // Modal Visibility States
@@ -33,7 +33,7 @@ export const CategoryGroupLocationSelector = () => {
     const [catLoading, setCatLoading] = useState(false);
     const [groupLoading, setGroupLoading] = useState(false);
 
-    const { tempLocationMode, tempSelectedMapPlaceId } = useLocationStore();
+    const {tempLocationMode, tempSelectedMapPlaceId} = useLocationStore();
 
     // 1. Hydrate Category Information Profile
     useEffect(() => {
@@ -74,14 +74,13 @@ export const CategoryGroupLocationSelector = () => {
         hydrateGroup();
     }, [draft.groupId]);
 
-    // 3. Hydrate Selection Map values to Draft Store (Cleaned of PlaceSource mapping)
+    // 3. Hydrate Selection Map values to Draft Store
     useEffect(() => {
         const hydratePlaceDetails = async () => {
             if (tempLocationMode === 'place' && tempSelectedMapPlaceId) {
                 try {
                     const response = await GetUserPlaceByIdApi(tempSelectedMapPlaceId);
                     if (response.data) {
-                        // 👈 FIXED: Pulled out source param mapping layer perfectly
                         draft.setExpenseLocation({
                             id: String(response.data.id),
                             name: response.data.name
@@ -104,12 +103,12 @@ export const CategoryGroupLocationSelector = () => {
         const mode = draft.expenseLocationMode || 'none';
         switch (mode) {
             case 'current':
-                return { source: images.CurrentLocation, label: "Current" };
+                return {source: images.CurrentLocation, label: "Current"};
             case 'place':
-                return { source: images.SelectedLocation, label: draft.expenseLocation?.name || "Selected" };
+                return {source: images.SelectedLocation, label: draft.expenseLocation?.name || "Selected"};
             case 'none':
             default:
-                return { source: images.NoLocation, label: "Add Loc" };
+                return {source: images.NoLocation, label: "Add Loc"};
         }
     })();
 
@@ -122,19 +121,20 @@ export const CategoryGroupLocationSelector = () => {
                     <AppImageV2
                         id={fullCategory?.id ? `cat-${fullCategory.id}` : 'cat-default'}
                         url={fullCategory?.icon?.url || defaults.defaultExpenseCategory?.asset?.url}
-                        style={{ width: 56, height: 56 }}
+                        style={{width: 56, height: 56}}
                         className="rounded-full"
                         contentFit="cover"
                         fallbackComponent={
-                            <View style={{ width: 56, height: 56 }}
+                            <View style={{width: 56, height: 56}}
                                   className="bg-emerald-50 dark:bg-gray-800 rounded-full items-center justify-center border border-gray-200 dark:border-gray-700">
-                                <Iconify icon="heroicons:tag" size={24} color="#059669" />
+                                <Iconify icon="heroicons:tag" size={24} color="#059669"/>
                             </View>
                         }
                     />
                     {catLoading && (
-                        <View className="absolute inset-0 items-center justify-center bg-white/60 dark:bg-black/60 rounded-full">
-                            <ActivityIndicator size="small" color="#059669" />
+                        <View
+                            className="absolute inset-0 items-center justify-center bg-white/60 dark:bg-black/60 rounded-full">
+                            <ActivityIndicator size="small" color="#059669"/>
                         </View>
                     )}
                 </Pressable>
@@ -150,19 +150,20 @@ export const CategoryGroupLocationSelector = () => {
                         <AppImageV2
                             id={`group-${fullGroup.id}`}
                             url={fullGroup.icon.url}
-                            style={{ width: 56, height: 56 }}
+                            style={{width: 56, height: 56}}
                             className="rounded-full"
                             contentFit="cover"
                         />
                     ) : (
-                        <View style={{ width: 56, height: 56 }}
+                        <View style={{width: 56, height: 56}}
                               className="rounded-full bg-gray-50 dark:bg-gray-900 items-center justify-center border border-dashed border-gray-300 dark:border-gray-700">
-                            <Iconify icon="heroicons:users" size={24} color="#9CA3AF" />
+                            <Iconify icon="heroicons:users" size={24} color="#9CA3AF"/>
                         </View>
                     )}
                     {groupLoading && (
-                        <View className="absolute inset-0 items-center justify-center bg-white/60 dark:bg-black/60 rounded-full">
-                            <ActivityIndicator size="small" color="#059669" />
+                        <View
+                            className="absolute inset-0 items-center justify-center bg-white/60 dark:bg-black/60 rounded-full">
+                            <ActivityIndicator size="small" color="#059669"/>
                         </View>
                     )}
                 </Pressable>
@@ -178,7 +179,7 @@ export const CategoryGroupLocationSelector = () => {
                         id={`loc-mode-${draft.expenseLocationMode || 'none'}`}
                         url={null}
                         source={locationLayout.source}
-                        style={{ width: 56, height: 56 }}
+                        style={{width: 56, height: 56}}
                         className="rounded-full"
                         contentFit="cover"
                     />

@@ -306,19 +306,18 @@ const AddTransfer = () => {
                 {/* 4. Horizontal Scrollable Payment Categories Component */}
                 <PaymentCategorySelector/>
 
-                {/* 5. Descriptive Notes Input Box */}
+                {/* 5. Name field */}
                 <View>
                     <AppInput
-                        label={t('transfer.description_label', 'Memo / Notes')}
-                        placeholder={t('transfer.description_placeholder', 'What is this settlement payment for?')}
+                        label={t('transfer.name_label', 'Transfer Name')}
+                        placeholder={t('transfer.name_placeholder', 'Enter transfer name')}
                         placeholderTextColor="rgb(var(--color-text-primary-placeholder))"
-                        value={draft.description}
-                        onChangeText={(text) => draft.setDescription(text)}
-                        textAlignVertical="top"
-                        maxLength={150}
+                        value={draft.name}
+                        onChangeText={(text) => draft.setName(text)}
+                        maxLength={100}
                         renderLeftIcon={() => (
                             <View className="mt-0.5 mr-1">
-                                <Iconify icon="heroicons:document-text" size={20}
+                                <Iconify icon="heroicons:tag" size={20}
                                          color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary}/>
                             </View>
                         )}

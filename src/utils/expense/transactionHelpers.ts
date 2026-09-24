@@ -1,12 +1,11 @@
-import { Alert } from 'react-native';
-import { useUploadStore } from "@/src/store/uploadStore";
-import { useExpenseDraftStore } from "@/src/store/draft/expenseDraftStore"; // 👈 Pull stores directly
-import { useTransferDraftStore } from "@/src/store/draft/transferDraftStore";
-import { mapDraftToRequest } from "@/src/utils/expense/Mapper";
-import { AddExpenseApi } from "@/src/api/expense/expense";
-import { createTransferApi } from "@/src/api/expense/transfer";
-import { ExpenseComponentType } from "@/src/api/dto/expense/constant";
-import {AddTransferRequest} from "@/src/api/dto/expense/transfer";
+import {Alert} from 'react-native';
+import {useUploadStore} from "@/src/store/uploadStore";
+import {useExpenseDraftStore} from "@/src/store/draft/expenseDraftStore"; // 👈 Pull stores directly
+import {useTransferDraftStore} from "@/src/store/draft/transferDraftStore";
+import {mapExpenseDraftToRequest, mapTransferDraftToRequest} from "@/src/utils/expense/Mapper";
+import {AddExpenseApi} from "@/src/api/expense/expense";
+import {createTransferApi} from "@/src/api/expense/transfer";
+import {ExpenseComponentType} from "@/src/api/dto/expense/constant";
 
 export const processLocalAttachments = async (localUris: string[]): Promise<string[]> => {
     if (!localUris || localUris.length === 0) return [];
@@ -18,9 +17,9 @@ export const processLocalAttachments = async (localUris: string[]): Promise<stri
 
         const checkStatus = () => {
             const task = useUploadStore.getState().queue[trackingId];
-            if (task?.status === 'completed') return { complete: true, id: task.assetId };
-            if (task?.status === 'failed') return { complete: true, id: null };
-            return { complete: false, id: null };
+            if (task?.status === 'completed') return {complete: true, id: task.assetId};
+            if (task?.status === 'failed') return {complete: true, id: null};
+            return {complete: false, id: null};
         };
 
         let statusCheck = checkStatus();
@@ -51,10 +50,10 @@ export const executeTransactionSubmit = async (
         const uploadedAssetIds = await processLocalAttachments(expenseDraft.localAttachmentUris || []);
         expenseDraft.setExpenseType(ExpenseComponentType.ITEM);
 
-        const payload = mapDraftToRequest(expenseDraft, uploadedAssetIds);
+        const payload = mapExpenseDraftToRequest(expenseDraft, uploadedAssetIds);
 
         const response = await AddExpenseApi(payload);
-        return { success: true, message: response.message };
+        return {success: true, message: response.message};
 
     } else {
         // 1. Structural Validation Guards to guarantee fields match AddTransferRequest requirements
@@ -62,31 +61,11 @@ export const executeTransactionSubmit = async (
             throw new Error("Cannot execute transfer: Sender or Recipient details are missing.");
         }
 
-        // 2. Parse and normalize the execution timestamp
-        let cleanDateStr = new Date().toISOString().split('T')[0];
-        if (expenseDraft.expenseDate) {
-            cleanDateStr = expenseDraft.expenseDate.includes('T')
-                ? expenseDraft.expenseDate.split('T')[0]
-                : expenseDraft.expenseDate;
-        }
-
-        // 3. Build payload matching AddTransferRequest interface exactly
-        const transferPayload: AddTransferRequest = {
-            amount: transferDraft.amount,
-            currency: transferDraft.currency,
-            transfer_date: cleanDateStr,
-            from_user_id: Number(transferDraft.sender.id),
-            from_user_type: transferDraft.sender.user_type,
-            to_user_id: Number(transferDraft.recipient.id),
-            to_user_type: transferDraft.recipient.user_type,
-            group_id: expenseDraft.groupId ? Number(expenseDraft.groupId) : null,
-            description: transferDraft.description?.trim() || null,
-            mode: (transferDraft.mode || 'other').toLowerCase() as any // Ensures enum mapping matches TransferMode
-        };
+        const transferPayload = mapTransferDraftToRequest(transferDraft);
 
         console.log("Transfer Payload dispatched via createTransferApi:", transferPayload);
         const response = await createTransferApi(transferPayload);
-        return { success: true, message: response.message || "Transfer logged successfully" };
+        return {success: true, message: response.message || "Transfer logged successfully"};
     }
 };
 

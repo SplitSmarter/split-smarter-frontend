@@ -1,11 +1,11 @@
-import { PlaceSource } from "@/src/api/dto/constants";
-import { PlacePhotoDetails } from "@/src/api/dto/user/place";
-import { GetUserPlaceByIdApi } from "@/src/api/user/place/location";
-import { GetGooglePlaceDetailsApi } from "@/src/api/user/place/search_place";
+import {PlaceSource} from "@/src/api/dto/constants";
+import {PlacePhotoDetails} from "@/src/api/dto/user/place";
+import {GetUserPlaceByIdApi} from "@/src/api/user/place/location";
+import {GetGooglePlaceDetailsApi, GetPlaceDetailsByProviderApi} from "@/src/api/user/place/search_place";
 import {CachedPlace, placeStore} from '@/src/store/placeStore';
-import { userStore } from '@/src/store/userStore';
-import { EnrichedPlaceDetails, fetchEnrichedPlaceDetails } from '@/src/utils/place/placeDataFetcher';
-import { useEffect, useMemo, useState } from 'react';
+import {userStore} from '@/src/store/userStore';
+import {EnrichedPlaceDetails, fetchEnrichedPlaceDetails} from '@/src/utils/place/placeDataFetcher';
+import {useEffect, useMemo, useState} from 'react';
 
 interface UsePlaceDetailsProps {
     place: {
@@ -21,10 +21,12 @@ interface UsePlaceDetailsProps {
 }
 
 export const usePlaceDetails = (place: UsePlaceDetailsProps['place'], isVisible: boolean) => {
+    console.log("hook place: ", place);
+
     const [loading, setLoading] = useState(false);
     const [enrichedDetails, setEnrichedDetails] = useState<EnrichedPlaceDetails | null>(null);
 
-    const { savePlaceToCache, getPlaceFromCache } = placeStore();
+    const {savePlaceToCache, getPlaceFromCache} = placeStore();
     const user = userStore((state) => state.user);
     // Explicitly typed cache target retrieval
     const cachedData = useMemo<EnrichedPlaceDetails | null>(() => {
@@ -67,6 +69,15 @@ export const usePlaceDetails = (place: UsePlaceDetailsProps['place'], isVisible:
                         savePlaceToCache(result.data.provider, result.data.provider_id, result.data);
                     } else {
                         console.log(`No backend profile found for local place configuration id: ${place.id}`);
+                    }
+                } else if (place.provider && place.provider_id) {
+                    // Priority 2: Generic Provider & Provider ID API Enrichment
+                    const result = await GetPlaceDetailsByProviderApi(place.provider, place.provider_id);
+                    if (result.data) {
+                        setEnrichedDetails(result.data as EnrichedPlaceDetails);
+                        savePlaceToCache(place.provider, place.provider_id, result.data);
+                    } else {
+                        console.log(`Provider API execution returned empty dataset for provider reference: ${place.provider_id}`);
                     }
                 } else if (place.provider === PlaceSource.GOOGLE && place.place_id) {
                     // Priority 2: Specific Google API Enrichment

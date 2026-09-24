@@ -37,6 +37,7 @@ export interface AddPlaceDetails {
     geo: GeoDetails;
     country: string;
     city: string;
+    state: string;
     country_code: string;
 }
 

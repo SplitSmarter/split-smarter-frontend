@@ -1,5 +1,5 @@
 import React from "react";
-import SelectMap from "@/src/screens/SelectMapScreen";
+import SelectMap from "@/src/screens/place/SelectMapScreen";
 
 const SelectMapScreen = () => {
 

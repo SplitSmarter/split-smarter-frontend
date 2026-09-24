@@ -60,3 +60,21 @@ export interface VerifyAndLookupUPIAccountDTO {
     account_name?: string | null;
     saved_users: VerifyAndLookupUPIUser[];
 }
+
+
+export interface AddMerchantUPIAccountRequest {
+    merchant_id: number;
+    vpa: string; // or string
+    provider_id?: string | null;
+}
+
+export interface MerchantUPIAccountMappingResponse {
+    merchant_payment_account_mapping_id: string;
+    merchant_payment_account_id: string;
+    is_verified_owner: boolean;
+    is_active: boolean;
+    taxonomy_id: string;
+    provider_id?: string | null;
+    vpa_handle: string;
+    created_at: string;
+}

@@ -2,7 +2,7 @@ import axiosUserInstance from "@/src/api/axiosUserServiceInstance";
 import {SuccessResponse} from "@/src/api/dto/ApiResponse";
 import {handleApiError} from "@/src/api/utils/mapper";
 import {
-    GetUserPaymentAccountsQueryParams,
+    GetUserPaymentAccountsQueryParams, MerchantPaymentAccountListDTO,
     PaymentAccountAddOptionsDTO,
     UserPaymentAccountListDTO
 } from "@/src/api/dto/user_payments/account";
@@ -41,6 +41,26 @@ export const GetUserPaymentAccountsApi = async (
         const res = await axiosUserInstance.get<
             SuccessResponse<UserPaymentAccountListDTO>
         >(`${BASE_PATH}/user`, {params});
+
+        if (res.data && res.data.success) {
+            return {
+                message: res.data.message,
+                data: res.data.data,
+            };
+        }
+        throw new Error("Invalid Response Schema");
+    } catch (error: any) {
+        return handleApiError(error);
+    }
+};
+/**
+ * Retrieves linked payment accounts for the specified merchant ID.
+ */
+export const GetMerchantPaymentAccountsApi = async (merchantId: number) => {
+    try {
+        const res = await axiosUserInstance.get<SuccessResponse<MerchantPaymentAccountListDTO>>(
+            `${BASE_PATH}/merchant/${merchantId}`
+        );
 
         if (res.data && res.data.success) {
             return {

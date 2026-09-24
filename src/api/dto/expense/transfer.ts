@@ -11,6 +11,7 @@ import {BaseGroupDetails} from "@/src/api/dto/user/group";
 // ============================================================================
 
 export interface AddTransferRequest {
+    name: string;
     amount: number;
     currency: Currency;
     transfer_date: string | null;
@@ -25,7 +26,7 @@ export interface AddTransferRequest {
     payment_account_mapping_id: string | null;
     group_id: number | null;
     description: string | null;
-    mode: TransferMode;
+    // mode: TransferMode;
 }
 
 export interface AddTransferResponse {

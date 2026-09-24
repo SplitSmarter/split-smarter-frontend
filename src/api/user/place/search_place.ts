@@ -32,7 +32,7 @@ export const SearchPlaceApi = async (data: SearchPlaceRequest) => {
 /**
  * Fetch location details using a generic provider and provider_id
  */
-export const GetPlaceDetailsByProviderApi = async (provider: PlaceSource, providerId: string | number) => {
+export const GetPlaceDetailsByProviderApi = async (provider: PlaceSource, providerId: number) => {
     try {
         const res = await axiosUserInstance.get<SuccessResponse<LocationDetails>>(
             `${BASE_PATH}/details`,

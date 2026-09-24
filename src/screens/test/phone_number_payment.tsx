@@ -1,175 +1,158 @@
-// Location: src/screens/test/PhoneNumberPaymentScreen.tsx
-import React, { useState } from 'react';
-import { View, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
-import { AppText } from '@/src/components/common/AppText';
-import { expensePaymentStore } from '@/src/store/expensePaymentStore';
-import * as Linking from 'expo-linking';
-import qs from 'qs';
+import React, {useEffect, useState} from 'react';
+import {
+    StyleSheet,
+    Text,
+    View,
+    FlatList,
+    TouchableOpacity,
+    Image,
+    ActivityIndicator,
+    Alert,
+} from 'react-native';
+import {getInstalledUPIApps, openUPIPayment, UPIInstalledApp} from '@/src/utils/upiNativeModule';
 
-// Popular UPI networks mapped to handles
-const UPI_NETWORKS = [
-    { label: 'PhonePe (@ybl)', handle: 'ybl' },
-    { label: 'PhonePe (@ibl)', handle: 'ibl' },
-    { label: 'Paytm (@paytm)', handle: 'paytm' },
-    { label: 'Google Pay (@oksbi)', handle: 'oksbi' },
-    { label: 'Generic/Other (@upi.ts)', handle: 'upi' }
-];
+export default function PaymentScreen() {
+    const [upiApps, setUpiApps] = useState<UPIInstalledApp[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
 
-export default function PhoneNumberPaymentScreen() {
-    const [phoneNumber, setPhoneNumber] = useState('');
-    const [receiverName, setReceiverName] = useState('');
-    const [amount, setAmount] = useState('');
-    const [selectedHandle, setSelectedHandle] = useState('ybl'); // Defaulting to India's largest handle
+    useEffect(() => {
+        fetchInstalledApps();
+    }, []);
 
-    const setPendingPayment = expensePaymentStore((state) => state.setPendingPayment);
-
-    const validateInputs = () => {
-        const cleanedPhone = phoneNumber.replace(/\D/g, '');
-        if (cleanedPhone.length !== 10) {
-            Alert.alert("Invalid Phone Number", "Please enter a valid 10-digit mobile number.");
-            return false;
-        }
-        if (!receiverName.trim()) {
-            Alert.alert("Missing Name", "Please enter the recipient's name.");
-            return false;
-        }
-        if (parseFloat(amount) <= 0 || isNaN(parseFloat(amount))) {
-            Alert.alert("Invalid Amount", "Please enter an amount greater than ₹0.");
-            return false;
-        }
-        return true;
-    };
-
-    const handleInitiatePayment = async () => {
-        if (!validateInputs()) return;
-
-        const cleanedPhone = phoneNumber.replace(/\D/g, '');
-        const finalName = receiverName.trim();
-        const finalAmount = parseFloat(amount).toFixed(2);
-
-        // DYNAMIC OVERRIDE: Combines phone number with selected network handle
-        const dynamicVpa = `${cleanedPhone}@${selectedHandle}`;
-
-        const queryParams = qs.stringify({
-            pa: dynamicVpa,
-            pn: finalName,
-            am: finalAmount,
-            cu: 'INR',
-        });
-
-        const fullDeepLinkUrl = `upi://pay?${queryParams}`;
-
-        Alert.alert(
-            "Confirm Transfer Destination",
-            `You are about to settle an expense with:\n\n👤 Name: ${finalName}\n🆔 Resolved VPA: ${dynamicVpa}\n💵 Amount: ₹${finalAmount}`,
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Proceed to Pay",
-                    onPress: () => executeExternalRedirect(fullDeepLinkUrl, finalName, finalAmount)
-                }
-            ]
-        );
-    };
-
-    const executeExternalRedirect = async (fullUrl: string, name: string, amountStr: string) => {
+    const fetchInstalledApps = async () => {
+        setLoading(true);
         try {
-            setPendingPayment({
-                debtId: `phone_pay_${Date.now()}`,
-                amount: amountStr,
-                recipientName: name,
-                timestamp: new Date().toISOString()
-            });
-            await Linking.openURL(fullUrl);
+            const apps = await getInstalledUPIApps();
+            setUpiApps(apps);
         } catch (err) {
-            setPendingPayment(null);
-            Alert.alert("Error", "Could not open any UPI payment application.");
+            console.error('Error fetching apps:', err);
+        } finally {
+            setLoading(false);
         }
     };
+
+    const handlePayPress = async (app: UPIInstalledApp) => {
+        try {
+            setLoading(true);
+            const response = await openUPIPayment(app.packageName, {
+                pa: 'test@ibl', // Replace with a valid registered UPI VPA
+                pn: 'SplitSmarter',
+                am: '1.00',
+                tn: 'Split Payment Settlement',
+                tr: `TXN${Date.now()}`,
+            });
+
+            console.log('UPI Payment Response:', response);
+
+            const status = (response.Status || '').toUpperCase();
+
+            if (status === 'SUCCESS' || status === 'SUCCESSFUL') {
+                Alert.alert(
+                    'Payment Successful',
+                    `Transaction Ref: ${response.txnRef || response.ApprovalRefNo || response.txnId || 'N/A'}`
+                );
+            } else if (status === 'SUBMITTED' || status === 'PENDING') {
+                Alert.alert('Payment Pending', 'Transaction is processing.');
+            } else {
+                Alert.alert('Payment Failed', `Status: ${status || 'FAILED'}`);
+            }
+        } catch (error: any) {
+            Alert.alert('Error', error?.message || 'Unable to complete payment.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <View style={styles.center}>
+                <ActivityIndicator size="large" color="#0066CC"/>
+                <Text style={styles.loadingText}>Loading...</Text>
+            </View>
+        );
+    }
 
     return (
-        <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-            <AppText variant="h2" className="mb-4">Pay via Phone Number</AppText>
-
-            <View style={styles.formGroup}>
-                <AppText className="font-semibold mb-2 text-sm opacity-80">Recipients Mobile Number</AppText>
-                <TextInput
-                    style={styles.input}
-                    placeholder="Enter 10-digit mobile number"
-                    keyboardType="phone-pad"
-                    maxLength={10}
-                    value={phoneNumber}
-                    onChangeText={setPhoneNumber}
-                />
-            </View>
-
-            {/* DYNAMIC HANDLE SELECTOR GRID */}
-            <View style={styles.formGroup}>
-                <AppText className="font-semibold mb-2 text-sm opacity-80">Select Recipient's Main App Network</AppText>
-                <View style={styles.chipContainer}>
-                    {UPI_NETWORKS.map((network) => (
-                        <TouchableOpacity
-                            key={network.handle}
-                            onPress={() => setSelectedHandle(network.handle)}
-                            style={[
-                                styles.chip,
-                                selectedHandle === network.handle && styles.activeChip
-                            ]}
-                        >
-                            <AppText style={[
-                                styles.chipText,
-                                selectedHandle === network.handle && styles.activeChipText
-                            ]}>
-                                {network.label}
-                            </AppText>
-                        </TouchableOpacity>
-                    ))}
+        <View style={styles.container}>
+            <Text style={styles.header}>Select UPI Payment App</Text>
+            {upiApps.length === 0 ? (
+                <View style={styles.center}>
+                    <Text style={styles.emptyText}>No UPI apps detected on this device.</Text>
                 </View>
-            </View>
-
-            <View style={styles.formGroup}>
-                <AppText className="font-semibold mb-2 text-sm opacity-80">Recipient Full Name</AppText>
-                <TextInput
-                    style={styles.input}
-                    placeholder="Enter recipient's name"
-                    autoCapitalize="words"
-                    value={receiverName}
-                    onChangeText={setReceiverName}
+            ) : (
+                <FlatList
+                    data={upiApps}
+                    keyExtractor={(item) => item.packageName}
+                    renderItem={({item}) => (
+                        <TouchableOpacity style={styles.card} onPress={() => handlePayPress(item)}>
+                            <View style={styles.appRow}>
+                                {item.icon ? (
+                                    <Image source={{uri: item.icon}} style={styles.icon}/>
+                                ) : (
+                                    <View style={[styles.icon, styles.iconPlaceholder]}/>
+                                )}
+                                <Text style={styles.appName}>{item.name}</Text>
+                            </View>
+                            <Text style={styles.payText}>Pay</Text>
+                        </TouchableOpacity>
+                    )}
                 />
-            </View>
-
-            <View style={styles.formGroup}>
-                <AppText className="font-semibold mb-2 text-sm opacity-80">Settlement Amount (₹)</AppText>
-                <TextInput
-                    style={styles.input}
-                    placeholder="0.00"
-                    keyboardType="numeric"
-                    value={amount}
-                    onChangeText={setAmount}
-                />
-            </View>
-
-            <TouchableOpacity onPress={handleInitiatePayment} className="mt-4 w-full py-4 rounded-xl bg-blue-900">
-                <AppText className="text-white font-bold text-center text-base">Verify & Send Intent</AppText>
-            </TouchableOpacity>
-        </ScrollView>
+            )}
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flexGrow: 1, backgroundColor: '#FFFFFF', padding: 24, justifyContent: 'center' },
-    formGroup: { marginBottom: 18 },
-    input: {
-        borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 12,
-        paddingHorizontal: 16, paddingVertical: 12, fontSize: 16,
-        color: '#1E293B', backgroundColor: '#F8FAFC',
+    container: {
+        flex: 1,
+        padding: 16,
+        backgroundColor: '#fff',
     },
-    chipContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    chip: {
-        paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20,
-        borderWidth: 1, borderColor: '#CBD5E1', backgroundColor: '#FFFFFF'
+    center: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
-    activeChip: { backgroundColor: '#1E3A8A', borderColor: '#1E3A8A' },
-    chipText: { fontSize: 13, color: '#475569' },
-    activeChipText: { color: '#FFFFFF', fontWeight: '600' }
+    header: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 16,
+    },
+    loadingText: {
+        marginTop: 10,
+        color: '#666',
+    },
+    emptyText: {
+        color: '#888',
+    },
+    card: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: 14,
+        borderRadius: 10,
+        backgroundColor: '#F5F5F5',
+        marginBottom: 10,
+    },
+    appRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    icon: {
+        width: 40,
+        height: 40,
+        borderRadius: 8,
+        marginRight: 12,
+    },
+    iconPlaceholder: {
+        backgroundColor: '#DDD',
+    },
+    appName: {
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    payText: {
+        color: '#0066CC',
+        fontWeight: 'bold',
+    },
 });

@@ -9,10 +9,12 @@ import {
     DateComponentUnion as ApiDateComponentUnion
 } from "@/src/api/dto/expense/expense";
 import {RelationWithUserType} from "@/src/api/dto/constants";
-import {ExpenseComponentType, PaidTowards, ExpenseRecurringPeriod} from "@/src/api/dto/expense/constant";
+import {ExpenseComponentType, PaidTowards, ExpenseRecurringPeriod, TransferMode} from "@/src/api/dto/expense/constant";
 import {ExpenseDraftState, PayerUser, ExpenseItem} from "@/src/store/draft/expenseDraftStore";
 import {RecurringDateComponent as UiRecurringDateComponent} from "@/src/constants/expense/schedule";
 import {systemStore} from "@/src/store/systemStore";
+import {AddTransferRequest} from "@/src/api/dto/expense/transfer";
+import {TransferDraftState} from "@/src/store/draft/transferDraftStore";
 
 /**
  * Transforms UI-centric scheduling and recurring details into the strict
@@ -75,7 +77,7 @@ const mapDraftDateDetailsToPayload = (
  * Transforms the client-side Zustand form draft state into a strictly-typed
  * payload required by the FastAPI Pydantic validation schemas.
  */
-export const mapDraftToRequest = (draftState: ExpenseDraftState, uploadedAssetIds: string[] = []): AddExpenseRequest => {
+export const mapExpenseDraftToRequest = (draftState: ExpenseDraftState, uploadedAssetIds: string[] = []): AddExpenseRequest => {
 
     // 1. Process Date Details through isolated sub-mapper framework
     const dateDetailsPayload = mapDraftDateDetailsToPayload(
@@ -171,5 +173,47 @@ export const mapDraftToRequest = (draftState: ExpenseDraftState, uploadedAssetId
         extra_fields: [],
         components: componentsPayload,
         assets: uploadedAssetIds.length > 0 ? uploadedAssetIds : null,
+    };
+};
+
+/**
+ * Maps the live TransferDraftStore state into a standardized AddTransferRequest payload
+ */
+export const mapTransferDraftToRequest = (
+    draft: TransferDraftState
+): AddTransferRequest => {
+    // Normalize and clean up the transfer execution date format (YYYY-MM-DD)
+    let cleanDateStr = new Date().toISOString().split('T')[0];
+    if (draft.transferDate) {
+        cleanDateStr = draft.transferDate.includes('T')
+            ? draft.transferDate.split('T')[0]
+            : draft.transferDate;
+    }
+
+    return {
+        name: draft.name,
+        amount: draft.amount,
+        currency: draft.currency,
+        transfer_date: cleanDateStr,
+
+        // Sender details mapping
+        from_user_id: draft.sender ? Number(draft.sender.id) : 0,
+        from_user_type: draft.sender?.user_type || RelationWithUserType.USER,
+
+        // Recipient details mapping (can be user, account, or merchant context)
+        to_user_id: draft.recipient ? Number(draft.recipient.id) : null,
+        to_user_type: draft.recipient?.user_type || null,
+
+        // Financial mapping hooks
+        to_payment_account_mapping_id: draft.toPaymentAccountId || null,
+        to_merchant_id: draft.toMerchantId || null,
+        to_merchant_location_id: draft.toMerchantLocationId || null,
+        payment_category_id: draft.paymentCategoryId || "",
+        payment_account_mapping_id: draft.paymentAccountId || null,
+
+        // Group & Metadata context
+        group_id: draft.groupId ? Number(draft.groupId) : null,
+        description: draft.description?.trim() || null,
+        // mode: (draft.mode || TransferMode.OTHER) as TransferMode,
     };
 };

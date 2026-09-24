@@ -58,3 +58,18 @@ export interface GetUserPaymentAccountsQueryParams {
     user_id?: number;
     user_type?: string;
 }
+
+export interface MerchantPaymentAccountItemDTO {
+    mapping_id: string;
+    taxonomy_id: string;
+    provider: PaymentAccountProviderSummaryDTO;
+    registry_details: UPIRegistrySummaryDTO | CardAccountSummaryDTO;
+    is_active: boolean;
+}
+
+export interface MerchantPaymentAccountListDTO {
+    merchant_payment_account_id: string;
+    merchant_id: number;
+    is_active: boolean;
+    accounts: MerchantPaymentAccountItemDTO[];
+}

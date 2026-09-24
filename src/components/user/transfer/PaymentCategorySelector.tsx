@@ -50,8 +50,7 @@ export const PaymentCategorySelector: React.FC = () => {
 
     return (
         <View>
-            <AppText variant="caption-xs"
-                     className="text-text-primary opacity-60 font-semibold uppercase tracking-wider mb-2">
+            <AppText variant="body-base" className="font-semibold text-text-primary">
                 {t('transfer.category_label', 'Payment Category')}
             </AppText>
 

@@ -37,6 +37,7 @@ interface PlaceDetailBottomSheetProps {
 export const PlaceDetailBottomSheet = React.memo(({
                                                       place, isVisible, onClose, onSave, onSelect, isSaved
                                                   }: PlaceDetailBottomSheetProps) => {
+    console.log("bottomsheet place: " , place);
     const theme = themeStore((state) => state.theme);
     const isDark = theme === 'dark';
 

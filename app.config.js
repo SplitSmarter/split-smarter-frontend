@@ -1,104 +1,121 @@
 require('dotenv').config();
 
 module.exports = {
-  "expo": {
-    "name": "split-smarter",
-    "slug": "my-app",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/images/logo.png",
-    "scheme": "myapp",
-    "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "ios": {
-      "config": {
-        "googleMapsApiKey": process.env.GOOGLE_MAPS_API_KEY_IOS
-      },
-      "supportsTablet": true,
-      "bundleIdentifier": "com.onewordmax.splitsmart",
-      "infoPlist": {
-        "LSApplicationQueriesSchemes": ["upi"] // Whitelists iOS querying
-      }
-    },
-    "android": {
-      "config": {
-        "googleMaps": {
-          "apiKey": process.env.GOOGLE_MAPS_API_KEY_ANDROID
-        }
-      },
-      "package": "com.onewordmax.splitsmart",
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/logo.png",
-        "backgroundColor": "#ffffff"
-      },
-      "minSdkVersion": 26,
-      "edgeToEdgeEnabled": true,
-      "softwareKeyboardLayoutMode": "resize",
-      "permissions": [],
-      // 🚀 THIS RIGHT HERE WHITELISTS THE UPI SCHEME IN THE MANIFEST
-      "intentFilters": [
-        {
-          "action": "VIEW",
-          "category": ["DEFAULT", "BROWSABLE"],
-          "data": {
-            "scheme": "upi"
-          }
-        }
-      ]
-    },
-    "web": {
-      "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/images/logo.png"
-    },
-    "plugins": [
-      [
-        "expo-build-properties",
-        {
-          "android": {
+    "expo": {
+        "name": "split-smarter",
+        "slug": "my-app",
+        "version": "1.0.0",
+        "orientation": "portrait",
+        "icon": "./assets/images/logo.png",
+        "scheme": "myapp",
+        "userInterfaceStyle": "automatic",
+        "newArchEnabled": true,
+        "ios": {
+            "config": {
+                "googleMapsApiKey": process.env.GOOGLE_MAPS_API_KEY_IOS
+            },
+            "supportsTablet": true,
+            "bundleIdentifier": "com.onewordmax.splitsmart",
+            "infoPlist": {
+                "LSApplicationQueriesSchemes": [
+                    "upi",
+                    "gpay",
+                    "phonepe",
+                    "paytm",
+                    "bhim",
+                    "whatsapp",
+                    "credpay"
+                ]
+            }
+        },
+        "android": {
+            "config": {
+                "googleMaps": {
+                    "apiKey": process.env.GOOGLE_MAPS_API_KEY_ANDROID
+                }
+            },
+            "package": "com.onewordmax.splitsmart",
+            "adaptiveIcon": {
+                "foregroundImage": "./assets/images/logo.png",
+                "backgroundColor": "#ffffff"
+            },
             "minSdkVersion": 26,
-            "compileSdkVersion": 35,
-            "targetSdkVersion": 35,
-            "buildToolsVersion": "35.0.0"
-          }
-        }
-      ],
-      "expo-router",
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/images/logo.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
-        }
-      ],
-      [
-        "@react-native-google-signin/google-signin",
-        {
-          "iosUrlScheme": "com.googleusercontent.apps.676636300164-puccof707oskko5ieprqdd8jjdi3psci"
-        }
-      ],
-      "expo-localization",
-      "expo-font",
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "Allow $(PRODUCT_NAME) to access your photos.",
-          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera.",
-          "microphonePermission": false
-        }
-      ]
-    ],
-    "experiments": {
-      "typedRoutes": true
-    },
-    "extra": {
-      "router": {},
-      "eas": {
-        "projectId": "c76e9509-6486-420a-b02a-fb68cdffeb86"
-      }
-    },
-    "owner": "xertz"
-  }
+            "edgeToEdgeEnabled": true,
+            "softwareKeyboardLayoutMode": "resize",
+            "permissions": [],
+            "packageNames": [
+                "com.google.android.apps.nbu.paisa.user",
+                "com.phonepe.app",
+                "net.one97.paytm",
+                "in.org.npci.upiapp",
+                "com.whatsapp",
+                "com.cred.android"
+            ],
+            "intentFilters": [
+                {
+                    "action": "VIEW",
+                    "category": ["DEFAULT", "BROWSABLE"],
+                    "data": {
+                        "scheme": "upi"
+                    }
+                }
+            ]
+        },
+        "web": {
+            "bundler": "metro",
+            "output": "static",
+            "favicon": "./assets/images/logo.png"
+        },
+        "plugins": [
+            './withUpiInstalledApps',
+            [
+                "expo-build-properties",
+                {
+                    "android": {
+                        "minSdkVersion": 26,
+                        "compileSdkVersion": 35,
+                        "targetSdkVersion": 35,
+                        "buildToolsVersion": "35.0.0"
+                    }
+                }
+            ],
+            "expo-router",
+            [
+                "expo-splash-screen",
+                {
+                    "image": "./assets/images/logo.png",
+                    "imageWidth": 200,
+                    "resizeMode": "contain",
+                    "backgroundColor": "#ffffff"
+                }
+            ],
+            [
+                "@react-native-google-signin/google-signin",
+                {
+                    "iosUrlScheme": "com.googleusercontent.apps.676636300164-puccof707oskko5ieprqdd8jjdi3psci"
+                }
+            ],
+            "expo-localization",
+            "expo-font",
+            [
+                "expo-image-picker",
+                {
+                    "photosPermission": "Allow $(PRODUCT_NAME) to access your photos.",
+                    "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera.",
+                    "microphonePermission": false
+                }
+            ],
+            "expo-asset"
+        ],
+        "experiments": {
+            "typedRoutes": true
+        },
+        "extra": {
+            "router": {},
+            "eas": {
+                "projectId": "c76e9509-6486-420a-b02a-fb68cdffeb86"
+            }
+        },
+        "owner": "xertz"
+    }
 }

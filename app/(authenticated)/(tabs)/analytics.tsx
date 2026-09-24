@@ -1,10 +1,9 @@
 import React from "react";
-import SelectMap from "@/src/screens/SelectMapScreen";
+import {RegionalExpenseMap} from "@/src/screens/test/MapTestScreen";
 
 const AnalyticsScreen = () => {
-
     return (
-        <SelectMap />
+        <RegionalExpenseMap />
     );
 };
 
