@@ -1,28 +1,32 @@
 import React from "react";
-import { View, Text } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { GlassCard } from "./GlassCard";
-import { BRAND_COLORS, ThemeColors } from "../constants/theme";
-import { createStyles } from "../styles/UserPaymentTransferScreen.styles";
+import {View, Text, Image} from "react-native";
+import {LinearGradient} from "expo-linear-gradient";
+import {GlassCard} from "./GlassCard";
+import {PayeeEntity} from "../types/payment";
+import {BRAND_COLORS, ThemeColors} from "../constants/theme";
+import {createStyles} from "../styles/UserPaymentTransferScreen.styles";
 
 interface RecipientHeaderProps {
-    recipientName: string;
+    payeeEntity: PayeeEntity | null;
     amount: string;
+    transactionId: string;
     colors: ThemeColors;
 }
 
 export const RecipientHeader: React.FC<RecipientHeaderProps> = ({
-                                                                    recipientName,
+                                                                    payeeEntity,
                                                                     amount,
+                                                                    transactionId,
                                                                     colors,
                                                                 }) => {
     const styles = createStyles(colors);
-    const initials = recipientName.split(" ").map((n) => n[0]).join("");
+    const name = payeeEntity?.name || "Paying Recipient";
+    const initials = name.charAt(0).toUpperCase();
 
     return (
         <GlassCard
             colors={colors}
-            style={{ marginTop: 8, marginBottom: 20, width: "100%" }}
+            style={{marginTop: 8, marginBottom: 20, width: "100%"}}
             contentStyle={{
                 flexDirection: "column",
                 alignItems: "center",
@@ -31,20 +35,27 @@ export const RecipientHeader: React.FC<RecipientHeaderProps> = ({
             }}
         >
             <View style={styles.avatarContainer}>
-                <LinearGradient
-                    colors={[BRAND_COLORS.primaryGreen, BRAND_COLORS.primaryGreenDark]}
-                    style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                />
-                <Text style={styles.avatarText}>{initials}</Text>
+                {payeeEntity?.iconUrl ? (
+                    <Image source={{uri: payeeEntity.iconUrl}} style={styles.payeeAvatarImage}/>
+                ) : (
+                    <>
+                        <LinearGradient
+                            colors={[BRAND_COLORS.primaryGreen, BRAND_COLORS.primaryGreenDark]}
+                            style={{position: "absolute", left: 0, right: 0, top: 0, bottom: 0}}
+                            start={{x: 0, y: 0}}
+                            end={{x: 1, y: 1}}
+                        />
+                        <Text style={styles.avatarText}>{initials}</Text>
+                    </>
+                )}
             </View>
 
-            <Text style={styles.recipientNameText}>{recipientName}</Text>
+            <Text style={styles.recipientNameText}>{name}</Text>
 
             <View style={styles.amountBadge}>
-                <Text style={styles.amountLabel}>PAYABLE AMOUNT</Text>
-                <Text style={styles.amountValue}>₹{amount}</Text>
+                <Text style={styles.amountLabel}>TOTAL PAYABLE AMOUNT</Text>
+                <Text style={styles.amountValue}>₹{parseFloat(amount).toFixed(2)}</Text>
+                {transactionId ? <Text style={styles.txnRefText}>Ref ID: {transactionId}</Text> : null}
             </View>
         </GlassCard>
     );

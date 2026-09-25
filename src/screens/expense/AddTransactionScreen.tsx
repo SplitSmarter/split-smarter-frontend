@@ -2,6 +2,9 @@ import {AppButton} from '@/src/components/common/AppButton';
 import {AppText} from '@/src/components/common/AppText';
 import {MediaPickerBottomSheet} from "@/src/components/common/MediaPickerBottomSheet";
 import {useAssetPicker} from "@/src/hooks/useMediaPicker";
+import {useFocusEffect} from "expo-router";
+import {useCallback, useRef} from "react";
+import {InitiateTransactionApi, GetTransactionStatusApi} from "@/src/api/user_payment/transaction";
 import AddExpenseScreen from '@/src/screens/expense/AddExpense';
 import AddTransfer from '@/src/screens/expense/AddTransfer';
 import {themeStore} from "@/src/store/themeStore";
@@ -69,6 +72,82 @@ const AddTransactionScreen = () => {
         }
         return null;
     }, [expenseDraft.validationErrors, activeTab]);
+
+    // Store ongoing transaction ID to fetch status when screen regains focus
+    const pendingTransactionIdRef = useRef<string | null>(null);
+    const [isInitiatingPayment, setIsInitiatingPayment] = useState(false);
+
+    // Checks status whenever user returns to AddTransactionScreen after payment
+    useFocusEffect(
+        useCallback(() => {
+            const checkStatusOnReturn = async () => {
+                const txId = pendingTransactionIdRef.current;
+                if (!txId) return;
+
+                pendingTransactionIdRef.current = null;
+
+                try {
+                    const response = await GetTransactionStatusApi(txId);
+                    if (response && "data" in response && response.data) {
+                        const tx = response.data;
+                        Alert.alert(
+                            "Transaction Status",
+                            `Status: ${tx.status}\nAmount: ₹${tx.amount}\nReference ID: ${tx.id}${
+                                tx.failure_reason_raw ? `\nReason: ${tx.failure_reason_raw}` : ""
+                            }`
+                        );
+                    }
+                } catch (error: any) {
+                    console.error("Status Check Error:", error);
+                }
+            };
+
+            checkStatusOnReturn();
+        }, [])
+    );
+
+    const handleInitiatePaymentAndNavigate = async () => {
+        // 1. Validate transfer draft fields first
+        if (!transferDraft.recipient || transferDraft.amount <= 0) {
+            Alert.alert("Invalid Details", "Please select a recipient and enter a valid amount before proceeding to pay.");
+            return;
+        }
+
+        setIsInitiatingPayment(true);
+        try {
+            const clientReferenceId = `REQ_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+            const response = await InitiateTransactionApi({
+                client_reference_id: clientReferenceId,
+                user_id: Number(transferDraft.recipient.id),
+                user_type: transferDraft.recipient.user_type,
+                amount: transferDraft.amount,
+                currency: transferDraft.currency,
+            });
+
+            if (response && "data" in response && response.data) {
+                const transactionId = response.data.id;
+                pendingTransactionIdRef.current = transactionId;
+
+                // Push to dedicated payment route with draft parameters
+                router.push({
+                    pathname: "/(authenticated)/payment/user/transfer",
+                    params: {
+                        transactionId: transactionId,
+                        amount: transferDraft.amount.toString(),
+                        userId: transferDraft.recipient.id,
+                        userType: transferDraft.recipient.user_type,
+                    },
+                });
+            } else {
+                Alert.alert("Error", response?.message || "Failed to initiate transaction.");
+            }
+        } catch (error: any) {
+            Alert.alert("Error", error?.message || "An unexpected error occurred.");
+        } finally {
+            setIsInitiatingPayment(false);
+        }
+    };
 
     const handleTabChange = (tab: 'expense' | 'transfer') => {
         setActiveTab(tab);
@@ -230,53 +309,85 @@ const AddTransactionScreen = () => {
                         </View>
 
                         {/* Fixed Bottom Layout Toolbar Footer */}
-                        <View className="absolute bottom-0 w-full bg-bg-primary pt-4 pb-10 px-6 rounded-t-[40px] shadow-2xl border-t border-bg-secondary-lighter">
+                        {/* Fixed Bottom Layout Toolbar Footer */}
+                        <View
+                            className="absolute bottom-0 w-full bg-bg-primary pt-4 pb-10 px-6 rounded-t-[40px] shadow-2xl border-t border-bg-secondary-lighter">
                             <View className="flex-row justify-between items-center mb-6">
                                 <Pressable onPress={() => setShowDatePicker(true)}
                                            className="flex-row items-center bg-bg-canvas rounded-full px-5 py-2 active:opacity-80">
                                     <Iconify icon="heroicons:calendar" size={18} color={COLORS.color_red_decrease}/>
-                                    <AppText variant="body-base" className="ml-2 text-text-primary font-bold">{readableDate}</AppText>
+                                    <AppText variant="body-base"
+                                             className="ml-2 text-text-primary font-bold">{readableDate}</AppText>
                                 </Pressable>
 
-                                {/* 👈 CLEAN GENERIC MODAL TRIPPED ON CLICKS */}
-                                {(expenseDraft.isValidating || isLocalValidating) ? (
-                                    <View className="flex-row items-center space-x-1">
-                                        <ActivityIndicator size="small" color="#9CA3AF" />
-                                        <AppText variant="caption-xs" className="text-text-secondary font-medium">Checking group...</AppText>
-                                    </View>
-                                ) : activeValidationContent ? (
-                                    activeValidationContent.type === 'ERROR' ? (
-                                        <Pressable
-                                            onPress={() => setValidationModalVisible(true)}
-                                            className="flex-row items-center space-x-1 bg-red-500/10 dark:bg-red-500/20 px-3 py-1.5 rounded-xl max-w-[55%] active:opacity-70"
-                                        >
-                                            <Iconify icon="heroicons:exclamation-circle" size={14} color="#EF4444" />
-                                            <AppText variant="caption-xs" className="text-red-600 dark:text-red-400 font-semibold mr-1" numberOfLines={1}>
-                                                {activeValidationContent.payload?.message}
-                                            </AppText>
-                                            <Iconify icon="heroicons:information-circle" size={14} color="#EF4444" />
-                                        </Pressable>
-                                    ) : (
-                                        <Pressable
-                                            onPress={() => setValidationModalVisible(true)}
-                                            className="flex-row items-center space-x-1 bg-amber-500/10 dark:bg-amber-500/20 px-3 py-1.5 rounded-xl max-w-[55%] active:opacity-70"
-                                        >
-                                            <Iconify icon="heroicons:exclamation-triangle" size={14} color="#D97706" />
-                                            <AppText variant="caption-xs" className="text-amber-700 dark:text-amber-400 font-bold mr-1 flex-1" numberOfLines={1}>
-                                                {activeValidationContent.payload?.message}
-                                            </AppText>
-                                            <Iconify icon="heroicons:information-circle" size={14} color="#D97706" />
-                                        </Pressable>
-                                    )
-                                ) : (
-                                    <View className="flex-row items-center space-x-1 bg-emerald-500/10 px-3 py-1.5 rounded-xl">
-                                        <Iconify icon="heroicons:check-circle" size={14} color="#10B981" />
-                                        <AppText variant="caption-xs" className="text-emerald-600 dark:text-emerald-400 font-medium">Ready</AppText>
-                                    </View>
+                                {activeTab === 'expense' && (
+                                    <>
+                                        {(expenseDraft.isValidating || isLocalValidating) ? (
+                                            <View className="flex-row items-center space-x-1">
+                                                <ActivityIndicator size="small" color="#9CA3AF"/>
+                                                <AppText variant="caption-xs"
+                                                         className="text-text-secondary font-medium">Checking
+                                                    group...</AppText>
+                                            </View>
+                                        ) : activeValidationContent ? (
+                                            <Pressable
+                                                onPress={() => setValidationModalVisible(true)}
+                                                className={`flex-row items-center space-x-1 px-3 py-1.5 rounded-xl max-w-[55%] active:opacity-70 ${
+                                                    activeValidationContent.type === 'ERROR' ? 'bg-red-500/10 dark:bg-red-500/20' : 'bg-amber-500/10 dark:bg-amber-500/20'
+                                                }`}
+                                            >
+                                                {activeValidationContent.type === 'ERROR' ? (
+                                                    <Iconify
+                                                        icon="heroicons:exclamation-circle"
+                                                        size={14}
+                                                        color="#EF4444"
+                                                    />
+                                                ) : (
+                                                    <Iconify
+                                                        icon="heroicons:exclamation-triangle"
+                                                        size={14}
+                                                        color="#D97706"
+                                                    />
+                                                )}
+                                                <AppText variant="caption-xs" className={`font-semibold mr-1 flex-1 ${
+                                                    activeValidationContent.type === 'ERROR' ? 'text-red-600 dark:text-red-400' : 'text-amber-700 dark:text-amber-400'
+                                                }`} numberOfLines={1}>
+                                                    {activeValidationContent.payload?.message}
+                                                </AppText>
+                                            </Pressable>
+                                        ) : (
+                                            <View
+                                                className="flex-row items-center space-x-1 bg-emerald-500/10 px-3 py-1.5 rounded-xl">
+                                                <Iconify icon="heroicons:check-circle" size={14} color="#10B981"/>
+                                                <AppText variant="caption-xs"
+                                                         className="text-emerald-600 dark:text-emerald-400 font-medium">Ready</AppText>
+                                            </View>
+                                        )}
+                                    </>
                                 )}
                             </View>
 
-                            <AppButton variant="primary" size="lg" onPress={handleSubmitData}>SUBMIT</AppButton>
+                            {activeTab === 'expense' ? (
+                                <AppButton variant="primary" size="lg" onPress={handleSubmitData}>SUBMIT</AppButton>
+                            ) : (
+                                <View className="space-y-3">
+                                    <AppButton
+                                        variant="primary"
+                                        size="lg"
+                                        onPress={handleInitiatePaymentAndNavigate}
+                                        disabled={isInitiatingPayment}
+                                    >
+                                        {isInitiatingPayment ? "INITIATING..." : `PAY NOW (${transferDraft.currency} ${transferDraft.amount})`}
+                                    </AppButton>
+                                    <AppButton
+                                        variant="outline"
+                                        size="md"
+                                        onPress={handleSubmitData}
+                                    >
+                                        RECORD ONLY (NO PAYMENT)
+                                    </AppButton>
+                                </View>
+                            )}
                         </View>
                     </View>
 

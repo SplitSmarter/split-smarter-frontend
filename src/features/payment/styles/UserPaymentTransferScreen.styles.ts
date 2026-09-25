@@ -1,11 +1,23 @@
-import { StyleSheet } from "react-native";
-import { BRAND_COLORS, ThemeColors } from "@/src/features/payment/constants/theme";
+import {StyleSheet} from "react-native";
+import {BRAND_COLORS, ThemeColors} from "../constants/theme";
 
 export const createStyles = (colors: ThemeColors) =>
     StyleSheet.create({
         container: {
             flex: 1,
             backgroundColor: colors.bgCanvas,
+        },
+        center: {
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+            backgroundColor: colors.bgCanvas,
+        },
+        loadingText: {
+            marginTop: 14,
+            fontSize: 15,
+            color: colors.textSecondary,
+            fontWeight: "500",
         },
         gradientBg: {
             position: "absolute",
@@ -57,9 +69,9 @@ export const createStyles = (colors: ThemeColors) =>
         },
         glassSelected: {
             borderColor: colors.glassBorderSelected,
-            shadowColor: BRAND_COLORS.primaryGreen,
+            shadowColor: BRAND_COLORS.accentBlue,
             shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.25,
+            shadowOpacity: 0.20,
             shadowRadius: 10,
         },
         glassContent: {
@@ -82,6 +94,17 @@ export const createStyles = (colors: ThemeColors) =>
             borderRadius: 20,
             backgroundColor: colors.navBtnBg,
         },
+        cancelBtnBlur: {
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            borderRadius: 20,
+            backgroundColor: "rgba(250, 82, 82, 0.12)",
+        },
+        cancelBtnText: {
+            color: "#FA5252",
+            fontSize: 13,
+            fontWeight: "700",
+        },
         headerTitle: {
             fontSize: 17,
             fontWeight: "700",
@@ -99,9 +122,15 @@ export const createStyles = (colors: ThemeColors) =>
             overflow: "hidden",
             elevation: 8,
             shadowColor: BRAND_COLORS.primaryGreen,
-            shadowOffset: { width: 0, height: 6 },
+            shadowOffset: {width: 0, height: 6},
             shadowOpacity: 0.35,
             shadowRadius: 12,
+            backgroundColor: BRAND_COLORS.primaryGreen,
+        },
+        payeeAvatarImage: {
+            width: 76,
+            height: 76,
+            borderRadius: 38,
         },
         avatarText: {
             fontSize: 26,
@@ -140,6 +169,12 @@ export const createStyles = (colors: ThemeColors) =>
             color: colors.textPrimary,
             textAlign: "center",
         },
+        txnRefText: {
+            fontSize: 11,
+            color: colors.textSubtle,
+            marginTop: 6,
+            textAlign: "center",
+        },
         // List Card Common Row
         cardRow: {
             flexDirection: "row",
@@ -163,17 +198,26 @@ export const createStyles = (colors: ThemeColors) =>
             fontSize: 12,
             color: colors.textMuted,
         },
-        addBankBtn: {
-            flexDirection: "row",
-            alignItems: "center",
-            paddingVertical: 10,
-            paddingHorizontal: 6,
+        // UPI App Row
+        appIconImage: {
+            width: 36,
+            height: 36,
+            borderRadius: 10,
         },
-        addBankText: {
+        appIconPlaceholder: {
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            backgroundColor: colors.navBtnBg,
+        },
+        emptyUpiContainer: {
+            padding: 16,
+            alignItems: "center",
+        },
+        emptyUpiText: {
             fontSize: 13,
-            fontWeight: "600",
-            color: BRAND_COLORS.primaryGreenLight,
-            marginLeft: 8,
+            color: colors.textMuted,
+            textAlign: "center",
         },
         // Footer
         footerContainer: {
@@ -210,7 +254,7 @@ export const createStyles = (colors: ThemeColors) =>
             alignItems: "center",
             justifyContent: "center",
             shadowColor: BRAND_COLORS.primaryGreen,
-            shadowOffset: { width: 0, height: 6 },
+            shadowOffset: {width: 0, height: 6},
             shadowOpacity: 0.35,
             shadowRadius: 12,
         },

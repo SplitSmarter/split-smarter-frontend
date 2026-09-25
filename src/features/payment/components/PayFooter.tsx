@@ -10,6 +10,7 @@ import { createStyles } from "../styles/UserPaymentTransferScreen.styles";
 interface PayFooterProps {
     amount: string;
     isProcessing: boolean;
+    selectedAppName?: string;
     colors: ThemeColors;
     animatedButtonStyle: any;
     onPay: () => void;
@@ -18,11 +19,13 @@ interface PayFooterProps {
 export const PayFooter: React.FC<PayFooterProps> = ({
                                                         amount,
                                                         isProcessing,
+                                                        selectedAppName,
                                                         colors,
                                                         animatedButtonStyle,
                                                         onPay,
                                                     }) => {
     const styles = createStyles(colors);
+    const formattedAmount = parseFloat(amount || "0").toFixed(2);
 
     return (
         <View style={styles.footerContainer}>
@@ -51,7 +54,9 @@ export const PayFooter: React.FC<PayFooterProps> = ({
                                 <ActivityIndicator color="#FFFFFF" />
                             ) : (
                                 <View style={styles.payBtnTextWrapper}>
-                                    <Text style={styles.payBtnText}>PAY ₹{amount}</Text>
+                                    <Text style={styles.payBtnText}>
+                                        PAY ₹{formattedAmount} {selectedAppName ? `VIA ${selectedAppName.toUpperCase()}` : ""}
+                                    </Text>
                                     <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={{ marginLeft: 6 }} />
                                 </View>
                             )}

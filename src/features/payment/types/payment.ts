@@ -1,14 +1,17 @@
-export interface VpaOption {
-    id: string;
-    vpa: string;
-    officialName: string;
-    isVerified: boolean;
+import { UserPaymentAccountItemDTO } from '@/src/api/dto/user_payments/account';
+import { UPIInstalledApp } from '@/src/utils/upiNativeModule';
+
+export interface PayeeEntity {
+    name: string;
+    iconUrl?: string | null;
 }
 
-export interface PaymentSource {
-    id: string;
-    bankName: string;
-    accountMask: string;
-    type: "bank" | "card";
-    accentColor: string;
+export interface ScreenRouteParams {
+    transactionId: string;
+    amount?: string;
+    userId?: string;
+    userType?: string;
+    merchantId?: string;
 }
+
+export type { UserPaymentAccountItemDTO, UPIInstalledApp };

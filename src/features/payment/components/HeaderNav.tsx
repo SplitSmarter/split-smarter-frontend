@@ -8,26 +8,26 @@ import { createStyles } from "../styles/UserPaymentTransferScreen.styles";
 
 interface HeaderNavProps {
     colors: ThemeColors;
-    onBack: () => void;
+    onCancel: () => void;
 }
 
-export const HeaderNav: React.FC<HeaderNavProps> = ({ colors, onBack }) => {
+export const HeaderNav: React.FC<HeaderNavProps> = ({ colors, onCancel }) => {
     const styles = createStyles(colors);
 
-    const handleBackPress = () => {
+    const handleCancelPress = () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        onBack();
+        onCancel();
     };
 
     return (
         <View style={styles.headerNav}>
-            <TouchableOpacity onPress={handleBackPress} style={styles.iconBtn}>
-                <BlurView intensity={30} tint={colors.blurTint} style={styles.iconBlur}>
-                    <Ionicons name="arrow-back" size={20} color={colors.textPrimary} />
+            <TouchableOpacity onPress={handleCancelPress} style={styles.iconBtn}>
+                <BlurView intensity={30} tint={colors.blurTint} style={styles.cancelBtnBlur}>
+                    <Text style={styles.cancelBtnText}>✕ Cancel</Text>
                 </BlurView>
             </TouchableOpacity>
 
-            <Text style={styles.headerTitle}>Send Money</Text>
+            <Text style={styles.headerTitle}>Checkout</Text>
 
             <TouchableOpacity style={styles.iconBtn}>
                 <BlurView intensity={30} tint={colors.blurTint} style={styles.iconBlur}>

@@ -23,13 +23,7 @@ export const GlassCard: React.FC<GlassCardProps> = ({
     const styles = createStyles(colors);
 
     return (
-        <View
-            style={[
-                styles.glassBase,
-                isSelected && styles.glassSelected,
-                style,
-            ]}
-        >
+        <View style={[styles.glassBase, isSelected && styles.glassSelected, style]}>
             <BlurView intensity={35} tint={colors.blurTint} style={{ width: "100%" }}>
                 <LinearGradient
                     colors={isSelected ? colors.glassGradientSelected : colors.glassGradient}
