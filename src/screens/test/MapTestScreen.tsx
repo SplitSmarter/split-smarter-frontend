@@ -1,4 +1,4 @@
-import React, {useCallback, useMemo, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
     View,
     Pressable,
@@ -10,6 +10,7 @@ import MapView, {
     Marker,
     Circle,
     Polyline,
+    Polygon,
     Heatmap,
     PROVIDER_GOOGLE,
     Region,
@@ -35,117 +36,165 @@ import {
     MapCluster,
     aggregateVenues,
     clusterVenues,
-    dayKey,
     filterTxns,
     formatINR,
     isCoordInRegion,
-    neighborhoodTotals,
     trailDays,
     tripSpend,
     visitCountsFrom,
-    weekdayHourPeak,
 } from '@/src/screens/test/spatial-map/spatialMapUtils';
 
-type MarkerMode = 'all' | 'frequent' | 'unique';
+type MapMode = 'spots' | 'heatmap' | 'trail' | 'trips';
+type MarkerFilter = 'all' | 'frequent' | 'unique';
 type SheetTarget =
-    | {kind: 'venue'; venue: VenueAgg}
-    | {kind: 'cluster'; cluster: MapCluster};
+    | { kind: 'venue'; venue: VenueAgg }
+    | { kind: 'cluster'; cluster: MapCluster };
 
 const TRAIL_COLOR = '#F4C15D';
+const DEBOUNCE_MS = 150;
+
+function getConvexHull(points: { latitude: number; longitude: number }[]) {
+    if (points.length < 3) return points;
+    const sorted = [...points].sort((a, b) =>
+        a.longitude === b.longitude ? a.latitude - b.latitude : a.longitude - b.longitude,
+    );
+    const crossProduct = (
+        o: { latitude: number; longitude: number },
+        a: { latitude: number; longitude: number },
+        b: { latitude: number; longitude: number },
+    ) => (a.longitude - o.longitude) * (b.latitude - o.latitude) - (a.latitude - o.latitude) * (b.longitude - o.longitude);
+
+    const lower: { latitude: number; longitude: number }[] = [];
+    for (const p of sorted) {
+        while (lower.length >= 2 && crossProduct(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) {
+            lower.pop();
+        }
+        lower.push(p);
+    }
+    const upper: { latitude: number; longitude: number }[] = [];
+    for (let i = sorted.length - 1; i >= 0; i--) {
+        const p = sorted[i];
+        while (upper.length >= 2 && crossProduct(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) {
+            upper.pop();
+        }
+        upper.push(p);
+    }
+    upper.pop();
+    lower.pop();
+    return lower.concat(upper);
+}
 
 export function RegionalExpenseMap() {
     const isDark = themeStore((s) => s.theme === 'dark');
     const insets = useSafeAreaInsets();
     const mapRef = useRef<MapView>(null);
 
-    const [region, setRegion] = useState<Region>(BANGALORE_REGION);
+    // Active View Mode Switch (Isolates renders to prevent visual clutter)
+    const [mapMode, setMapMode] = useState<MapMode>('spots');
+
+    // Camera & Computation States
+    const [currentRegion, setCurrentRegion] = useState<Region>(BANGALORE_REGION);
+    const [computedRegion, setComputedRegion] = useState<Region>(BANGALORE_REGION);
+    const [hasUnsearchedMovement, setHasUnsearchedMovement] = useState(false);
+
+    // Filters
     const [monthId, setMonthId] = useState<string>('all');
-    const [markerMode, setMarkerMode] = useState<MarkerMode>('all');
+    const [markerFilter, setMarkerFilter] = useState<MarkerFilter>('all');
     const [trailDate, setTrailDate] = useState<string | null>('2026-09-18');
-    const [showHabit, setShowHabit] = useState(true);
+    const [showHabitRadius, setShowHabitRadius] = useState(false);
     const [sheet, setSheet] = useState<SheetTarget | null>(null);
     const [tripId, setTripId] = useState<string | null>(null);
+    const [showLayerMenu, setShowLayerMenu] = useState(false);
 
+    const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+
+    // Data Aggregation
     const visitCounts = useMemo(() => visitCountsFrom(DUMMY_TXNS), []);
     const scopedTxns = useMemo(
-        () => filterTxns(DUMMY_TXNS, monthId, markerMode, visitCounts),
-        [monthId, markerMode, visitCounts],
+        () => filterTxns(DUMMY_TXNS, monthId, markerFilter, visitCounts),
+        [monthId, markerFilter, visitCounts],
     );
 
     const visibleTxns = useMemo(
-        () => scopedTxns.filter((t) => isCoordInRegion(t.latitude, t.longitude, region)),
-        [scopedTxns, region],
+        () => scopedTxns.filter((t) => isCoordInRegion(t.latitude, t.longitude, computedRegion)),
+        [scopedTxns, computedRegion],
     );
 
     const visibleVenues = useMemo(() => aggregateVenues(visibleTxns), [visibleTxns]);
-    const clusters = useMemo(() => clusterVenues(visibleVenues, region), [visibleVenues, region]);
-    const showVenuePins = region.latitudeDelta < 0.035;
+    const clusters = useMemo(() => clusterVenues(visibleVenues, computedRegion), [visibleVenues, computedRegion]);
+    const isMicroView = computedRegion.latitudeDelta < 0.035;
 
-    const visibleTotal = useMemo(
-        () => visibleTxns.reduce((s, t) => s + t.amount, 0),
+    const visibleTotal = useMemo(() => visibleTxns.reduce((s, t) => s + t.amount, 0), [visibleTxns]);
+    const days = useMemo(() => trailDays(scopedTxns), [scopedTxns]);
+    const activeTrail = useMemo(() => {
+        const raw = days.find((d) => d.date === trailDate)?.txns ?? [];
+        return raw.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+    }, [days, trailDate]);
+
+    // Heatmap Points
+    const heatPoints = useMemo(
+        () =>
+            visibleTxns.map((t) => ({
+                latitude: t.latitude,
+                longitude: t.longitude,
+                weight: Math.max(1, t.amount / 300),
+            })),
         [visibleTxns],
     );
 
-    const peak = useMemo(() => weekdayHourPeak(visibleTxns), [visibleTxns]);
-    const zones = useMemo(() => neighborhoodTotals(visibleTxns).slice(0, 3), [visibleTxns]);
-    const topMerchants = visibleVenues.slice(0, 3);
-    const days = useMemo(() => trailDays(scopedTxns), [scopedTxns]);
-    const activeTrail = days.find((d) => d.date === trailDate)?.txns ?? [];
-
-    const heatPoints = useMemo(
-        () =>
-            scopedTxns
-                .filter((t) => isCoordInRegion(t.latitude, t.longitude, region))
-                .map((t) => ({
-                    latitude: t.latitude,
-                    longitude: t.longitude,
-                    weight: Math.max(1, t.amount / 400),
-                })),
-        [scopedTxns, region],
-    );
-
+    // Trip Memory Convex Hull
     const selectedTrip = TRIPS.find((t) => t.id === tripId) ?? null;
     const selectedTripStats = selectedTrip ? tripSpend(DUMMY_TXNS, selectedTrip.id) : null;
+    const selectedTripHull = useMemo(() => {
+        if (!selectedTripStats) return [];
+        return getConvexHull(selectedTripStats.list.map((t) => ({latitude: t.latitude, longitude: t.longitude})));
+    }, [selectedTripStats]);
 
-    const onRegionChangeComplete = useCallback((next: Region) => setRegion(next), []);
+    // Region Change Handlers
+    const onRegionChange = useCallback((next: Region) => {
+        setCurrentRegion(next);
+    }, []);
+
+    const onRegionChangeComplete = useCallback((next: Region) => {
+        setCurrentRegion(next);
+        if (debounceTimer.current) clearTimeout(debounceTimer.current);
+
+        debounceTimer.current = setTimeout(() => {
+            const latDiff = Math.abs(next.latitude - computedRegion.latitude);
+            const lngDiff = Math.abs(next.longitude - computedRegion.longitude);
+            if (latDiff > next.latitudeDelta * 0.3 || lngDiff > next.longitudeDelta * 0.3) {
+                setHasUnsearchedMovement(true);
+            } else {
+                setComputedRegion(next);
+            }
+        }, DEBOUNCE_MS);
+    }, [computedRegion]);
+
+    const executeRecalculation = useCallback(() => {
+        setComputedRegion(currentRegion);
+        setHasUnsearchedMovement(false);
+    }, [currentRegion]);
 
     const recenter = useCallback(() => {
-        mapRef.current?.animateToRegion(BANGALORE_REGION, 650);
+        mapRef.current?.animateToRegion(BANGALORE_REGION, 600);
+        setComputedRegion(BANGALORE_REGION);
+        setHasUnsearchedMovement(false);
     }, []);
 
     const flyToTrip = useCallback((id: string) => {
         const trip = TRIPS.find((t) => t.id === id);
         if (!trip) return;
-        mapRef.current?.animateToRegion(
-            {
-                latitude: trip.latitude,
-                longitude: trip.longitude,
-                latitudeDelta: 0.08,
-                longitudeDelta: 0.08,
-            },
-            800,
-        );
+        const regionToSet = {
+            latitude: trip.latitude,
+            longitude: trip.longitude,
+            latitudeDelta: 0.08,
+            longitudeDelta: 0.08,
+        };
+        mapRef.current?.animateToRegion(regionToSet, 700);
         setTripId(id);
+        setComputedRegion(regionToSet);
+        setHasUnsearchedMovement(false);
     }, []);
-
-    const openCluster = (cluster: MapCluster) => {
-        if (cluster.venues.length === 1) {
-            setSheet({kind: 'venue', venue: cluster.venues[0]});
-            return;
-        }
-        if (region.latitudeDelta > 0.04) {
-            mapRef.current?.animateToRegion(
-                {
-                    latitude: cluster.latitude,
-                    longitude: cluster.longitude,
-                    latitudeDelta: 0.025,
-                    longitudeDelta: 0.025,
-                },
-                400,
-            );
-        }
-        setSheet({kind: 'cluster', cluster});
-    };
 
     return (
         <View className="flex-1 bg-background">
@@ -160,13 +209,15 @@ export function RegionalExpenseMap() {
                 showsTraffic={false}
                 showsUserLocation={false}
                 rotateEnabled={false}
+                onRegionChange={onRegionChange}
                 onRegionChangeComplete={onRegionChangeComplete}
             >
-                {heatPoints.length > 0 && (
+                {/* MODE 1: HEATMAP LAYER ONLY */}
+                {mapMode === 'heatmap' && heatPoints.length > 0 && (
                     <Heatmap
                         points={heatPoints}
-                        radius={40}
-                        opacity={0.55}
+                        radius={50}
+                        opacity={0.7}
                         gradient={{
                             colors: ['#7CFFB2', '#F4C15D', '#FF7A45', '#E14B4B'],
                             startPoints: [0.1, 0.4, 0.7, 1],
@@ -175,216 +226,288 @@ export function RegionalExpenseMap() {
                     />
                 )}
 
-                {showHabit && (
+                {/* MODE 2: SPOTS VIEW (PINS & CLUSTERS) */}
+                {mapMode === 'spots' &&
+                    (isMicroView
+                        ? visibleVenues.map((venue) => (
+                            <OptimizedMarker
+                                key={venue.venueId}
+                                coordinate={{latitude: venue.latitude, longitude: venue.longitude}}
+                                onPress={() => setSheet({kind: 'venue', venue})}
+                            >
+                                <CategoryPin venue={venue}/>
+                            </OptimizedMarker>
+                        ))
+                        : clusters.map((cluster) => (
+                            <OptimizedMarker
+                                key={cluster.id}
+                                coordinate={{latitude: cluster.latitude, longitude: cluster.longitude}}
+                                onPress={() => {
+                                    if (cluster.venues.length === 1) {
+                                        setSheet({kind: 'venue', venue: cluster.venues[0]});
+                                    } else {
+                                        setSheet({kind: 'cluster', cluster});
+                                    }
+                                }}
+                            >
+                                <ClusterPin cluster={cluster}/>
+                            </OptimizedMarker>
+                        )))}
+
+                {/* MODE 3: DAILY TRAIL VIEW */}
+                {/* MODE 3: DAILY TRAIL VIEW */}
+                {mapMode === 'trail' && activeTrail.length > 0 && (
+                    <>
+                        {/* Polyline Path */}
+                        {activeTrail.length > 1 && (
+                            <Polyline
+                                coordinates={activeTrail.map((t) => ({
+                                    latitude: t.latitude,
+                                    longitude: t.longitude,
+                                }))}
+                                strokeColor={TRAIL_COLOR}
+                                strokeWidth={3.5}
+                                lineDashPattern={[6, 3]}
+                            />
+                        )}
+
+                        {/* Sequential Sequence Markers */}
+                        {activeTrail.map((txn, idx) => (
+                            <Marker
+                                key={`trail-pin-${txn.id}`}
+                                coordinate={{latitude: txn.latitude, longitude: txn.longitude}}
+                                anchor={{x: 0.5, y: 0.5}}
+                                tracksViewChanges={false}
+                                onPress={() => {
+                                    const venue = visibleVenues.find((v) => v.venueName === txn.venueName);
+                                    if (venue) setSheet({kind: 'venue', venue});
+                                }}
+                            >
+                                <NumberedTrailBadge
+                                    step={idx + 1}
+                                    total={activeTrail.length}
+                                    timestamp={txn.at}
+                                    venueName={txn.venueName}
+                                    isFirst={idx === 0}
+                                    isLast={idx === activeTrail.length - 1}
+                                />
+                            </Marker>
+                        ))}
+                    </>
+                )}
+
+                {/* MODE 4: TRIPS & CONVEX HULL */}
+                {mapMode === 'trips' && (
+                    <>
+                        {selectedTripHull.length >= 3 && (
+                            <Polygon
+                                coordinates={selectedTripHull}
+                                fillColor="rgba(244, 193, 93, 0.2)"
+                                strokeColor="#F4C15D"
+                                strokeWidth={2}
+                            />
+                        )}
+                        {TRIPS.map((trip) => (
+                            <Marker
+                                key={trip.id}
+                                coordinate={{latitude: trip.latitude, longitude: trip.longitude}}
+                                onPress={() => flyToTrip(trip.id)}
+                                tracksViewChanges={false}
+                            >
+                                <View className="rounded-2xl bg-[#1A1A1A] px-3 py-1.5 border border-[#F4C15D]">
+                                    <AppText variant="body-xs" className="text-[#F4C15D] font-bold">
+                                        ✈ {trip.city}
+                                    </AppText>
+                                </View>
+                            </Marker>
+                        ))}
+                    </>
+                )}
+
+                {/* OPTIONAL: HABIT RADIUS */}
+                {showHabitRadius && (
                     <Circle
                         center={HOME}
                         radius={HABIT_RADIUS_M}
-                        strokeColor="rgba(45,138,91,0.55)"
-                        fillColor="rgba(45,138,91,0.10)"
+                        strokeColor="rgba(45,138,91,0.6)"
+                        fillColor="rgba(45,138,91,0.1)"
                         strokeWidth={2}
                     />
                 )}
-
-                {!showVenuePins &&
-                    clusters.map((cluster) => (
-                        <Circle
-                            key={`blob-${cluster.id}`}
-                            center={{latitude: cluster.latitude, longitude: cluster.longitude}}
-                            radius={Math.min(1800, 500 + cluster.amount / 8)}
-                            strokeColor="rgba(224,122,61,0.0)"
-                            fillColor="rgba(224,122,61,0.18)"
-                        />
-                    ))}
-
-                {activeTrail.length > 1 && (
-                    <Polyline
-                        coordinates={activeTrail.map((t) => ({
-                            latitude: t.latitude,
-                            longitude: t.longitude,
-                        }))}
-                        strokeColor={TRAIL_COLOR}
-                        strokeWidth={4}
-                        lineDashPattern={[1, 0]}
-                    />
-                )}
-
-                {showVenuePins
-                    ? visibleVenues.map((venue) => (
-                          <Marker
-                              key={venue.venueId}
-                              coordinate={{latitude: venue.latitude, longitude: venue.longitude}}
-                              onPress={() => setSheet({kind: 'venue', venue})}
-                              tracksViewChanges={false}
-                              anchor={{x: 0.5, y: 0.5}}
-                          >
-                              <CategoryPin venue={venue} pulse={venue.visits >= 3} />
-                          </Marker>
-                      ))
-                    : clusters.map((cluster) => (
-                          <Marker
-                              key={cluster.id}
-                              coordinate={{latitude: cluster.latitude, longitude: cluster.longitude}}
-                              onPress={() => openCluster(cluster)}
-                              tracksViewChanges={false}
-                              anchor={{x: 0.5, y: 1}}
-                          >
-                              <ClusterPin cluster={cluster} />
-                          </Marker>
-                      ))}
-
-                {TRIPS.map((trip) => {
-                    if (!isCoordInRegion(trip.latitude, trip.longitude, region) && region.latitudeDelta < 8) {
-                        return null;
-                    }
-                    return (
-                        <Marker
-                            key={trip.id}
-                            coordinate={{latitude: trip.latitude, longitude: trip.longitude}}
-                            onPress={() => setTripId(trip.id)}
-                            tracksViewChanges={false}
-                        >
-                            <View className="rounded-2xl bg-[#1A1A1A] px-2.5 py-1.5 border border-[#F4C15D]">
-                                <AppText variant="body-xs" className="text-[#F4C15D] font-bold">
-                                    ✈ {trip.city}
-                                </AppText>
-                            </View>
-                        </Marker>
-                    );
-                })}
             </MapView>
 
-            <View style={{paddingTop: insets.top + 8}} pointerEvents="box-none" className="absolute left-0 right-0 top-0">
-                <View className="mx-3 rounded-2xl bg-black/70 px-4 py-3">
-                    <AppText variant="body-xs" className="text-white/70">
-                        Visible map area
-                    </AppText>
-                    <AppText variant="h4" className="text-white font-bold mt-0.5">
-                        {formatINR(visibleTotal)} across {visibleTxns.length} transaction
-                        {visibleTxns.length === 1 ? '' : 's'}
-                    </AppText>
-                    {peak && (
-                        <AppText variant="body-xs" className="text-[#F4C15D] mt-1">
-                            {peak.copy}
+            {/* TOP HEADER & MODE SWITCHER */}
+            <View style={{paddingTop: insets.top + 8}} pointerEvents="box-none"
+                  className="absolute left-0 right-0 top-0 items-center px-3">
+                {/* Manual Recalculate Trigger */}
+                {hasUnsearchedMovement && (
+                    <Pressable
+                        onPress={executeRecalculation}
+                        className="mb-2 rounded-full bg-[#2D8A5B] px-4 py-2 flex-row items-center shadow-lg border border-white/20"
+                    >
+                        <Iconify icon="heroicons:arrow-path" size={14} color="#FFFFFF" className="mr-1.5"/>
+                        <AppText variant="body-xs" className="text-white font-bold">
+                            Search Area
                         </AppText>
-                    )}
+                    </Pressable>
+                )}
+
+                {/* Compact Viewport Summary Card */}
+                <View
+                    className="rounded-2xl bg-black/80 px-4 py-2.5 self-stretch flex-row justify-between items-center border border-white/10">
+                    <View>
+                        <AppText variant="caption-xs" className="text-white/60">
+                            Visible Total
+                        </AppText>
+                        <AppText variant="body-base" className="text-white font-bold">
+                            {formatINR(visibleTotal)} ({visibleTxns.length})
+                        </AppText>
+                    </View>
+                    <Pressable
+                        onPress={() => setShowLayerMenu(true)}
+                        className="bg-white/10 p-2 rounded-xl flex-row items-center"
+                    >
+                        <Iconify icon="heroicons:adjustments-horizontal" size={18} color="#FFFFFF"/>
+                    </Pressable>
                 </View>
 
-                <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    className="mt-2"
-                    contentContainerStyle={styles.chipRow}
-                >
-                    {(['all', 'frequent', 'unique'] as MarkerMode[]).map((mode) => (
-                        <Chip
-                            key={mode}
-                            active={markerMode === mode}
-                            label={mode === 'all' ? 'All spots' : mode === 'frequent' ? 'Hubs' : 'Uncharted'}
-                            onPress={() => setMarkerMode(mode)}
-                        />
+                {/* Clean Layer Mode Switcher Bar */}
+                <View
+                    className="flex-row bg-black/85 rounded-full p-1 mt-2 self-stretch justify-between border border-white/10">
+                    {(
+                        [
+                            {id: 'spots', label: '📍 Spots'},
+                            {id: 'heatmap', label: '🔥 Heatmap'},
+                            {id: 'trail', label: '🛣️ Trail'},
+                            {id: 'trips', label: '✈️ Trips'},
+                        ] as const
+                    ).map((m) => (
+                        <Pressable
+                            key={m.id}
+                            onPress={() => setMapMode(m.id)}
+                            className={`flex-1 py-1.5 items-center rounded-full ${
+                                mapMode === m.id ? 'bg-[#2D8A5B]' : 'bg-transparent'
+                            }`}
+                        >
+                            <AppText
+                                variant="caption-xs"
+                                className={`font-semibold ${mapMode === m.id ? 'text-white' : 'text-white/60'}`}
+                            >
+                                {m.label}
+                            </AppText>
+                        </Pressable>
                     ))}
-                    <Chip active={showHabit} label="Habit radius" onPress={() => setShowHabit((v) => !v)} />
-                    {TRIPS.map((trip) => (
-                        <Chip
-                            key={trip.id}
-                            active={tripId === trip.id}
-                            label={`${trip.city} trip`}
-                            onPress={() => flyToTrip(trip.id)}
-                        />
-                    ))}
-                </ScrollView>
+                </View>
             </View>
 
-            <View className="absolute right-3" style={{top: insets.top + 118}}>
+            {/* FLOATING RECENTER FAB */}
+            <View className="absolute right-3" style={{top: insets.top + 128}}>
                 <Pressable
                     onPress={recenter}
-                    className="w-12 h-12 rounded-full bg-bg-primary-lighter dark:bg-bg-overlay items-center justify-center shadow-lg shadow-black/30 elevation-6"
+                    className="w-11 h-11 rounded-full bg-black/80 items-center justify-center border border-white/20 shadow-lg"
                 >
-                    <Iconify icon="heroicons:map-pin" size={22} color="#2D8A5B" />
+                    <Iconify icon="heroicons:map-pin" size={20} color="#2D8A5B"/>
                 </Pressable>
             </View>
 
-            {zones.length >= 2 && (
-                <View className="absolute left-3 right-16 rounded-2xl bg-black/65 px-3 py-2.5" style={{top: insets.top + 118}}>
-                    <AppText variant="body-xs" className="text-white/70 mb-1">
-                        Zone comparison
-                    </AppText>
-                    {zones.map((z, i) => (
-                        <View key={z.name} className="flex-row justify-between items-center">
-                            <AppText variant="body-xs" className="text-white">
-                                {i === 0 ? '▲' : i === 1 ? '◆' : '·'} {z.name}
-                            </AppText>
-                            <AppText variant="body-xs" className="text-white font-bold">
-                                {formatINR(z.amount)}
-                            </AppText>
-                        </View>
-                    ))}
-                </View>
-            )}
-
+            {/* BOTTOM CONTEXT & FILTER TRAY */}
             <View className="absolute left-0 right-0" style={{bottom: insets.bottom + 8}} pointerEvents="box-none">
-                {topMerchants.length > 0 && (
-                    <View className="mx-3 mb-2 rounded-2xl bg-black/70 px-3 py-2.5">
-                        <AppText variant="body-xs" className="text-white/70 mb-1">
-                            Top in this view
-                        </AppText>
-                        {topMerchants.map((m, i) => (
-                            <Pressable
-                                key={m.venueId}
-                                onPress={() => setSheet({kind: 'venue', venue: m})}
-                                className="flex-row items-center justify-between py-0.5"
-                            >
-                                <AppText variant="body-xs" className="text-white flex-1 pr-2">
-                                    {i + 1}. {CATEGORY_META[m.category].icon} {m.venueName}
-                                </AppText>
-                                <AppText variant="body-xs" className="text-[#F4C15D] font-bold">
-                                    {formatINR(m.amount)}
-                                </AppText>
-                            </Pressable>
-                        ))}
-                    </View>
-                )}
-
-                {days.length > 0 && (
+                {/* Trail Day Selector (Shown only in Trail Mode) */}
+                {mapMode === 'trail' && days.length > 0 && (
                     <ScrollView
                         horizontal
                         showsHorizontalScrollIndicator={false}
                         contentContainerStyle={styles.chipRow}
+                        className="mb-2"
                     >
-                        <Chip
-                            active={trailDate === null}
-                            label="Hide trail"
-                            onPress={() => setTrailDate(null)}
-                        />
                         {days.map((d) => (
                             <Chip
                                 key={d.date}
                                 active={trailDate === d.date}
-                                label={`Trail ${formatTrailDay(d.date)}`}
+                                label={formatTrailDay(d.date)}
                                 onPress={() => setTrailDate(d.date)}
                             />
                         ))}
                     </ScrollView>
                 )}
 
+                {/* Month Time-Period Filter */}
                 <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={styles.chipRow}
-                    className="mt-1"
                 >
                     {MONTH_FILTERS.map((m) => (
-                        <Chip key={m.id} active={monthId === m.id} label={m.label} onPress={() => setMonthId(m.id)} />
+                        <Chip key={m.id} active={monthId === m.id} label={m.label} onPress={() => setMonthId(m.id)}/>
                     ))}
                 </ScrollView>
             </View>
 
+            {/* LAYER OPTIONS BOTTOM SHEET */}
+            <AppBottomSheet
+                isVisible={showLayerMenu}
+                onClose={() => setShowLayerMenu(false)}
+                snapPoints={['38%']}
+            >
+                <AppText variant="h3" className="text-text-primary font-bold mb-4">
+                    Map Preferences
+                </AppText>
+
+                <AppText variant="body-xs" className="text-text-secondary font-bold uppercase mb-2">
+                    Filter Spots
+                </AppText>
+                <View className="flex-row gap-x-2 mb-5">
+                    {(
+                        [
+                            {id: 'all', label: 'All Spots'},
+                            {id: 'frequent', label: 'Frequent Hubs'},
+                            {id: 'unique', label: 'Uncharted'},
+                        ] as const
+                    ).map((f) => (
+                        <Pressable
+                            key={f.id}
+                            onPress={() => setMarkerFilter(f.id)}
+                            className={`px-3 py-2 rounded-xl border ${
+                                markerFilter === f.id ? 'bg-[#2D8A5B] border-[#2D8A5B]' : 'border-foreground/20'
+                            }`}
+                        >
+                            <AppText
+                                variant="body-xs"
+                                className={markerFilter === f.id ? 'text-white font-bold' : 'text-text-primary'}
+                            >
+                                {f.label}
+                            </AppText>
+                        </Pressable>
+                    ))}
+                </View>
+
+                <AppText variant="body-xs" className="text-text-secondary font-bold uppercase mb-2">
+                    Overlays
+                </AppText>
+                <Pressable
+                    onPress={() => setShowHabitRadius((v) => !v)}
+                    className="flex-row items-center justify-between py-3 border-t border-foreground/10"
+                >
+                    <AppText variant="body-base" className="text-text-primary">
+                        Show Habit Radius (2.5 km)
+                    </AppText>
+                    <View
+                        className={`w-6 h-6 rounded-md items-center justify-center ${
+                            showHabitRadius ? 'bg-[#2D8A5B]' : 'bg-foreground/10'
+                        }`}
+                    >
+                        {showHabitRadius && <Iconify icon="heroicons:check" size={16} color="#FFFFFF"/>}
+                    </View>
+                </Pressable>
+            </AppBottomSheet>
+
+            {/* DETAILS SHEET */}
             <AppBottomSheet
                 isVisible={!!sheet}
                 onClose={() => setSheet(null)}
                 snapPoints={['48%', '78%']}
             >
-                {sheet?.kind === 'venue' && <VenueSheet venue={sheet.venue} />}
+                {sheet?.kind === 'venue' && <VenueSheet venue={sheet.venue}/>}
                 {sheet?.kind === 'cluster' && (
                     <View>
                         <AppText variant="h3" className="text-text-primary font-bold mb-1">
@@ -416,10 +539,12 @@ export function RegionalExpenseMap() {
                 )}
             </AppBottomSheet>
 
+            {/* TRIP MEMORY MODAL */}
             <Modal visible={!!selectedTrip} transparent animationType="fade" onRequestClose={() => setTripId(null)}>
                 <Pressable className="flex-1 bg-black/50 justify-center px-6" onPress={() => setTripId(null)}>
                     {selectedTrip && selectedTripStats && (
-                        <Pressable className="rounded-3xl bg-[#1C1914] p-5 border border-[#F4C15D]/40" onPress={() => {}}>
+                        <Pressable className="rounded-3xl bg-[#1C1914] p-5 border border-[#F4C15D]/40" onPress={() => {
+                        }}>
                             <AppText variant="body-xs" className="text-[#F4C15D]">
                                 Trip memory
                             </AppText>
@@ -430,21 +555,6 @@ export function RegionalExpenseMap() {
                                 {formatINR(selectedTripStats.amount)} spent across {selectedTripStats.days} day
                                 {selectedTripStats.days === 1 ? '' : 's'}
                             </AppText>
-                            <AppText variant="body-small" className="text-[#F4C15D] mt-1">
-                                Top spot: {selectedTrip.topSpot}
-                            </AppText>
-                            <View className="mt-4 gap-y-2">
-                                {selectedTripStats.list.slice(0, 5).map((txn) => (
-                                    <View key={txn.id} className="flex-row justify-between">
-                                        <AppText variant="body-xs" className="text-white/85 flex-1 pr-2">
-                                            {CATEGORY_META[txn.category].icon} {txn.venueName}
-                                        </AppText>
-                                        <AppText variant="body-xs" className="text-white font-bold">
-                                            {formatINR(txn.amount)}
-                                        </AppText>
-                                    </View>
-                                ))}
-                            </View>
                             <Pressable
                                 onPress={() => setTripId(null)}
                                 className="mt-5 self-end rounded-full bg-[#F4C15D] px-4 py-2"
@@ -461,30 +571,125 @@ export function RegionalExpenseMap() {
     );
 }
 
-function CategoryPin({venue, pulse}: {venue: VenueAgg; pulse: boolean}) {
+// Marker component with view-tracking isolation
+function OptimizedMarker({
+                             coordinate,
+                             onPress,
+                             children,
+                         }: {
+    coordinate: { latitude: number; longitude: number };
+    onPress: () => void;
+    children: React.ReactNode;
+}) {
+    const [tracksView, setTracksView] = useState(true);
+
+    useEffect(() => {
+        setTracksView(true);
+        const timer = setTimeout(() => setTracksView(false), 200);
+        return () => clearTimeout(timer);
+    }, [coordinate]);
+
+    return (
+        <Marker coordinate={coordinate} onPress={onPress} tracksViewChanges={tracksView} anchor={{x: 0.5, y: 0.5}}>
+            {children}
+        </Marker>
+    );
+}
+
+function CategoryPin({venue}: { venue: VenueAgg }) {
     const meta = CATEGORY_META[venue.category];
-    const size = pulse ? 40 : venue.visits === 1 ? 30 : 34;
     return (
         <View
             style={{
-                width: size,
-                height: size,
-                borderRadius: size / 2,
+                width: 32,
+                height: 32,
+                borderRadius: 16,
                 backgroundColor: meta.color,
                 alignItems: 'center',
                 justifyContent: 'center',
-                borderWidth: pulse ? 3 : 2,
-                borderColor: pulse ? '#F4C15D' : '#FFFFFF',
+                borderWidth: 2,
+                borderColor: '#FFFFFF',
             }}
         >
-            <AppText style={{fontSize: pulse ? 16 : 13}}>{meta.icon}</AppText>
+            <AppText style={{fontSize: 13}}>{meta.icon}</AppText>
         </View>
     );
 }
 
-function ClusterPin({cluster}: {cluster: MapCluster}) {
+interface NumberedTrailBadgeProps {
+    step: number;
+    total: number;
+    timestamp: string;
+    venueName: string;
+    isFirst: boolean;
+    isLast: boolean;
+}
+
+function NumberedTrailBadge({
+                                step,
+                                timestamp,
+                                venueName,
+                                isFirst,
+                                isLast,
+                            }: NumberedTrailBadgeProps) {
+    const timeFormatted = new Date(timestamp).toLocaleTimeString('en-IN', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+    });
+
+    // Badge styling reflecting Start / In-Transit / End status
+    const badgeBg = isFirst ? '#2D8A5B' : isLast ? '#E14B4B' : '#1A1A1A';
+    const borderColor = isFirst ? '#7CFFB2' : isLast ? '#FF7A45' : '#F4C15D';
+
     return (
-        <View className="rounded-2xl bg-[#2D8A5B] px-2.5 py-1.5 items-center shadow-md">
+        <View className="items-center">
+            {/* Main Sequence Number Badge */}
+            <View
+                style={{
+                    backgroundColor: badgeBg,
+                    borderColor: borderColor,
+                }}
+                className="flex-row items-center rounded-full border-2 px-2.5 py-1 shadow-md"
+            >
+                {/* Step Number Circle */}
+                <View className="w-5 h-5 rounded-full bg-white/20 items-center justify-center mr-1.5">
+                    <AppText style={{fontSize: 10}} className="text-white font-extrabold">
+                        {step}
+                    </AppText>
+                </View>
+
+                {/* Status Indicator / Time */}
+                <View>
+                    <AppText style={{fontSize: 10}} className="text-white font-bold leading-tight">
+                        {isFirst ? 'START' : isLast ? 'END' : timeFormatted}
+                    </AppText>
+                </View>
+
+                {/* Direction indicator arrow for intermediate stops */}
+                {!isLast && (
+                    <Iconify
+                        icon="heroicons:arrow-right"
+                        size={12}
+                        color={borderColor}
+                        className="ml-1"
+                    />
+                )}
+            </View>
+
+            {/* Optional Small Venue Callout Label below step pin */}
+            <View className="mt-1 bg-black/80 px-2 py-0.5 rounded-md border border-white/10">
+                <AppText style={{fontSize: 9}} className="text-white/90 font-medium" numberOfLines={1}>
+                    {venueName}
+                </AppText>
+            </View>
+        </View>
+    );
+}
+
+function ClusterPin({cluster}: { cluster: MapCluster }) {
+    return (
+        <View className="rounded-2xl bg-[#2D8A5B] px-2.5 py-1 items-center shadow-md border border-white/20">
             <AppText variant="body-xs" className="text-white font-bold">
                 {cluster.label}
             </AppText>
@@ -495,11 +700,11 @@ function ClusterPin({cluster}: {cluster: MapCluster}) {
     );
 }
 
-function Chip({label, active, onPress}: {label: string; active: boolean; onPress: () => void}) {
+function Chip({label, active, onPress}: { label: string; active: boolean; onPress: () => void }) {
     return (
         <Pressable
             onPress={onPress}
-            className={`px-3 py-1.5 rounded-full mr-2 ${active ? 'bg-[#2D8A5B]' : 'bg-black/65'}`}
+            className={`px-3 py-1.5 rounded-full mr-2 ${active ? 'bg-[#2D8A5B]' : 'bg-black/75'}`}
         >
             <AppText variant="body-xs" className="text-white font-semibold">
                 {label}
@@ -508,7 +713,7 @@ function Chip({label, active, onPress}: {label: string; active: boolean; onPress
     );
 }
 
-function VenueSheet({venue}: {venue: VenueAgg}) {
+function VenueSheet({venue}: { venue: VenueAgg }) {
     const meta = CATEGORY_META[venue.category];
     return (
         <View>
@@ -517,7 +722,6 @@ function VenueSheet({venue}: {venue: VenueAgg}) {
             </AppText>
             <AppText variant="body-small" className="text-text-secondary mt-1 mb-4">
                 {venue.neighborhood} · {meta.label} · {venue.visits} visit{venue.visits === 1 ? '' : 's'}
-                {venue.visits >= 3 ? ' · Frequent hub' : venue.visits === 1 ? ' · Uncharted' : ''}
             </AppText>
             <AppText variant="h4" className="text-text-primary font-bold mb-3">
                 {formatINR(venue.amount)}
@@ -526,13 +730,13 @@ function VenueSheet({venue}: {venue: VenueAgg}) {
                 .slice()
                 .sort((a, b) => b.at.localeCompare(a.at))
                 .map((txn) => (
-                    <TxnRow key={txn.id} txn={txn} />
+                    <TxnRow key={txn.id} txn={txn}/>
                 ))}
         </View>
     );
 }
 
-function TxnRow({txn}: {txn: ExpenseTxn}) {
+function TxnRow({txn}: { txn: ExpenseTxn }) {
     const when = new Date(txn.at).toLocaleString('en-IN', {
         day: 'numeric',
         month: 'short',
@@ -548,23 +752,6 @@ function TxnRow({txn}: {txn: ExpenseTxn}) {
                 <AppText variant="body-small" className="text-text-primary font-bold">
                     {formatINR(txn.amount)}
                 </AppText>
-            </View>
-            <View className="flex-row mt-1 gap-x-2">
-                {txn.receipt && (
-                    <AppText variant="caption-xs" className="text-text-secondary">
-                        Receipt
-                    </AppText>
-                )}
-                {txn.split && (
-                    <AppText variant="caption-xs" className="text-[#2D8A5B]">
-                        Split bill
-                    </AppText>
-                )}
-                {txn.note && (
-                    <AppText variant="caption-xs" className="text-text-secondary">
-                        {txn.note}
-                    </AppText>
-                )}
             </View>
         </View>
     );

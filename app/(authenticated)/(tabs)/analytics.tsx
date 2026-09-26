@@ -1,5 +1,5 @@
 import React from "react";
-import {RegionalExpenseMap} from "@/src/screens/test/MapTestScreen";
+import {RegionalExpenseMap} from "@/src/test/features/spatial-map/RegionalExpenseMap";
 
 const AnalyticsScreen = () => {
     return (

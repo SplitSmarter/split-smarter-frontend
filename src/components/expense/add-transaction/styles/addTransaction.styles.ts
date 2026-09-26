@@ -1,4 +1,4 @@
-import { StyleSheet, ViewStyle, TextStyle } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 export const addTransactionStyles = StyleSheet.create({
     // Main Canvas & Screen Layout

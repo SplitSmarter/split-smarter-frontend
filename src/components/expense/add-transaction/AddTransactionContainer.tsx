@@ -6,7 +6,7 @@ import {COLORS} from '@/src/constants/colors';
 import {MediaPickerBottomSheet} from '@/src/components/common/MediaPickerBottomSheet';
 import {ExpenseScheduleModal} from '@/src/components/expense/schedule/ExpenseScheduleModal';
 import {GenericValidationErrorModal} from '@/src/components/expense/errors/GenericValidationErrorModal';
-import {InlineDatePicker, TransactionOptionsModal} from '@/src/screens/expense/AddTransactionHelper';
+import {TransactionOptionsModal} from '@/src/screens/expense/AddTransactionHelper';
 
 import AddExpenseScreen from '@/src/screens/expense/AddExpense';
 import AddTransfer from '@/src/screens/expense/AddTransfer';
@@ -19,6 +19,7 @@ import {AddTransactionHeader} from './components/AddTransactionHeader';
 import {TransactionTabs} from './components/TransactionTabs';
 import {TransactionFooter} from './components/TransactionFooter';
 import {ProcessingOverlay} from './components/ProcessingOverlay';
+import {SelectDateBottomSheet} from "@/src/components/common/SelectDateBottomSheet";
 
 export const AddTransactionContainer = () => {
     const {
@@ -43,7 +44,7 @@ export const AddTransactionContainer = () => {
         handleTabChange,
         handleClearForm,
         handleSubmitData,
-        handleDateChange,
+        handleDateConfirm,
         handleMediaSelection,
         handleSaveCompiledSchedule,
     } = useAddTransaction();
@@ -96,14 +97,12 @@ export const AddTransactionContainer = () => {
                         />
                     </View>
 
-                    {/* Modal Overlay Stack */}
-                    <InlineDatePicker
+                    <SelectDateBottomSheet
                         visible={showDatePicker}
-                        dateValue={new Date(expenseDraft.expenseDate)}
-                        isDark={isDark}
-                        brandColor={activeColors.brand.primary}
+                        initialDate={expenseDraft.expenseDate.split('T')[0]}
                         onClose={() => setShowDatePicker(false)}
-                        onChange={handleDateChange}
+                        onConfirm={handleDateConfirm}
+                        allowedModes={activeTab === 'transfer' ? 'single' : 'both'}
                     />
 
                     <TransactionOptionsModal

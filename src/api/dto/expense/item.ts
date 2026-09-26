@@ -1,9 +1,8 @@
 import {BasicUserDetails} from "@/src/api/dto/user/user";
 import {SearchScope} from "@/src/api/dto/expense/constant";
-import {ExpenseItemSource} from "@/src/api/dto/constants";
+import {Currency, ExpenseItemSource} from "@/src/api/dto/constants";
 import {BasicImage} from "@/src/api/dto/user/asset";
 
-export type Currency = string; // Replaced with your app's standard Currency string/enum
 
 // Request DTOs
 export interface AddExpenseItemRequest {

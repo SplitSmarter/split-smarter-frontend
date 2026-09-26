@@ -86,6 +86,7 @@ export interface ExpenseDraftState {
     setExpenseLocation: (location: ExpenseLocation | undefined) => void;
     setExpenseItems: (items: ExpenseItem[]) => void;
     setIsRecurring: (value: boolean) => void;
+    setRecurringDetails: (details: DateComponentPayload['recurring_details'] | null) => void;
     setLocalAttachmentUris: (localAttachmentUris: string[]) => void,
     dismissError: (errorKey: DraftValidationErrorKey) => void;
     clearAllErrors: () => void;
@@ -150,6 +151,7 @@ export const useExpenseDraftStore = create<ExpenseDraftState>((set, get) => ({
     setExpenseLocation: (location) => set({expenseLocation: location}),
     setExpenseItems: (expenseItems) => set({expenseItems}),
     setIsRecurring: (isRecurring) => set({isRecurring}),
+    setRecurringDetails: (recurringDetails) => set({ recurringDetails }),
     setLocalAttachmentUris: (localAttachmentUris) => set({localAttachmentUris}),
 
     dismissError: (errorKey) => set((state) => {

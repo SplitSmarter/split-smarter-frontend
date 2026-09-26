@@ -1,18 +1,23 @@
-import { View } from "react-native";
-import React from "react";
-import { useRouter } from "expo-router"; // 1. Import the router
-import { authStore } from "@/src/store/authStore";
-import { AppButton } from "@/src/components/common/AppButton";
+import {View} from "react-native";
+import React, {useState} from "react";
+import {useRouter} from "expo-router";
+import {authStore} from "@/src/store/authStore";
+import {AppButton} from "@/src/components/common/AppButton";
 import ThemeToggle from "@/src/components/common/themeToggle";
+import {SelectDateBottomSheet} from "@/src/components/common/SelectDateBottomSheet";
+import {DurationSelectionBottomSheet} from "@/src/components/common/DurationSelectionBottomSheet";
 
 const GroupsScreen = () => {
-    const { user, logout } = authStore();
-    const router = useRouter(); // 2. Initialize the router
+    const {user, logout} = authStore();
+    const router = useRouter();
+
+    // Sheet visibility state
+    const [isScheduleOpen, setIsScheduleOpen] = useState(false);
+    const [isDurationOpen, setIsDurationOpen] = useState(false);
 
     return (
-        <View className="flex-1 p-4">
+        <View className="flex-1 p-4 gap-y-3">
             <AppButton
-                // 3. Use router.push to navigate to the path
                 onPress={() => router.push("/expense/add")}
                 variant="primary"
                 size="sm"
@@ -24,7 +29,6 @@ const GroupsScreen = () => {
             </AppButton>
 
             <AppButton
-                // 3. Use router.push to navigate to the path
                 onPress={() => router.push("/payment/account/add")}
                 variant="primary"
                 size="sm"
@@ -34,7 +38,50 @@ const GroupsScreen = () => {
             >
                 Add Account
             </AppButton>
-            <ThemeToggle></ThemeToggle>
+
+            {/* Schedule Bottom Sheet Trigger */}
+            <AppButton
+                onPress={() => setIsScheduleOpen(true)}
+                variant="secondary"
+                size="sm"
+                className="w-full"
+                hasShadow={true}
+            >
+                Select Schedule
+            </AppButton>
+
+            {/* Duration Bottom Sheet Trigger */}
+            <AppButton
+                onPress={() => setIsDurationOpen(true)}
+                variant="secondary"
+                size="sm"
+                className="w-full"
+                hasShadow={true}
+            >
+                Select Duration
+            </AppButton>
+
+            <ThemeToggle/>
+
+            {/* Schedule Bottom Sheet Modal */}
+            <SelectDateBottomSheet
+                visible={isScheduleOpen}
+                onClose={() => setIsScheduleOpen(false)}
+                onConfirm={(result) => {
+                    console.log("Schedule selected:", result);
+                    setIsScheduleOpen(false);
+                }}
+            />
+
+            {/* Duration Bottom Sheet Modal */}
+            <DurationSelectionBottomSheet
+                visible={isDurationOpen}
+                onClose={() => setIsDurationOpen(false)}
+                onSave={(data) => {
+                    console.log("Duration selected:", data);
+                    setIsDurationOpen(false);
+                }}
+            />
         </View>
     );
 };

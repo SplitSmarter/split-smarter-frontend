@@ -16,6 +16,10 @@ export interface LocationDetails {
     provider_id: number;
     name: string;
     address: string;
+    city: string;
+    state: string;
+    country: string;
+    country_code: string;
     geo: GeoDetails;
     rating: number | null;
     photos?: PlacePhotoDetails[];

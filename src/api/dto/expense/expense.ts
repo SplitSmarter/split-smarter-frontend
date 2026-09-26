@@ -11,6 +11,8 @@ import {
 import {BasicUserDetails} from "@/src/api/dto/user/user";
 import {BasicImage} from "@/src/api/dto/user/asset";
 import {BaseGroupDetails} from "@/src/api/dto/user/group";
+import {MemoryBasicDetails} from "@/src/api/dto/user/memory";
+import {LocationDetails} from "@/src/api/dto/user/place";
 
 export interface ExpenseSharersDto {
     user_id: number;
@@ -136,6 +138,7 @@ export interface AddExpenseResponse {
 
 export interface ExpenseCategoryBasicResponse {
     id: number;
+    title: string;
     icon: BasicImage;
 }
 
@@ -157,6 +160,7 @@ export interface ExpenseDetailsBasicResponse {
     currency: Currency;
     category: ExpenseCategoryBasicResponse;
     exchange_rate: ExchangeRateDetails | null;
+    memory: MemoryBasicDetails | null;
     paid_by_users: ExpensePaidByDetail[];
     sharers: ExpenseSharerDetail[];
     user_contribution: number | null;
@@ -211,14 +215,6 @@ export interface ScheduledBlueprintDetail {
     next_run_date: string | null;
     last_expenses: ExpenseDetailsBasicResponse[] | null;
     is_active: boolean;
-}
-
-export interface LocationDetails {
-    id: number;
-    name: string;
-    latitude: number;
-    longitude: number;
-    address: string | null;
 }
 
 // Master Response Structure

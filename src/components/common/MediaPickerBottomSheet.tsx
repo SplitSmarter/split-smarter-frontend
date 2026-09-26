@@ -1,7 +1,6 @@
-// In MediaPickerBottomSheet.tsx
 import { AppText } from "@/src/components/common/AppText";
 import { themeStore } from '@/src/store/themeStore';
-import {BottomSheetModal, BottomSheetBackdrop, BottomSheetBackdropProps, BottomSheetView} from '@gorhom/bottom-sheet'; // Revert this
+import {BottomSheetModal, BottomSheetBackdrop, BottomSheetBackdropProps, BottomSheetView} from '@gorhom/bottom-sheet';
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Pressable, View } from 'react-native';
 import { Iconify } from 'react-native-iconify';
@@ -56,6 +55,7 @@ export const MediaPickerBottomSheet = ({visible, onClose, onSelect}: MediaPicker
             ref={bottomSheetModalRef}
             snapPoints={snapPoints}
             onDismiss={onClose}
+            enableDynamicSizing={false}
             backdropComponent={renderBackdrop}
             enablePanDownToClose={true}
             backgroundStyle={{backgroundColor: isDark ? '#121212' : '#F8F8F8', borderRadius: 40}}

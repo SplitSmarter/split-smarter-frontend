@@ -1,19 +1,19 @@
-import { useState, useMemo } from 'react';
-import { Alert, Platform} from 'react-native';
-import {DateTimePickerEvent} from '@react-native-community/datetimepicker';
-import { router } from 'expo-router';
-import { themeStore } from '@/src/store/themeStore';
-import { useExpenseDraftStore } from '@/src/store/draft/expenseDraftStore';
-import { useTransferDraftStore } from '@/src/store/draft/transferDraftStore';
-import { useAssetPicker } from '@/src/hooks/useMediaPicker';
-import { ExpenseComponentType } from '@/src/api/dto/expense/constant';
-import { DraftValidationErrorKey } from '@/src/interfaces/expense/draft_validation';
-import { executeTransactionSubmit, validateTransactionSubmit } from '@/src/utils/expense/transactionHelpers';
-import { DateComponentPayload } from '@/src/constants/expense/schedule';
-import { TransactionTabType } from '../constants/addTransaction.constants';
+import {useState, useMemo} from 'react';
+import {Alert} from 'react-native';
+import {router} from 'expo-router';
+import {themeStore} from '@/src/store/themeStore';
+import {useExpenseDraftStore} from '@/src/store/draft/expenseDraftStore';
+import {useTransferDraftStore} from '@/src/store/draft/transferDraftStore';
+import {useAssetPicker} from '@/src/hooks/useMediaPicker';
+import {ExpenseComponentType} from '@/src/api/dto/expense/constant';
+import {DraftValidationErrorKey} from '@/src/interfaces/expense/draft_validation';
+import {executeTransactionSubmit, validateTransactionSubmit} from '@/src/utils/expense/transactionHelpers';
+import {DateComponentPayload} from '@/src/constants/expense/schedule';
+import {TransactionTabType} from '../constants/addTransaction.constants';
+import {DateSelectionResult} from '@/src/components/common/SelectDateBottomSheet';
 
 export const useAddTransaction = () => {
-    const { theme } = themeStore();
+    const {theme} = themeStore();
     const isDark = theme === 'dark';
 
     const [activeTab, setActiveTab] = useState<TransactionTabType>('expense');
@@ -26,7 +26,7 @@ export const useAddTransaction = () => {
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [scheduleModalVisible, setScheduleModalVisible] = useState(false);
 
-    const { handleSingleCamera, handleSingleGallery } = useAssetPicker();
+    const {handleSingleCamera, handleSingleGallery} = useAssetPicker();
     const expenseDraft = useExpenseDraftStore();
     const transferDraft = useTransferDraftStore();
 
@@ -60,7 +60,7 @@ export const useAddTransaction = () => {
 
     const readableDate = useMemo(() => {
         const d = new Date(expenseDraft.expenseDate);
-        return d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' });
+        return d.toLocaleDateString('en-US', {weekday: 'short', day: 'numeric', month: 'short'});
     }, [expenseDraft.expenseDate]);
 
     const handleTabChange = (tab: TransactionTabType) => {
@@ -101,10 +101,22 @@ export const useAddTransaction = () => {
         }, 400);
     };
 
-    const handleDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
-        if (Platform.OS === 'android') setShowDatePicker(false);
-        if (event.type === 'set' && selectedDate && activeTab === 'expense') {
-            expenseDraft.setExpenseDate(selectedDate.toISOString());
+    // Callback when confirming date selection inside the Bottom Sheet
+    const handleDateConfirm = (result: DateSelectionResult) => {
+        if (!result.isRecurring) {
+            expenseDraft.setIsRecurring(false);
+            expenseDraft.setExpenseDate(new Date(result.selectedDate).toISOString());
+            expenseDraft.setRecurringDetails(null);
+        } else {
+            expenseDraft.setIsRecurring(true);
+            expenseDraft.setExpenseDate(new Date(result.startDate).toISOString());
+            expenseDraft.setRecurringDetails({
+                recurring_period: result.recurringPeriod,
+                interval: result.interval,
+                selected_values: result.selectedValues ? [result.selectedValues as any] : [],
+                start_date: new Date(result.startDate).toISOString(),
+                end_date: result.endDate ? new Date(result.endDate).toISOString() : undefined,
+            });
         }
     };
 
@@ -114,7 +126,7 @@ export const useAddTransaction = () => {
             "Clear Split Form",
             "Are you sure you want to discard your modifications and wipe this working cache state?",
             [
-                { text: "Cancel", style: "cancel" },
+                {text: "Cancel", style: "cancel"},
                 {
                     text: "Clear All",
                     style: "destructive",
@@ -186,7 +198,7 @@ export const useAddTransaction = () => {
         handleTabChange,
         handleClearForm,
         handleSubmitData,
-        handleDateChange,
+        handleDateConfirm,
         handleMediaSelection,
         handleSaveCompiledSchedule,
     };
