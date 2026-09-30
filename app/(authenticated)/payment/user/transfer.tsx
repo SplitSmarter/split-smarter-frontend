@@ -1,8 +1,6 @@
-// app/(authenticated)/payment/user/transfer.tsx
 import React from "react";
 import { View } from "react-native";
-import PaymentScreen from "@/src/screens/UserPayment/payment";
-import UserPaymentTransferScreen from "@/src/features/payment/UserPaymentTransferScreen";
+import UserPaymentTransferScreen from "@/src/screens/payment/transfer";
 
 export default function TransferScreen() {
     return (

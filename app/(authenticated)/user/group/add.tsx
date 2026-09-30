@@ -1,10 +1,8 @@
 import React from "react";
-import AddGroupScreen from "@/src/screens/group/AddGroup";
+import AddGroupScreen from "@/src/screens/group/add";
 
 const AddGroup = () => {
-    return (
-        <AddGroupScreen />
-    );
+    return <AddGroupScreen />;
 };
 
 export default AddGroup;

@@ -1,10 +1,8 @@
 import React from "react";
-import {RegionalExpenseMap} from "@/src/test/features/spatial-map/RegionalExpenseMap";
+import { RegionalExpenseMap } from "@/src/screens/spatial-map";
 
 const AnalyticsScreen = () => {
-    return (
-        <RegionalExpenseMap />
-    );
+    return <RegionalExpenseMap />;
 };
 
 export default AnalyticsScreen;

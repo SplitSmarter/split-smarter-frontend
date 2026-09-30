@@ -1,4 +1,4 @@
-import GroupDetailsScreen from "@/src/screens/group/GroupDetailsScreen";
+import GroupDetailsScreen from "@/src/screens/group/details";
 
 export default function GroupDetailsPage() {
     return <GroupDetailsScreen />;

@@ -1,8 +1,5 @@
-import OnboardingScreen from "@/src/screens/Onboarding/OnboardingScreen";
-// import MapPOIInspector from "@/src/screens/test/MapPOIInspector";
+import OnboardingScreen from "@/src/screens/onboarding/OnboardingScreen";
 
 export default function onboarding() {
-    return (
-        <OnboardingScreen/>
-    );
+    return <OnboardingScreen />;
 }

@@ -1,12 +1,6 @@
 import React from "react";
-// import AddTransaction from "@/src/screens/expense/AddTransactionScreen";
-import {AddTransactionContainer} from "@/src/components/expense/add-transaction/AddTransactionContainer";
+import { AddTransactionContainer } from "@/src/screens/expense/add-transaction";
 
-const AddSplit = () => {
-
-    return (
-        <AddTransactionContainer />
-    );
-};
-
-export default AddSplit;
+export default function AddExpenseRoute() {
+    return <AddTransactionContainer />;
+}

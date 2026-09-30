@@ -5,8 +5,8 @@ import {useAssetPicker} from "@/src/hooks/useMediaPicker";
 import {useFocusEffect} from "expo-router";
 import {useCallback, useRef} from "react";
 import {InitiateTransactionApi, GetTransactionStatusApi} from "@/src/api/user_payment/transaction";
-import AddExpenseScreen from '@/src/screens/expense/AddExpense';
-import AddTransfer from '@/src/screens/expense/AddTransfer';
+import AddExpenseScreen from './add-transaction/AddExpense';
+import AddTransfer from './add-transaction/AddTransfer';
 import {themeStore} from "@/src/store/themeStore";
 import {useExpenseDraftStore} from "@/src/store/draft/expenseDraftStore";
 import {useTransferDraftStore} from "@/src/store/draft/transferDraftStore";
@@ -22,7 +22,7 @@ import {ExpenseComponentType} from "@/src/api/dto/expense/constant";
 import {COLORS} from "@/src/constants/colors";
 import {DraftValidationErrorKey} from "@/src/interfaces/expense/draft_validation";
 import {executeTransactionSubmit, validateTransactionSubmit} from "@/src/utils/expense/transactionHelpers";
-import {InlineDatePicker, TabButton, TransactionOptionsModal} from "@/src/screens/expense/AddTransactionHelper";
+import {InlineDatePicker, TabButton, TransactionOptionsModal} from "./add-transaction/AddTransactionHelper";
 import {GenericValidationErrorModal} from "@/src/components/expense/errors/GenericValidationErrorModal";
 
 const AddTransactionScreen = () => {

@@ -1,11 +1,8 @@
 import React from "react";
-import AddGroupScreen from "@/src/screens/group/AddGroup";
-import AddRelationshipScreen from "@/src/screens/relation/AddRelationshipScreen";
+import AddRelationshipScreen from "@/src/screens/relationship/add";
 
-const AddGroup = () => {
-    return (
-        <AddRelationshipScreen />
-    );
+const AddRelationship = () => {
+    return <AddRelationshipScreen />;
 };
 
-export default AddGroup;
+export default AddRelationship;

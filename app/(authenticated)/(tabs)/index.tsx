@@ -1,10 +1,8 @@
-import React, { useState } from "react";
-import DashboardScreen from "@/src/components/DashboardCard";
+import React from "react";
+import DashboardScreen from "@/src/screens/dashboard";
 
 const HomeScreen = () => {
-    return (
-        <DashboardScreen />
-    );
+    return <DashboardScreen />;
 };
 
 export default HomeScreen;

@@ -1,10 +1,8 @@
 import React from "react";
-import AddUserScreen from "@/src/screens/user/AddUser";
+import AddUserScreen from "@/src/screens/user/add";
 
 const AddUser = () => {
-    return (
-        <AddUserScreen />
-    );
+    return <AddUserScreen />;
 };
 
 export default AddUser;

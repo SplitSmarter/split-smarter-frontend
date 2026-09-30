@@ -6,7 +6,7 @@ import { AppText } from '@/src/components/common/AppText';
 import { ScreenWrapper } from "@/src/components/common/ScreenWrapper";
 import { images } from "@/src/constants/images";
 import { useAlert } from "@/src/context/alertContext";
-import { LanguageBottomSheet } from '@/src/screens/Onboarding/comps/LanguageBottomSheet';
+import { LanguageBottomSheet } from '@/src/screens/onboarding/components/LanguageBottomSheet';
 import { authStore } from "@/src/store/authStore";
 import { deviceStore } from '@/src/store/deviceStore';
 import { themeStore } from "@/src/store/themeStore";

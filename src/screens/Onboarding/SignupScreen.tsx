@@ -11,7 +11,7 @@ import {themeStore} from "@/src/store/themeStore";
 import {Iconify} from "react-native-iconify";
 import {deviceStore} from "@/src/store/deviceStore";
 import {Currency} from '@/src/constants/expense/currency';
-import {CurrencyBottomSheet} from "@/src/screens/Onboarding/comps/CurrencyBottomSheet";
+import {CurrencyBottomSheet} from "@/src/screens/onboarding/components/CurrencyBottomSheet";
 import {router, useLocalSearchParams} from "expo-router";
 import {validateName, validatePassword} from "@/src/utils/validation";
 import {useAlert} from "@/src/context/alertContext";

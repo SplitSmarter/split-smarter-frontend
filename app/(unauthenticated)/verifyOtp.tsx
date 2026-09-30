@@ -1,11 +1,8 @@
-import React, {useState} from "react";
-import VerifyOtpScreen from "@/src/screens/Onboarding/VerifyOtpScreen";
-
+import React from "react";
+import VerifyOtpScreen from "@/src/screens/onboarding/VerifyOtpScreen";
 
 const VerifyOtp = () => {
-    return (
-        <VerifyOtpScreen/>
-    );
+    return <VerifyOtpScreen />;
 };
 
 export default VerifyOtp;

@@ -1,9 +1,7 @@
-import SendOtpScreen from '@/src/screens/Onboarding/SendOtpScreen';
+import SendOtpScreen from "@/src/screens/onboarding/SendOtpScreen";
 
 const SendOtp = () => {
-    return (
-        <SendOtpScreen/>
-    );
-}
+    return <SendOtpScreen />;
+};
 
 export default SendOtp;

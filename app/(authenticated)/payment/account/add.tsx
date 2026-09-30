@@ -1,4 +1,4 @@
-import AccountLinkingScreen from '@/src/components/payments/AccountLinkingScreen';
+import AccountLinkingScreen from '@/src/screens/payment/account-linking';
 import React, { useEffect, useRef } from 'react';
 
 export default function AddAccountScreen() {
