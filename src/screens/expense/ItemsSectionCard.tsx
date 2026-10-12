@@ -42,7 +42,7 @@ export const ItemsSectionCard = React.memo(({items, currencySymbol = '₹', isDa
                             <View className="ml-3 flex-1">
                                 <AppText className="text-text-primary font-medium">{item.title}</AppText>
                                 <AppText variant="body-small"
-                                         className="text-text-secondary">Qty: {item.quantity}</AppText>
+                                         className="text-text-primary-lighter">Qty: {item.quantity}</AppText>
                             </View>
                         </View>
                         <AppText className="font-bold text-text-primary">
@@ -51,8 +51,9 @@ export const ItemsSectionCard = React.memo(({items, currencySymbol = '₹', isDa
                     </View>
                 ))
             ) : (
-                <AppText variant="caption-xs" className="text-text-primary opacity-60 font-medium">No items
-                    selected</AppText>
+                <AppText variant="caption-xs" className="font-medium text-text-primary-lighter">
+                    No items selected — default item will be used
+                </AppText>
             )}
         </Pressable>
     );

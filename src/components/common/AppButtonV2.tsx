@@ -1,6 +1,14 @@
 // /src/components/common/AppButtonV2.tsx
 import React, { ReactNode } from 'react';
-import { Pressable, PressableProps, View, GestureResponderEvent, ActivityIndicator } from 'react-native';
+import {
+    Pressable,
+    PressableProps,
+    View,
+    GestureResponderEvent,
+    ActivityIndicator,
+    StyleSheet,
+    ViewStyle,
+} from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { AppText } from "@/src/components/common/AppText";
 import { themeStore } from '@/src/store/themeStore';
@@ -49,17 +57,22 @@ export const AppButtonV2 = ({
         }
     };
 
-    // Keep color tracking intact for standard icons
+    // Primary CTA sits on bg-secondary — icons must match white CTA label text
     const getIconColor = () => {
-        if (variant === 'primary') return isDark ? COLORS.icon_secondary_dark : COLORS.icon_secondary_light;
-        return isDark ? COLORS.icon_primary_dark : COLORS.icon_primary_light;
+        if (variant === 'primary') {
+            return isDark ? COLORS.dark.text.contrast : COLORS.light.text.contrast;
+        }
+        return isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary;
     };
 
-    const getShadowStyle = (isPressed: boolean) => {
-        if (!hasShadow || isInteractionDisabled) return "";
-        if (platform === 'android') return isPressed ? "elevation-1 opacity-90" : "elevation-4 shadow-black";
-        if (isPressed) return "shadow-sm opacity-85";
-        return isDark ? "shadow-lg shadow-white/5" : "shadow-md shadow-black/20";
+    // StyleSheet shadows — avoid NativeWind shadow-* during theme flips
+    const getShadowStyle = (isPressed: boolean): ViewStyle | undefined => {
+        if (!hasShadow || isInteractionDisabled) return undefined;
+        if (platform === 'android') {
+            return {elevation: isPressed ? 1 : 4, opacity: isPressed ? 0.9 : 1};
+        }
+        if (isPressed) return styles.shadowPressed;
+        return isDark ? styles.shadowDark : styles.shadowLight;
     };
 
     // Core Theme Presets - Only controls colors. Structurally naked!
@@ -96,8 +109,13 @@ export const AppButtonV2 = ({
         >
             {({ pressed }) => (
                 <View
-                    style={(pressed && !isInteractionDisabled) ? { transform: [{ scale: 0.98 }] } : { transform: [{ scale: 1 }] }}
-                    className={`flex-row items-center justify-center w-full h-full gap-x-2 ${getShadowStyle(pressed)}`}
+                    style={[
+                        (pressed && !isInteractionDisabled)
+                            ? {transform: [{scale: 0.98}]}
+                            : {transform: [{scale: 1}]},
+                        getShadowStyle(pressed),
+                    ]}
+                    className="flex-row items-center justify-center w-full h-full gap-x-2"
                 >
                     {loading ? (
                         <>
@@ -128,3 +146,25 @@ export const AppButtonV2 = ({
 };
 
 AppButtonV2.displayName = 'AppButtonV2';
+
+const styles = StyleSheet.create({
+    shadowLight: {
+        shadowColor: '#000',
+        shadowOffset: {width: 0, height: 3},
+        shadowOpacity: 0.2,
+        shadowRadius: 6,
+    },
+    shadowDark: {
+        shadowColor: '#fff',
+        shadowOffset: {width: 0, height: 3},
+        shadowOpacity: 0.05,
+        shadowRadius: 6,
+    },
+    shadowPressed: {
+        shadowColor: '#000',
+        shadowOffset: {width: 0, height: 1},
+        shadowOpacity: 0.12,
+        shadowRadius: 2,
+        opacity: 0.85,
+    },
+});

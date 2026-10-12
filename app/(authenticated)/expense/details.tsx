@@ -1,11 +1,3 @@
-import React from "react";
-import AddTransactionScreen from "@/src/screens/expense/AddTransactionScreen";
+import ExpenseDetailsScreen from '@/src/screens/expense/details';
 
-const AddSplit = () => {
-
-    return (
-        <AddTransactionScreen />
-    );
-};
-
-export default AddSplit;
+export default ExpenseDetailsScreen;

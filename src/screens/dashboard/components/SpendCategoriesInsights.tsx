@@ -1,34 +1,44 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {View, TouchableOpacity, TextInput, ScrollView} from 'react-native';
 import Svg, {G, Circle} from 'react-native-svg';
 import {Feather} from '@expo/vector-icons';
-import {AppText} from "@/src/components/common/AppText";
+import {AppText} from '@/src/components/common/AppText';
+import {themeStore} from '@/src/store/themeStore';
+import {COLORS} from '@/src/constants/colors';
 import {Merchant, SpendCategory} from '../types/dashboard';
-import {AppImageV2} from "@/src/components/common/AppImageV2";
+import {AppImageV2} from '@/src/components/common/AppImageV2';
 
 interface SpendCategoriesInsightsProps {
     categories: SpendCategory[];
-    merchants: Merchant[];
+    merchants?: Merchant[];
+    showMerchants?: boolean;
     totalSpendAmount?: number;
     onViewAllPress?: () => void;
 }
 
 export const SpendCategoriesInsights: React.FC<SpendCategoriesInsightsProps> = ({
-                                                                                    categories,
-                                                                                    merchants,
-                                                                                    totalSpendAmount = 8900,
-                                                                                    onViewAllPress,
-                                                                                }) => {
+    categories,
+    merchants = [],
+    showMerchants = false,
+    totalSpendAmount = 0,
+    onViewAllPress,
+}) => {
+    const isDark = themeStore((state) => state.theme === 'dark');
+    const colors = isDark ? COLORS.dark : COLORS.light;
+
     const [selectedCategory, setSelectedCategory] = useState<SpendCategory | null>(
         categories[0] || null
     );
     const [searchQuery, setSearchQuery] = useState('');
 
+    useEffect(() => {
+        setSelectedCategory(categories[0] || null);
+    }, [categories]);
+
     const filteredMerchants = merchants.filter((m) =>
         m.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    // SVG Donut Calculations
     const size = 110;
     const strokeWidth = 12;
     const center = size / 2;
@@ -36,33 +46,62 @@ export const SpendCategoriesInsights: React.FC<SpendCategoriesInsightsProps> = (
     const circumference = 2 * Math.PI * radius;
     let strokeDashoffsetAccumulator = 0;
 
-    // Calculate active center display details
     const displayCategoryName = selectedCategory ? selectedCategory.name : 'Total Spend';
     const displayAmount = selectedCategory
         ? Math.round((totalSpendAmount * selectedCategory.percentage) / 100)
         : totalSpendAmount;
 
     return (
-        <View className="px-5 mb-6">
-            {/* Title Bar */}
-            <View className="flex-row justify-between items-center mb-4">
-                <AppText variant="h4" className="text-white font-bold">
+        <View className="mb-6 px-5">
+            <View className="mb-3 flex-row items-center justify-between">
+                <AppText
+                    variant="h4"
+                    className="font-bold"
+                    style={{color: colors.text.primary}}
+                >
                     Spend Analysis
                 </AppText>
                 <TouchableOpacity onPress={onViewAllPress}>
-                    <AppText variant="body-small" className="text-white/50 font-semibold">
+                    <AppText
+                        variant="body-small"
+                        className="font-semibold"
+                        style={{color: colors.text.lighter}}
+                    >
                         View All
                     </AppText>
                 </TouchableOpacity>
             </View>
 
-            {/* Main Card Container */}
-            <View className="bg-zinc-900/80 p-4 rounded-3xl border border-white/10 shadow-2xl space-y-4">
-                {/* Horizontal Category Chips Filter */}
+            <View
+                className="gap-4 rounded-3xl border p-4 shadow-2xl"
+                style={{
+                    backgroundColor: colors.bg.overlay,
+                    borderColor: colors.status.border,
+                }}
+            >
+                {categories.length === 0 ? (
+                    <View className="items-center justify-center py-8">
+                        <AppText
+                            variant="body-small"
+                            className="text-center font-semibold"
+                            style={{color: colors.text.primary}}
+                        >
+                            No category spend in this range
+                        </AppText>
+                        <AppText
+                            variant="caption-xs"
+                            className="mt-1 text-center"
+                            style={{color: colors.text.lighter}}
+                        >
+                            Expenses in the selected duration will show here
+                        </AppText>
+                    </View>
+                ) : (
+                <>
                 <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
-                    className="flex-row space-x-2 pb-1"
+                    contentContainerStyle={{gap: 8, paddingRight: 4}}
                 >
                     {categories.map((cat) => {
                         const isSelected = selectedCategory?.id === cat.id;
@@ -72,18 +111,21 @@ export const SpendCategoriesInsights: React.FC<SpendCategoriesInsightsProps> = (
                                 activeOpacity={0.7}
                                 onPress={() => setSelectedCategory(isSelected ? null : cat)}
                                 style={{
-                                    backgroundColor: isSelected ? `${cat.color}25` : 'rgba(255, 255, 255, 0.05)',
-                                    borderColor: isSelected ? cat.color : 'rgba(255, 255, 255, 0.1)',
+                                    backgroundColor: isSelected ? `${cat.color}25` : colors.bg.primary,
+                                    borderColor: isSelected ? cat.color : colors.status.border,
                                 }}
-                                className="px-3 py-1.5 rounded-full border flex-row items-center space-x-1.5"
+                                className="flex-row items-center gap-1.5 rounded-full border px-3 py-1.5"
                             >
                                 <View
                                     style={{backgroundColor: cat.color}}
-                                    className="w-2 h-2 rounded-full"
+                                    className="h-2 w-2 rounded-full"
                                 />
                                 <AppText
                                     variant="caption-xs"
-                                    className={`font-semibold ${isSelected ? 'text-white' : 'text-white/60'}`}
+                                    className="font-semibold"
+                                    style={{
+                                        color: isSelected ? colors.text.primary : colors.text.lighter,
+                                    }}
                                 >
                                     {cat.name} ({cat.percentage}%)
                                 </AppText>
@@ -92,17 +134,23 @@ export const SpendCategoriesInsights: React.FC<SpendCategoriesInsightsProps> = (
                     })}
                 </ScrollView>
 
-                {/* Content Row: Donut Chart + Merchant List */}
-                <View className="flex-row items-center pt-1">
-                    {/* Left 45%: Donut Chart */}
-                    <View className="w-[45%] items-center justify-center border-r border-white/10 pr-3">
-                        <View className="w-[110px] h-[110px] items-center justify-center relative">
+                <View
+                    className={`flex-row items-center ${showMerchants ? '' : 'justify-center'}`}
+                >
+                    <View
+                        className={`items-center justify-center ${
+                            showMerchants ? 'w-[45%] border-r pr-3' : 'w-full'
+                        }`}
+                        style={showMerchants ? {borderRightColor: colors.status.border} : undefined}
+                    >
+                        <View className="relative h-[110px] w-[110px] items-center justify-center">
                             <Svg height={size} width={size} viewBox={`0 0 ${size} ${size}`}>
                                 <G rotation="-90" origin={`${center}, ${center}`}>
                                     {categories.map((cat) => {
                                         const strokeDasharray = `${(cat.percentage / 100) * circumference} ${circumference}`;
                                         const offset = strokeDashoffsetAccumulator;
-                                        strokeDashoffsetAccumulator += (cat.percentage / 100) * circumference;
+                                        strokeDashoffsetAccumulator +=
+                                            (cat.percentage / 100) * circumference;
                                         const isSelected = selectedCategory?.id === cat.id;
 
                                         return (
@@ -123,7 +171,6 @@ export const SpendCategoriesInsights: React.FC<SpendCategoriesInsightsProps> = (
                                 </G>
                             </Svg>
 
-                            {/* Center Donut Label */}
                             <TouchableOpacity
                                 activeOpacity={0.8}
                                 onPress={() => setSelectedCategory(null)}
@@ -131,14 +178,16 @@ export const SpendCategoriesInsights: React.FC<SpendCategoriesInsightsProps> = (
                             >
                                 <AppText
                                     variant="caption-xs"
-                                    className="text-white/60 font-medium text-center text-[10px]"
+                                    className="text-center text-[10px] font-medium"
                                     numberOfLines={1}
+                                    style={{color: colors.text.lighter}}
                                 >
                                     {displayCategoryName}
                                 </AppText>
                                 <AppText
                                     variant="body-base"
-                                    className="text-white font-extrabold text-xs mt-0.5"
+                                    className="mt-0.5 text-xs font-extrabold"
+                                    style={{color: colors.text.primary}}
                                 >
                                     ₹{displayAmount.toLocaleString('en-IN')}
                                 </AppText>
@@ -146,65 +195,80 @@ export const SpendCategoriesInsights: React.FC<SpendCategoriesInsightsProps> = (
                         </View>
                     </View>
 
-                    {/* Right 55%: Merchant List */}
-                    <View className="w-[55%] pl-3.5 space-y-2">
-                        {/* Subtle Search Input Bar */}
-                        <View
-                            className="bg-white/5 rounded-xl flex-row items-center px-2.5 py-1 border border-white/10">
-                            <Feather name="search" size={13} color="rgba(255,255,255,0.4)"/>
-                            <TextInput
-                                value={searchQuery}
-                                onChangeText={setSearchQuery}
-                                placeholder="Search merchants..."
-                                placeholderTextColor="rgba(255,255,255,0.3)"
-                                className="text-white text-xs ml-2 flex-1 p-0 h-6 font-medium"
-                            />
-                        </View>
+                    {showMerchants && (
+                        <View className="w-[55%] gap-2.5 pl-3.5">
+                            <View
+                                className="flex-row items-center rounded-xl border px-2.5 py-1.5"
+                                style={{
+                                    backgroundColor: colors.bg.primary,
+                                    borderColor: colors.status.border,
+                                }}
+                            >
+                                <Feather name="search" size={13} color={colors.icon.lighter} />
+                                <TextInput
+                                    value={searchQuery}
+                                    onChangeText={setSearchQuery}
+                                    placeholder="Search merchants..."
+                                    placeholderTextColor={colors.text.placeholder}
+                                    className="ml-2 h-6 flex-1 p-0 text-xs font-medium"
+                                    style={{color: colors.text.primary}}
+                                />
+                            </View>
 
-                        {/* Merchants List */}
-                        <View className="space-y-2 pt-1">
-                            {filteredMerchants.length > 0 ? (
-                                filteredMerchants.map((merchant) => (
-                                    <View
-                                        key={merchant.id}
-                                        className="flex-row justify-between items-center py-0.5"
-                                    >
-                                        <View className="flex-row items-center space-x-2">
-                                            <View
-                                                className="w-6 h-6 bg-white/10 rounded-full items-center justify-center border border-white/10">
-                                                <AppImageV2
-                                                    id={merchant.icon.id}
-                                                    url={merchant.icon.url}
-                                                    contentFit="cover"
-                                                />
+                            <View className="gap-2">
+                                {filteredMerchants.length > 0 ? (
+                                    filteredMerchants.map((merchant) => (
+                                        <View
+                                            key={merchant.id}
+                                            className="flex-row items-center justify-between py-0.5"
+                                        >
+                                            <View className="min-w-0 flex-1 flex-row items-center gap-2 pr-2">
+                                                <View
+                                                    className="h-6 w-6 items-center justify-center overflow-hidden rounded-full border"
+                                                    style={{
+                                                        backgroundColor: colors.bg.primary,
+                                                        borderColor: colors.status.border,
+                                                    }}
+                                                >
+                                                    <AppImageV2
+                                                        id={merchant.icon.id}
+                                                        url={merchant.icon.url}
+                                                        contentFit="cover"
+                                                    />
+                                                </View>
+                                                <AppText
+                                                    variant="body-small"
+                                                    className="text-xs font-semibold"
+                                                    numberOfLines={1}
+                                                    style={{color: colors.text.primary}}
+                                                >
+                                                    {merchant.name}
+                                                </AppText>
                                             </View>
                                             <AppText
                                                 variant="body-small"
-                                                className="text-white font-semibold text-xs"
-                                                numberOfLines={1}
+                                                className="shrink-0 text-xs font-bold"
+                                                style={{color: colors.text.primary}}
                                             >
-                                                {merchant.name}
+                                                ₹{merchant.amountSpent.toLocaleString('en-IN')}
                                             </AppText>
                                         </View>
-                                        <AppText
-                                            variant="body-small"
-                                            className="text-white/90 font-bold text-xs"
-                                        >
-                                            ₹{merchant.amountSpent.toLocaleString('en-IN')}
-                                        </AppText>
-                                    </View>
-                                ))
-                            ) : (
-                                <AppText
-                                    variant="caption-xs"
-                                    className="text-white/40 text-center py-2 italic"
-                                >
-                                    No merchants found
-                                </AppText>
-                            )}
+                                    ))
+                                ) : (
+                                    <AppText
+                                        variant="caption-xs"
+                                        className="py-2 text-center italic"
+                                        style={{color: colors.text.lighter}}
+                                    >
+                                        No merchants found
+                                    </AppText>
+                                )}
+                            </View>
                         </View>
-                    </View>
+                    )}
                 </View>
+                </>
+                )}
             </View>
         </View>
     );

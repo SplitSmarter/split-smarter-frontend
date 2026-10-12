@@ -33,7 +33,7 @@ export const AppInput = forwardRef<TextInput, AppInputProps>((props, ref) => {
     // 2. Pure Variable-Driven Tailwind Selection
     const getBorderClass = () => {
         if (error) return 'border-status-error';
-        if (isFocused) return 'border-bg-secondary';
+        if (isFocused) return 'border-accent-sky';
         return 'border-border-input';
     };
 

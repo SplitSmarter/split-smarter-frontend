@@ -1,3 +1,5 @@
+import { COLORS } from '@/src/constants/colors';
+
 type GradientColors = readonly [string, string, ...string[]];
 
 export interface ThemeColors {
@@ -65,10 +67,10 @@ export const THEME: { dark: ThemeColors; light: ThemeColors } = {
 };
 
 export const BRAND_COLORS = {
-    // Reserved for Call To Action (Pay Button) & Success state only
-    primaryGreen: "#10B981",
-    primaryGreenDark: "#059669",
-    primaryGreenLight: "#34D399",
+    // Reserved for Call To Action (Pay Button) & Success state only — keep in sync with COLORS.brand
+    primaryGreen: COLORS.light.brand.primary,
+    primaryGreenDark: COLORS.light.brand.darker,
+    primaryGreenLight: COLORS.light.brand.lighter,
     accentBlue: "#38BDF8",
-    greenIncrease: "#10B981",
+    greenIncrease: COLORS.light.status.success,
 };

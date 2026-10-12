@@ -1,0 +1,60 @@
+---
+description: Pair text/icons with the correct surface so contrast stays readable in light and dark
+alwaysApply: true
+---
+
+# Color surface pairing
+
+Follow [.llm/color-palette.md](mdc:.llm/color-palette.md) — especially **§0 Surface → Foreground pairing**.
+
+## Pairing matrix (short)
+
+| Surface | Text | Iconify / spinner hex |
+| :--- | :--- | :--- |
+| Neutral (`bg-primary`, `bg-canvas`, sheets) | `text-text-primary` / `text-text-primary-lighter` | `COLORS.*.icon.primary` |
+| Primary CTA (`bg-secondary`) | `text-text-secondary` (white) only | `COLORS.*.text.contrast` (white) |
+| Selection (`bg-accent-sky-bg`) | `text-accent-sky` or `text-text-primary` | `#0284C7` / `#38BDF8` |
+| Success tint (`bg-secondary-lighter`) | `text-green-increase` | brand / success |
+
+Canonical CTA icons: `AppButton` / `AppButtonV2` `getIconColor()`.
+
+## Do
+
+```tsx
+// Header on bg-primary / sheet
+<Iconify icon="heroicons:chevron-left" size={24} color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary} />
+<AppText className="text-text-primary">Title</AppText>
+<AppText className="text-text-primary-lighter">Meta</AppText>
+
+// Primary CTA — white label + white icon (via AppButton renderIcon color)
+<AppButton variant="primary" renderIcon={(c) => <Iconify icon="heroicons:plus-circle" size={18} color={c} />}>
+  Create
+</AppButton>
+
+// Selected row
+<View className="bg-accent-sky-bg border border-accent-sky" />
+```
+
+## Do not
+
+```tsx
+// White CTA text as muted body → invisible on light sheets
+<AppText className="text-text-secondary">Loading more...</AppText>
+
+// Brand / icon.secondary on green CTA → muddy “black” icon
+color={COLORS.light.brand.primary} // on bg-bg-secondary button
+
+// White nav icons after chrome left the green bar
+color={COLORS.light.text.contrast} // on bg-bg-primary header
+
+// Brand green for selection or full-screen chrome
+className="bg-bg-secondary/10" // selected row — use accent-sky*
+className="flex-1 bg-bg-secondary" // screen shell — use bg-bg-primary
+```
+
+## Also
+
+- Same control: label and icon share contrast family.
+- Dividers: `border-border-input`, not `border-bg-secondary-lighter`.
+- Sheet body ≈ canvas; sheet header icons = `icon.primary`.
+- Iconify `icon` prop stays a string literal (see iconify-string-literals rule); only `color` is dynamic.

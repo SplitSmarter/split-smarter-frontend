@@ -2,6 +2,8 @@ import React, {useMemo} from 'react';
 import {View, ScrollView, TouchableOpacity} from 'react-native';
 import {AppText} from "@/src/components/common/AppText";
 import {AppImageV2} from "@/src/components/common/AppImageV2";
+import {themeStore} from '@/src/store/themeStore';
+import {COLORS} from '@/src/constants/colors';
 import {PeerSettlement} from '../types/dashboard';
 
 interface PrivateP2PSettlementsProps {
@@ -13,6 +15,9 @@ export const PrivateP2PSettlements: React.FC<PrivateP2PSettlementsProps> = ({
                                                                                 peers,
                                                                                 onSelectPeer,
                                                                             }) => {
+    const isDark = themeStore((state) => state.theme === 'dark');
+    const colors = isDark ? COLORS.dark : COLORS.light;
+
     // Sort peers by descending order of magnitude (largest settlement first)
     const sortedPeers = useMemo(() => {
         return [...peers].sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount));
@@ -22,7 +27,11 @@ export const PrivateP2PSettlements: React.FC<PrivateP2PSettlementsProps> = ({
         <View className="px-5 mb-6">
             {/* Section Header */}
             <View className="flex-row justify-between items-center mb-3">
-                <AppText variant="h4" className="text-white font-bold">
+                <AppText
+                    variant="h4"
+                    className="font-bold"
+                    style={{color: colors.text.primary}}
+                >
                     Pending Peer Settlements
                 </AppText>
             </View>
@@ -36,8 +45,8 @@ export const PrivateP2PSettlements: React.FC<PrivateP2PSettlementsProps> = ({
             >
                 {sortedPeers.map((peer) => {
                     const isOweYou = peer.amount > 0 || peer.type === 'owe_you';
-                    const ringColorClass = isOweYou ? 'border-emerald-500/80' : 'border-amber-500/80';
-                    const textColorClass = isOweYou ? 'text-emerald-400' : 'text-amber-400';
+                    const ringColorClass = isOweYou ? 'border-green-increase' : 'border-amber-500/80';
+                    const textColorClass = isOweYou ? 'text-green-increase' : 'text-amber-400';
                     const labelText = isOweYou ? 'You receive' : 'You owe';
                     const prefix = isOweYou ? '+$' : '-$';
 
@@ -46,7 +55,11 @@ export const PrivateP2PSettlements: React.FC<PrivateP2PSettlementsProps> = ({
                             key={peer.id}
                             activeOpacity={0.75}
                             onPress={() => onSelectPeer?.(peer)}
-                            className="bg-zinc-900/90 p-4 rounded-3xl border border-white/10 items-center justify-center min-w-[115px] shadow-2xl"
+                            className="p-4 rounded-3xl border items-center justify-center min-w-[115px] shadow-2xl"
+                            style={{
+                                backgroundColor: colors.bg.overlay,
+                                borderColor: colors.status.border,
+                            }}
                         >
                             {/* Avatar with Status Color Ring */}
                             <View
@@ -62,8 +75,9 @@ export const PrivateP2PSettlements: React.FC<PrivateP2PSettlementsProps> = ({
                             {/* Contact Name */}
                             <AppText
                                 variant="body-base"
-                                className="text-white font-semibold text-center"
+                                className="font-semibold text-center"
                                 numberOfLines={1}
+                                style={{color: colors.text.primary}}
                             >
                                 {peer.name}
                             </AppText>
@@ -71,7 +85,8 @@ export const PrivateP2PSettlements: React.FC<PrivateP2PSettlementsProps> = ({
                             {/* Subtle Status Label (styled like transaction timeLabel) */}
                             <AppText
                                 variant="caption-xs"
-                                className="text-white/40 mt-0.5 mb-1 font-normal"
+                                className="mt-0.5 mb-1 font-normal"
+                                style={{color: colors.text.lighter}}
                             >
                                 {labelText}
                             </AppText>

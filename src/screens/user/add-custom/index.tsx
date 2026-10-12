@@ -136,7 +136,7 @@ export default function AddCustomUserScreen() {
                                 Relationship
                             </AppText>
                             <Pressable onPress={() => router.push(addRelationshipRoute)}>
-                                <AppText className="text-bg-secondary font-bold">+ Create New</AppText>
+                                <AppText className="text-text-link font-bold">+ Create New</AppText>
                             </Pressable>
                         </View>
 
@@ -151,13 +151,13 @@ export default function AddCustomUserScreen() {
                                         style={{ width: '48%' }}
                                         className={`mb-4 p-4 rounded-3xl border-2 flex-row items-center ${
                                             selectedRelationId === rel.id
-                                                ? 'bg-bg-secondary border-bg-secondary'
-                                                : 'bg-bg-primary-lighter border-bg-secondary-lighter/20'
+                                                ? 'bg-accent-sky-bg border-accent-sky'
+                                                : 'bg-bg-primary-lighter border-border-input/20'
                                         }`}
                                     >
                                         <AppImage id={rel.icon?.id} url={rel.icon?.url} size="sm" variant="circular" />
                                         <AppText
-                                            className={`ml-3 font-semibold flex-1 ${selectedRelationId === rel.id ? 'text-white' : 'text-text-primary'}`}
+                                            className={`ml-3 font-semibold flex-1 ${selectedRelationId === rel.id ? 'text-accent-sky' : 'text-text-primary'}`}
                                             numberOfLines={1}
                                         >
                                             {rel.title}
@@ -169,7 +169,7 @@ export default function AddCustomUserScreen() {
                                 <Pressable
                                     onPress={() => router.push(addRelationshipRoute)}
                                     style={{ width: '48%' }}
-                                    className="mb-4 p-4 rounded-3xl border-2 border-dashed border-bg-secondary-lighter/40 bg-transparent flex-row items-center"
+                                    className="mb-4 p-4 rounded-3xl border-2 border-dashed border-border-input/40 bg-transparent flex-row items-center"
                                 >
                                     <View className="h-8 w-8 rounded-full bg-bg-secondary-lighter/20 items-center justify-center">
                                         <Iconify icon="solar:add-circle-bold" size={18} color="rgb(var(--color-bg-secondary))" />
@@ -183,7 +183,7 @@ export default function AddCustomUserScreen() {
             </ScrollView>
 
             {/* Footer */}
-            <View className="p-6 bg-bg-primary border-t border-bg-secondary-lighter/10">
+            <View className="p-6 bg-bg-primary border-t border-border-input/10">
                 <AppButton
                     variant="primary"
                     size="lg"

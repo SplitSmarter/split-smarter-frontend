@@ -1,0 +1,29 @@
+---
+description: react-native-iconify requires static string literal icon props
+alwaysApply: true
+---
+
+# Iconify: string literals only
+
+`react-native-iconify` transforms icons at build time. The `icon` prop **must** be a string literal in JSX.
+
+## Do
+
+```tsx
+<Iconify icon="heroicons:magnifying-glass" size={20} color={color} />
+
+// Shared wrappers: accept ReactNode / render props, not icon name strings
+icon={<Iconify icon="heroicons:exclamation-triangle" size={32} color={color} />}
+renderIcon={(color) => <Iconify icon="heroicons:arrow-path" size={18} color={color} />}
+```
+
+## Do not
+
+```tsx
+const name = "heroicons:x-mark";
+<Iconify icon={name} />           // fails: dynamic
+<Iconify icon={props.icon} />     // fails: prop variable
+<Iconify icon={condition ? "a" : "b"} /> // avoid; use separate branches with literals
+```
+
+When building reusable components that need icons, take `React.ReactNode` or `(color: string) => React.ReactNode` — never a dynamic icon name string passed into `Iconify`.

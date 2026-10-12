@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { COLORS } from '@/src/constants/colors';
 import { View, Pressable, Alert, Linking, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { Iconify } from 'react-native-iconify';
@@ -179,7 +180,7 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
             >
                 {!member ? (
                     <BottomSheetView className="p-6 items-center justify-center">
-                        <ActivityIndicator size="small" color="#2D6A4F"/>
+                        <ActivityIndicator size="small" color={COLORS.light.brand.primary}/>
                     </BottomSheetView>
                 ) : (
                     <BottomSheetView className="flex-1 px-6 pb-8 items-center">
@@ -206,7 +207,7 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
                                         onPress={() => setIsCurrencyModalOpen(true)}
                                         className="flex-row items-center mr-1 pr-2.5 border-r border-zinc-200 dark:border-zinc-800 h-6"
                                     >
-                                        <AppText className="text-bg-secondary text-base font-bold">
+                                        <AppText className="text-green-increase text-base font-bold">
                                             {activeCurrencySymbol}
                                         </AppText>
                                         <Iconify icon="heroicons:chevron-down" size={12} color={iconColor}
@@ -216,7 +217,7 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
                                 renderRightIcon={() => (
                                     <Pressable onPress={() => setPayingAmount("")} className="px-1 py-0.5">
                                         <AppText variant="caption-xs"
-                                                 className="text-bg-secondary font-bold">Clear</AppText>
+                                                 className="text-text-link font-bold">Clear</AppText>
                                     </Pressable>
                                 )}
                             />
@@ -236,7 +237,7 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
                                 disabled={!gatewayDetails?.hasValidGateway || loadingCredentials || !payingAmount}
                                 className="w-full py-4 rounded-xl items-center justify-center"
                                 style={{
-                                    backgroundColor: (gatewayDetails?.hasValidGateway && !loadingCredentials && payingAmount) ? '#2D6A4F' : '#A1A1AA',
+                                    backgroundColor: (gatewayDetails?.hasValidGateway && !loadingCredentials && payingAmount) ? COLORS.light.brand.primary : '#A1A1AA',
                                     opacity: (gatewayDetails?.hasValidGateway && !loadingCredentials && payingAmount) ? 1 : 0.4
                                 }}
                             >

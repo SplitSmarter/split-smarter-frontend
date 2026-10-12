@@ -1,6 +1,7 @@
 import React from 'react';
 import {View, Text, TouchableOpacity, ScrollView, StyleSheet} from 'react-native';
-import {ScopeMode, DisplayView} from '../types/spatialMap.types';
+import {Iconify} from 'react-native-iconify';
+import {ScopeMode} from '../types/spatialMap.types';
 import {MemoryBasicDetails} from '@/src/api/dto/user/memory';
 
 interface MapHeaderProps {
@@ -10,25 +11,22 @@ interface MapHeaderProps {
     memories?: MemoryBasicDetails[] | Record<string, MemoryBasicDetails>;
     selectedMemoryId: string | null;
     onSelectMemory: (memoryId: string) => void;
-    displayView: DisplayView;
-    onSelectDisplayView: (view: DisplayView) => void;
     visibleTotal: number;
     onOpenLayerMenu: () => void;
+    onInteraction?: () => void;
 }
 
 export function MapHeader({
-                              insetsTop,
-                              scopeMode,
-                              onSelectScopeMode,
-                              memories = [],
-                              selectedMemoryId,
-                              onSelectMemory,
-                              displayView,
-                              onSelectDisplayView,
-                              visibleTotal,
-                              onOpenLayerMenu,
-                          }: MapHeaderProps) {
-    // Normalize `memories` whether passed as an Array or Record/Object
+    insetsTop,
+    scopeMode,
+    onSelectScopeMode,
+    memories = [],
+    selectedMemoryId,
+    onSelectMemory,
+    visibleTotal,
+    onOpenLayerMenu,
+    onInteraction,
+}: MapHeaderProps) {
     const memoryList: MemoryBasicDetails[] = Array.isArray(memories)
         ? memories
         : Object.values(memories);
@@ -38,12 +36,15 @@ export function MapHeader({
             style={{paddingTop: insetsTop + 8}}
             className="absolute top-0 left-0 right-0 z-10 px-4 bg-background/90 border-b border-border"
         >
-            {/* LEVEL 1: SCOPE SELECTOR */}
+            {/* SCOPE SELECTOR + SPENT + LAYERS */}
             <View className="flex-row items-center justify-between mb-2">
                 <View className="flex-row bg-muted p-1 rounded-xl">
                     <TouchableOpacity
                         activeOpacity={0.7}
-                        onPress={() => onSelectScopeMode('general')}
+                        onPress={() => {
+                            onInteraction?.();
+                            onSelectScopeMode('general');
+                        }}
                         className={`px-3 py-1.5 rounded-lg ${
                             scopeMode === 'general' ? 'bg-card' : 'bg-transparent'
                         }`}
@@ -60,7 +61,10 @@ export function MapHeader({
 
                     <TouchableOpacity
                         activeOpacity={0.7}
-                        onPress={() => onSelectScopeMode('trip')}
+                        onPress={() => {
+                            onInteraction?.();
+                            onSelectScopeMode('trip');
+                        }}
                         className={`px-3 py-1.5 rounded-lg ${
                             scopeMode === 'trip' ? 'bg-card' : 'bg-transparent'
                         }`}
@@ -76,18 +80,32 @@ export function MapHeader({
                     </TouchableOpacity>
                 </View>
 
-                {/* VISIBLE TOTAL DISPLAY */}
-                <View className="items-end">
-                    <Text className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
-                        Spent
-                    </Text>
-                    <Text className="text-sm font-bold text-foreground">
-                        ₹{visibleTotal.toLocaleString()}
-                    </Text>
+                <View className="flex-row items-center gap-2">
+                    <View className="items-end">
+                        <Text className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
+                            Spent
+                        </Text>
+                        <Text className="text-sm font-bold text-foreground">
+                            ₹{visibleTotal.toLocaleString()}
+                        </Text>
+                    </View>
+
+                    <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={() => {
+                            onInteraction?.();
+                            onOpenLayerMenu();
+                        }}
+                        accessibilityRole="button"
+                        accessibilityLabel="Open map preferences"
+                        className="p-2 bg-secondary rounded-xl border border-border"
+                    >
+                        <Iconify icon="heroicons:cog-6-tooth" size={16} color="#6B7280" />
+                    </TouchableOpacity>
                 </View>
             </View>
 
-            {/* LEVEL 1.5: MEMORY SELECTION HORIZONTAL BAR */}
+            {/* MEMORY SELECTION HORIZONTAL BAR */}
             {scopeMode === 'trip' && (
                 <View className="mb-2.5 py-1">
                     <ScrollView
@@ -102,7 +120,10 @@ export function MapHeader({
                                 <TouchableOpacity
                                     key={`memory-selector-${memory.id}`}
                                     activeOpacity={0.7}
-                                    onPress={() => onSelectMemory(memoryIdStr)}
+                                    onPress={() => {
+                                        onInteraction?.();
+                                        onSelectMemory(memoryIdStr);
+                                    }}
                                     className={`mr-2 px-3 py-1.5 rounded-full border ${
                                         isSelected
                                             ? 'bg-primary border-primary'
@@ -114,7 +135,7 @@ export function MapHeader({
                                             isSelected ? 'text-primary-foreground' : 'text-foreground'
                                         }`}
                                     >
-                                        ✈️ {memory.title}
+                                        {memory.title}
                                     </Text>
                                 </TouchableOpacity>
                             );
@@ -122,44 +143,6 @@ export function MapHeader({
                     </ScrollView>
                 </View>
             )}
-
-            {/* LEVEL 2: VISUALIZATION VIEW SELECTOR */}
-            <View className="flex-row items-center justify-between pb-2">
-                <View className="flex-row bg-secondary/60 p-1 rounded-xl flex-1 mr-2">
-                    {(['spots', 'heatmap', 'trail'] as DisplayView[]).map((view) => {
-                        const isActive = displayView === view;
-                        return (
-                            <TouchableOpacity
-                                key={`view-toggle-${view}`}
-                                activeOpacity={0.7}
-                                onPress={() => onSelectDisplayView(view)}
-                                className={`flex-1 items-center py-1.5 rounded-lg ${
-                                    isActive ? 'bg-card' : 'bg-transparent'
-                                }`}
-                                style={isActive ? styles.activeShadow : undefined}
-                            >
-                                <Text
-                                    className={`text-xs capitalize font-medium ${
-                                        isActive ? 'text-foreground' : 'text-muted-foreground'
-                                    }`}
-                                >
-                                    {view === 'spots' && '📍 Spots'}
-                                    {view === 'heatmap' && '🔥 Heatmap'}
-                                    {view === 'trail' && '🛣️ Trail'}
-                                </Text>
-                            </TouchableOpacity>
-                        );
-                    })}
-                </View>
-
-                <TouchableOpacity
-                    activeOpacity={0.7}
-                    onPress={onOpenLayerMenu}
-                    className="p-2 bg-secondary rounded-xl border border-border"
-                >
-                    <Text className="text-xs">⚙️</Text>
-                </TouchableOpacity>
-            </View>
         </View>
     );
 }

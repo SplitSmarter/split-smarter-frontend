@@ -57,7 +57,7 @@ export const SettlementHistoryLedger = ({
                                     {formattedLinkDate}
                                 </AppText>
                             </View>
-                            <AppText variant="body-large" className="font-extrabold text-emerald-600 dark:text-emerald-400 mt-2">
+                            <AppText variant="body-large" className="font-extrabold text-green-increase mt-2">
                                 {Currency[link.currency as CurrencyCode]?.symbol || '₹'}{link.amount.toFixed(2)}
                             </AppText>
                         </View>

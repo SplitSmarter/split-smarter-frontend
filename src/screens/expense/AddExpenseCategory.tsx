@@ -111,7 +111,7 @@ export default function AddExpenseCategoryScreen() {
                             <Iconify icon="heroicons:pencil-square" size={14} color="white" />
                         </Pressable>
                     </View>
-                    <AppText variant="caption-xs" className="mt-3 text-text-secondary">Default Icon Selected</AppText>
+                    <AppText variant="caption-xs" className="mt-3 text-text-primary-lighter">Default Icon Selected</AppText>
                 </View>
 
                 {/* Form Fields */}
@@ -157,7 +157,7 @@ const SectionBox = ({ title, message, isDark }: { title: string, message: string
     <View className={`p-4 rounded-3xl border ${isDark ? 'bg-white/5 border-white/10' : 'bg-gray-50 border-gray-100'}`}>
         <AppText variant="body-base" className="font-bold mb-4 text-text-primary">{title}</AppText>
         <View className="items-center py-4">
-            <AppText variant="caption-xs" className="text-text-secondary italic text-center">{message}</AppText>
+            <AppText variant="caption-xs" className="text-text-primary-lighter italic text-center">{message}</AppText>
         </View>
     </View>
 );

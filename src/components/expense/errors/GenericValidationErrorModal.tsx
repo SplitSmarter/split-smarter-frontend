@@ -56,14 +56,14 @@ export const GenericValidationErrorModal: React.FC<GenericValidationErrorModalPr
 
                     {/* Content Section */}
                     <ScrollView className="mb-6" showsVerticalScrollIndicator={false}>
-                        <AppText variant="body-base" className="text-text-secondary text-center leading-relaxed mb-4">
+                        <AppText variant="body-base" className="text-text-primary-lighter text-center leading-relaxed mb-4">
                             {errorData.message}
                         </AppText>
 
                         {/* Special Custom Payload Renderer for Group Mismatch */}
                         {errorKey === DraftValidationErrorKey.GROUP_MISMATCH && 'data' in errorData && (
                             <View className={`rounded-2xl p-4 border ${isDark ? 'bg-zinc-950 border-zinc-800' : 'bg-gray-50 border-gray-100'}`}>
-                                <AppText variant="caption-xs" className="font-bold uppercase tracking-wider text-text-secondary mb-3">
+                                <AppText variant="caption-xs" className="font-bold uppercase tracking-wider text-text-primary-lighter mb-3">
                                     Missing Users from Group: {errorData.data?.group?.title}
                                 </AppText>
                                 <View className="gap-y-2">

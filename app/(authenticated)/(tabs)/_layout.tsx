@@ -1,8 +1,9 @@
 import {Tabs} from 'expo-router';
 import {themeStore} from "@/src/store/themeStore";
 import {Iconify} from "react-native-iconify";
-import {Platform, View, StyleSheet} from 'react-native';
+import {View, StyleSheet} from 'react-native';
 import {BlurView} from 'expo-blur';
+import {FLOATING_TAB_BAR_STYLE} from '@/src/constants/floatingTabBar';
 
 export default function AuthTabLayout() {
     const {theme} = themeStore();
@@ -29,27 +30,7 @@ export default function AuthTabLayout() {
                     padding: 0,
                     margin: 0,
                 },
-                tabBarStyle: {
-                    position: 'absolute',
-                    bottom: Platform.OS === 'ios' ? 28 : 20,
-                    left: 20,
-                    right: 20,
-                    height: 64,
-                    borderRadius: 32,
-                    backgroundColor: 'rgba(25. 25, 25, 0.85)',
-                    borderTopWidth: 0,
-                    borderWidth: 1,
-                    borderColor: 'rgba(255, 255, 255, 0.12)',
-                    elevation: 10,
-                    shadowColor: '#000',
-                    shadowOffset: {width: 0, height: 10},
-                    shadowOpacity: 0.35,
-                    shadowRadius: 15,
-                    paddingHorizontal: 8,
-                    paddingTop: 10,
-                    paddingBottom: 0, // Prevents Android safe area shifts
-                    overflow: 'hidden', // Fixes corner artifacts/extra layer bleed
-                },
+                tabBarStyle: FLOATING_TAB_BAR_STYLE,
             }}
         >
             <Tabs.Screen

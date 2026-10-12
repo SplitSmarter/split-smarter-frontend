@@ -1,8 +1,3 @@
-import React from "react";
-import SelectMap from "@/src/screens/place";
+import SelectMap from "@/src/screens/place/select-map";
 
-const SelectMapScreen = () => {
-    return <SelectMap />;
-};
-
-export default SelectMapScreen;
+export default SelectMap;

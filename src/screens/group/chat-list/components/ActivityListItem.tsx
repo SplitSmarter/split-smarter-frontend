@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { Iconify } from "react-native-iconify";
 import { format, isToday, isYesterday } from 'date-fns';
 import { AppText } from '@/src/components/common/AppText';
+import { COLORS } from '@/src/constants/colors';
 import { GroupActivityHelper } from "@/src/utils/GroupActivityHelper";
 
 export interface UnifiedActivityItem {
@@ -55,21 +56,21 @@ export const ActivityListItem = React.memo(({ item, isDark }: ActivityListItemPr
         return item.subtitle;
     };
 
+    const iconColor = isDark ? COLORS.dark.icon.lighter : COLORS.light.icon.lighter;
+
     return (
         <Pressable
-            className={`flex-row items-center p-4 mb-1 border-b ${
-                isDark ? 'border-gray-800' : 'border-gray-100'
-            } active:opacity-75`}
+            className="flex-row items-center p-4 mb-1 border-b border-border-input active:opacity-75"
             onPress={handlePress}
         >
             {/* Avatar Profile Matrix Frame Container */}
-            <View className="w-14 h-14 rounded-full bg-gray-100 dark:bg-zinc-800 overflow-hidden items-center justify-center">
+            <View className="w-14 h-14 rounded-full bg-bg-primary-darker overflow-hidden items-center justify-center">
                 {item.avatarUrl ? (
                     <Image source={{ uri: item.avatarUrl }} style={{ width: 40, height: 40 }} contentFit="contain" />
                 ) : item.type === 'group' ? (
-                    <Iconify icon="heroicons:users-solid" size={24} color="#999" />
+                    <Iconify icon="heroicons:users-solid" size={24} color={iconColor} />
                 ) : (
-                    <Iconify icon="heroicons:credit-card-solid" size={24} color="#999" />
+                    <Iconify icon="heroicons:credit-card-solid" size={24} color={iconColor} />
                 )}
             </View>
 
@@ -77,17 +78,17 @@ export const ActivityListItem = React.memo(({ item, isDark }: ActivityListItemPr
             <View className="flex-1 ml-4">
                 <View className="flex-row justify-between items-center">
                     <AppText variant="h4" className="text-lg text-text-primary" numberOfLines={1}>{item.title}</AppText>
-                    <AppText variant="caption-xs" className="text-text-secondary opacity-60">{renderTime(item.timestamp)}</AppText>
+                    <AppText variant="caption-xs" className="text-text-primary-lighter">{renderTime(item.timestamp)}</AppText>
                 </View>
                 <View className="flex-row justify-between items-center mt-1">
-                    <AppText variant="body-small" className="text-text-secondary opacity-50 flex-1 mr-2" numberOfLines={1}>
+                    <AppText variant="body-small" className="text-text-primary-lighter flex-1 mr-2" numberOfLines={1}>
                         {detailedSummaryText()}
                     </AppText>
 
                     {/* Activity updates counter specific to Group items */}
                     {item.type === 'group' && item.rawItem.activities?.length > 0 && (
-                        <View className="bg-[#52B788] px-2 h-5 rounded-full items-center justify-center min-w-[20px]">
-                            <AppText className="text-white text-[10px] font-bold">{item.rawItem.activities.length}</AppText>
+                        <View className="bg-bg-secondary px-2 h-5 rounded-full items-center justify-center min-w-[20px]">
+                            <AppText className="text-text-secondary text-[10px] font-bold">{item.rawItem.activities.length}</AppText>
                         </View>
                     )}
                 </View>

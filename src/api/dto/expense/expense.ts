@@ -93,16 +93,20 @@ export interface DateComponent {
 }
 
 // ============================================================================
-// Item Components Structs
+// Line items (matches backend ItemComponent / AddExpenseRequest.line_items)
 // ============================================================================
 export interface ItemComponent {
-    id: number;
+    /** Catalog / user expense item id — prefer expense_item_id; backend aliases either. */
+    id?: number | null;
+    expense_item_id?: number | null;
     quantity: number;
-    unit_cost: number;
+    unit_cost?: number | null;
+    unit_price?: number | null;
     currency: Currency;
-    shared_between: ExpenseItemSharer[] | null; // we are not using it currently so ensure we pass null always
+    shared_between: ExpenseItemSharer[] | null; // unused for now — always null
 }
 
+/** @deprecated Prefer flat line_items on AddExpenseRequest */
 export interface ItemsComponent {
     type: ExpenseComponentType.ITEM;
     items: ItemComponent[];
@@ -113,7 +117,6 @@ export type ComponentTypeUnion = TransferComponent | ItemsComponent;
 // Main Payload Request / Response Operations
 // ============================================================================
 export interface AddExpenseRequest {
-    expense_type: ExpenseComponentType;
     name: string; // TitleField constraint
     description: string | null; // DescriptionField constraint
     total_cost: number;
@@ -126,8 +129,10 @@ export interface AddExpenseRequest {
     currency: Currency;
     date_details: DateComponent;
     extra_fields: ExpenseExtraFields[];
-    components: ComponentTypeUnion;
+    line_items: ItemComponent[];
     assets: string[] | null; // UUID mapped to standard strings arrays
+    /** When true with group_id, server adds non-member participants before create. */
+    add_missing_members_to_group?: boolean;
 }
 
 export interface AddExpenseResponse {
@@ -163,7 +168,12 @@ export interface ExpenseDetailsBasicResponse {
     memory: MemoryBasicDetails | null;
     paid_by_users: ExpensePaidByDetail[];
     sharers: ExpenseSharerDetail[];
-    user_contribution: number | null;
+    /** Viewer's sharer amount (split share / spend). */
+    user_share: number | null;
+    /** Viewer's paid_by amount (cash put in). */
+    user_paid: number | null;
+    /** Signed position: user_paid - user_share. */
+    user_net: number | null;
     group: BaseGroupDetails | null;
     place: LocationDetails | null;
     is_scheduled_blueprint: boolean;

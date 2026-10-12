@@ -1,77 +1,97 @@
-import React from 'react';
+import React, {useCallback, useState} from 'react';
 import {ScrollView} from 'react-native';
 import {ScreenWrapper} from '@/src/components/common/ScreenWrapper';
+import {DateRangeBottomSheet} from '@/src/components/common/DateRangeBottomSheet';
+import type {DateRangeResult} from '@/src/components/common/types/dateRangeBottomSheet.types';
+import {themeStore} from '@/src/store/themeStore';
+import {COLORS} from '@/src/constants/colors';
 
 import {useDashboardData} from './hooks/useDashboardData';
-import {useFormattedAnalytics} from './hooks/useFormattedAnalytics';
+import {useExpenseSpendChart} from './hooks/useExpenseSpendChart';
 import {HeaderCardSection} from './components/HeaderCardSection';
 import {ActionButtons} from './components/ActionButtons';
 import {RecentTransactions} from './components/RecentTransactions';
 import {SpendCategoriesInsights} from './components/SpendCategoriesInsights';
-import {PrivateP2PSettlements} from './components/PrivateP2PSettlements';
 import {BudgetsFinancialHealth} from './components/BudgetsFinancialHealth';
 import {PeersWellnessMonitor} from './components/PeersWellnessMonitor';
 import {OmniFAB} from './components/OmniFAB';
 
 export const DashboardScreen: React.FC = () => {
+    const isDark = themeStore((state) => state.theme === 'dark');
+    const colors = isDark ? COLORS.dark : COLORS.light;
+
+    const [dateRangeVisible, setDateRangeVisible] = useState(false);
+    const [dateRange, setDateRange] = useState<DateRangeResult | null>(null);
+
     const {
-        expenses,
+        expenseList,
         transactions,
         profile,
         categories,
-        merchants,
-        peers,
         budgets,
-    } = useDashboardData();
+        totalSpend,
+        totalSpendAmount,
+        userCurrency,
+    } = useDashboardData({dateRange});
 
-    const {analyticsData, setSelectedPoint, displayCategory} =
-        useFormattedAnalytics(expenses);
+    const {spendChartData, setSelectedPoint, selectedCategory} = useExpenseSpendChart(
+        expenseList,
+        userCurrency
+    );
+
+    const handleDateRangeConfirm = useCallback((result: DateRangeResult) => {
+        setDateRange(result);
+    }, []);
 
     return (
         <ScreenWrapper
             backgroundColor="#8B0000"
             statusBarStyle="light-content"
             withPadding={false}
-            className="bg-black flex-1 relative"
+            className="relative flex-1"
         >
             <ScrollView
-                className="flex-1 bg-black"
+                className="flex-1"
+                style={{backgroundColor: isDark ? colors.bg.canvas : colors.bg.primary}}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{paddingBottom: 140}}
             >
-                {/* Section 1: Header, Balance & Integrated Graph */}
                 <HeaderCardSection
                     profile={profile}
-                    categoryTag={displayCategory}
-                    analyticsData={analyticsData}
+                    totalSpend={totalSpend}
+                    categoryTag={selectedCategory}
+                    spendChartData={spendChartData}
                     onSelectPoint={setSelectedPoint}
+                    onFilterPress={() => setDateRangeVisible(true)}
                 />
 
-                {/* Section 2: Action Buttons */}
-                <ActionButtons/>
+                <ActionButtons />
 
-                {/* Section 6: Budgets & Financial Health */}
-                <BudgetsFinancialHealth budgets={budgets}/>
+                <BudgetsFinancialHealth budgets={budgets} />
 
-                {/* Section 3: Recent Transactions */}
-                <RecentTransactions transactions={transactions}/>
+                <RecentTransactions transactions={transactions} />
 
-                {/* Section 4: Spend Categories & Insights */}
                 <SpendCategoriesInsights
                     categories={categories}
-                    merchants={merchants}
+                    totalSpendAmount={totalSpendAmount}
+                    showMerchants={false}
                 />
 
-                {/* Section 5: Private P2P Settlements */}
-                <PrivateP2PSettlements peers={peers}/>
-
-
-                {/* Section 7: Peers Wellness Monitor */}
-                <PeersWellnessMonitor score="8.5/10"/>
+                <PeersWellnessMonitor score="8.5/10" />
             </ScrollView>
 
-            {/* Omni Floating Action Button */}
-            <OmniFAB/>
+            <OmniFAB />
+
+            <DateRangeBottomSheet
+                visible={dateRangeVisible}
+                initialStartDate={dateRange?.startDate}
+                initialEndDate={dateRange?.endDate}
+                title="Select duration"
+                confirmLabel="Apply range"
+                onClose={() => setDateRangeVisible(false)}
+                onConfirm={handleDateRangeConfirm}
+                onClearFilter={() => setDateRange(null)}
+            />
         </ScreenWrapper>
     );
 };

@@ -290,7 +290,7 @@ const UserMultiRowItem = React.memo(({user, isSelected, onPress, subtext}: {
         onPress={onPress}
         className={`flex-row items-center p-3 rounded-2xl mb-2 ${
             isSelected
-                ? 'bg-bg-secondary/10 border border-bg-secondary/30'
+                ? 'bg-accent-sky-bg border border-accent-sky'
                 : 'bg-white dark:bg-zinc-900 border border-transparent'
         }`}
     >
@@ -300,15 +300,15 @@ const UserMultiRowItem = React.memo(({user, isSelected, onPress, subtext}: {
             {/* UPDATED: Custom styling text weight rule applied if identity string matches "You" */}
             <AppText
                 variant="caption-xs"
-                className={`text-text-secondary ${subtext === 'You' ? 'text-bg-secondary font-bold opacity-100' : 'opacity-60'}`}
+                className={`text-text-primary-lighter ${subtext === 'You' ? 'text-accent-sky font-bold opacity-100' : 'opacity-60'}`}
             >
                 {subtext}
             </AppText>
         </View>
         {isSelected ? (
-            <Iconify icon="heroicons:check-circle-solid" size={24} color={COLORS.icon_primary_darker_light}/>
+            <Iconify icon="heroicons:check-circle-solid" size={24} color="#0284C7"/>
         ) : (
-            <Iconify icon="heroicons:check-circle" size={24} color={COLORS.icon_secondary_light}/>
+            <Iconify icon="heroicons:check-circle" size={24} color={COLORS.icon_primary_light}/>
         )}
     </Pressable>
 ));

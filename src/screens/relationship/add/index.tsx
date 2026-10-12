@@ -60,7 +60,7 @@ export default function AddRelationshipScreen() {
                 <View className="px-6 pt-12 pb-6 flex-row items-center justify-between">
                     <Pressable
                         onPress={() => router.back()}
-                        className="h-10 w-10 bg-bg-primary-lighter rounded-full items-center justify-center border border-bg-secondary-lighter/20"
+                        className="h-10 w-10 bg-bg-primary-lighter rounded-full items-center justify-center border border-border-input/20"
                     >
                         <Iconify icon="heroicons:chevron-left" size={20} color="rgb(var(--color-text-primary))" />
                     </Pressable>
@@ -71,7 +71,7 @@ export default function AddRelationshipScreen() {
                 {/* Live Preview Card */}
                 <View className="px-6 mb-8">
                     <AppText variant="body-xs" className="font-bold text-text-primary opacity-50 mb-4 tracking-[2px] uppercase">Preview</AppText>
-                    <View className="bg-bg-primary-lighter p-6 rounded-[32px] border border-bg-secondary-lighter/20 shadow-xl items-center">
+                    <View className="bg-bg-primary-lighter p-6 rounded-[32px] border border-border-input/20 shadow-xl items-center">
                         <View className="mb-4">
                             <AppImage
                                 url={selectedIcon.url}
@@ -122,7 +122,7 @@ export default function AddRelationshipScreen() {
                     <View>
                         <AppText variant="body-base" className="font-semibold text-text-primary mb-3 ml-1">Icon Style</AppText>
                         <View className="flex-row gap-x-4">
-                            <Pressable className="h-16 w-16 rounded-2xl bg-bg-primary-lighter border-2 border-bg-secondary items-center justify-center shadow-sm">
+                            <Pressable className="h-16 w-16 rounded-2xl bg-bg-primary-lighter border-2 border-border-input items-center justify-center shadow-sm">
                                 <AppImage id={selectedIcon.id} url={selectedIcon.url} size="md" variant="rounded" />
                             </Pressable>
                             <Pressable className="h-16 w-16 rounded-2xl bg-bg-primary-darker/20 border border-dashed border-text-primary/20 items-center justify-center">
@@ -134,7 +134,7 @@ export default function AddRelationshipScreen() {
             </ScrollView>
 
             {/* Sticky Footer Button */}
-            <View className="px-6 py-6 bg-bg-primary border-t border-bg-secondary-lighter/10">
+            <View className="px-6 py-6 bg-bg-primary border-t border-border-input/10">
                 <AppButton
                     variant="primary"
                     size="lg"

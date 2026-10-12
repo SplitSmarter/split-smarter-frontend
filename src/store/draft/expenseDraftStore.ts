@@ -9,9 +9,20 @@ import {CurrencyCode} from "@/src/constants/expense/currency";
 import {DraftValidationErrorKey, ValidationErrorMap} from "@/src/interfaces/expense/draft_validation";
 import {BasicUserDetails} from "@/src/api/dto/user/user";
 import {BaseGroupDetails} from "@/src/api/dto/user/group";
-import {GetGroupsApi} from "@/src/api/group/group";
-import {GetGroupMembershipsApi} from "@/src/api/group/membership";
+import {GetGroupsApi, GetMyGroupPermissionsApi} from "@/src/api/group/group";
+import {BatchAddGroupMembershipsApi} from "@/src/api/group/membership";
+import {BatchMembershipResultStatus} from "@/src/api/dto/user/group/batchAddMembership";
+import {SelectUser} from "@/src/api/dto/constants";
 import {getMissingGroupMembers, UniqueUserIdentity} from "@/src/utils/expense/validation/group_members";
+
+export type AddMissingMembersResult = {
+    ok: boolean;
+    reason?: string;
+    /** True when every missing user ended as ADDED or ALREADY_MEMBER */
+    fullyResolved?: boolean;
+    invitedCount?: number;
+    skippedCount?: number;
+};
 
 export type ExpenseLocationType = 'current' | 'place' | 'none';
 
@@ -70,6 +81,21 @@ export interface ExpenseDraftState {
     validationErrors: ValidationErrorMap;
     isValidating: boolean;
 
+    /** Users to invite into the selected group when the expense is submitted */
+    pendingGroupMemberAdds: UniqueUserIdentity[];
+    shouldAddPendingMembersOnSubmit: boolean;
+    /** One-shot signal for CGLSelector to reopen the group picker */
+    requestOpenGroupPicker: boolean;
+
+    /** Group-add permission / batch-membership UX */
+    isFetchingGroupAddPermission: boolean;
+    isAddingMissingMembers: boolean;
+    groupAddPermissionDeniedReason: string | null;
+    /** null = unknown / not fetched yet */
+    canAddMissingMembers: boolean | null;
+    /** Last batch-add partial summary shown in the modal */
+    lastGroupAddPartialMessage: string | null;
+
     // Form Setters
     setExpenseType: (type: ExpenseComponentType) => void;
     setTitle: (title: string) => void;
@@ -90,6 +116,10 @@ export interface ExpenseDraftState {
     setLocalAttachmentUris: (localAttachmentUris: string[]) => void,
     dismissError: (errorKey: DraftValidationErrorKey) => void;
     clearAllErrors: () => void;
+    fetchGroupAddPermission: () => Promise<void>;
+    addMissingMembersToGroup: () => Promise<AddMissingMembersResult>;
+    clearGroupForReselect: () => void;
+    consumeOpenGroupPickerRequest: () => void;
     runIntegrityValidation: (keysToValidate?: DraftValidationErrorKey | DraftValidationErrorKey[]) => Promise<void>;
     resetDraft: () => void;
 }
@@ -135,6 +165,14 @@ export const useExpenseDraftStore = create<ExpenseDraftState>((set, get) => ({
     localAttachmentUris: [],
     validationErrors: {},
     isValidating: false,
+    pendingGroupMemberAdds: [],
+    shouldAddPendingMembersOnSubmit: false,
+    requestOpenGroupPicker: false,
+    isFetchingGroupAddPermission: false,
+    isAddingMissingMembers: false,
+    groupAddPermissionDeniedReason: null,
+    canAddMissingMembers: null,
+    lastGroupAddPartialMessage: null,
 
     setExpenseType: (expenseType) => set({expenseType}),
     setTitle: (title) => set({title}),
@@ -143,7 +181,16 @@ export const useExpenseDraftStore = create<ExpenseDraftState>((set, get) => ({
     setCurrency: (currency) => set({currency}),
     setCategoryId: (categoryId) => set({categoryId}),
     setDefaultCategoryId: (defaultCategoryId) => set({defaultCategoryId}),
-    setGroupId: (groupId) => set({groupId}),
+    setGroupId: (groupId) => set({
+        groupId,
+        pendingGroupMemberAdds: [],
+        shouldAddPendingMembersOnSubmit: false,
+        isFetchingGroupAddPermission: false,
+        isAddingMissingMembers: false,
+        groupAddPermissionDeniedReason: null,
+        canAddMissingMembers: null,
+        lastGroupAddPartialMessage: null,
+    }),
     setPayers: (payers) => set({payers}),
     setSplitParticipants: (splitParticipants) => set({splitParticipants}),
     setExpenseDate: (expenseDate) => set({expenseDate}),
@@ -161,6 +208,230 @@ export const useExpenseDraftStore = create<ExpenseDraftState>((set, get) => ({
     }),
 
     clearAllErrors: () => set({validationErrors: {}}),
+
+    fetchGroupAddPermission: async () => {
+        const state = get();
+        const mismatch = state.validationErrors[DraftValidationErrorKey.GROUP_MISMATCH];
+        const groupId = mismatch?.data?.group?.id ?? state.groupId;
+
+        if (!groupId) {
+            set({
+                canAddMissingMembers: false,
+                groupAddPermissionDeniedReason: 'No group selected.',
+                isFetchingGroupAddPermission: false,
+            });
+            return;
+        }
+
+        if (state.isFetchingGroupAddPermission) return;
+
+        set({
+            isFetchingGroupAddPermission: true,
+            groupAddPermissionDeniedReason: null,
+            canAddMissingMembers: null,
+        });
+
+        try {
+            const response = await GetMyGroupPermissionsApi(groupId);
+            const canAdd = Boolean(response?.data?.permissions?.can_add_member);
+            const accepting = response?.data?.settings?.accepting_new_members !== false;
+
+            if (!canAdd) {
+                set({
+                    canAddMissingMembers: false,
+                    groupAddPermissionDeniedReason:
+                        'You do not have permission to add members to this group.',
+                });
+                return;
+            }
+
+            if (!accepting) {
+                set({
+                    canAddMissingMembers: false,
+                    groupAddPermissionDeniedReason: 'Group is not accepting new members',
+                });
+                return;
+            }
+
+            set({
+                canAddMissingMembers: true,
+                groupAddPermissionDeniedReason: null,
+            });
+        } catch (error: any) {
+            set({
+                canAddMissingMembers: false,
+                groupAddPermissionDeniedReason:
+                    error?.message || 'Unable to verify permission to add members.',
+            });
+        } finally {
+            set({isFetchingGroupAddPermission: false});
+        }
+    },
+
+    addMissingMembersToGroup: async () => {
+        const state = get();
+
+        if (state.isAddingMissingMembers) {
+            return {ok: false, reason: 'Already adding members…'};
+        }
+
+        const mismatch = state.validationErrors[DraftValidationErrorKey.GROUP_MISMATCH];
+        const groupId = mismatch?.data?.group?.id ?? state.groupId;
+        const missingUsers = mismatch?.data?.missingUsers ?? [];
+
+        if (!groupId || missingUsers.length === 0) {
+            return {ok: false, reason: 'No missing members to add.'};
+        }
+
+        set({isAddingMissingMembers: true, lastGroupAddPartialMessage: null});
+
+        try {
+            // Refresh permission if unknown or previously denied
+            if (state.canAddMissingMembers !== true) {
+                await get().fetchGroupAddPermission();
+            }
+
+            const afterPerm = get();
+            if (afterPerm.canAddMissingMembers !== true) {
+                const reason =
+                    afterPerm.groupAddPermissionDeniedReason ||
+                    'You do not have permission to add members to this group.';
+                return {ok: false, reason};
+            }
+
+            const users: SelectUser[] = missingUsers.map((user) => ({
+                id: user.id,
+                type: user.user_type,
+            }));
+
+            const response = await BatchAddGroupMembershipsApi({
+                group_id: groupId,
+                users,
+            });
+
+            const results = response.data.results ?? [];
+            const resolvedKeys = new Set<string>();
+            let invitedCount = 0;
+            let skippedCount = 0;
+            const residualMessages: string[] = [];
+
+            results.forEach((result) => {
+                const key = `${result.user_id}_${result.user_type}`;
+                if (
+                    result.status === BatchMembershipResultStatus.ADDED ||
+                    result.status === BatchMembershipResultStatus.ALREADY_MEMBER
+                ) {
+                    resolvedKeys.add(key);
+                } else if (result.status === BatchMembershipResultStatus.INVITED) {
+                    invitedCount += 1;
+                    residualMessages.push(
+                        result.message || 'Invited — not in the group until they accept.',
+                    );
+                } else {
+                    skippedCount += 1;
+                    residualMessages.push(result.message || 'Could not add this user.');
+                }
+            });
+
+            const remainingUsers = missingUsers.filter(
+                (user) => !resolvedKeys.has(`${user.id}_${user.user_type}`),
+            );
+
+            if (remainingUsers.length === 0) {
+                const nextErrors = {...get().validationErrors};
+                delete nextErrors[DraftValidationErrorKey.GROUP_MISMATCH];
+                set({
+                    validationErrors: nextErrors,
+                    pendingGroupMemberAdds: [],
+                    shouldAddPendingMembersOnSubmit: false,
+                    lastGroupAddPartialMessage: null,
+                    groupAddPermissionDeniedReason: null,
+                });
+                await get().runIntegrityValidation(DraftValidationErrorKey.GROUP_MISMATCH);
+                return {ok: true, fullyResolved: true, invitedCount: 0, skippedCount: 0};
+            }
+
+            // Partial: keep warning for users still not members (invited/skipped)
+            const nextErrors = {...get().validationErrors};
+            const groupMeta = mismatch!.data!.group;
+            nextErrors[DraftValidationErrorKey.GROUP_MISMATCH] = {
+                message:
+                    invitedCount > 0
+                        ? `${invitedCount} user${invitedCount === 1 ? '' : 's'} invited but not in the group yet. Expense requires membership.`
+                        : `${remainingUsers.map((u) => u.name).join(', ')} could not be added to the group.`,
+                data: {
+                    group: groupMeta,
+                    missingUsers: remainingUsers,
+                },
+            };
+
+            const pendingGroupMemberAdds: UniqueUserIdentity[] = remainingUsers.map((user) => ({
+                user_id: user.id,
+                user_type: user.user_type,
+            }));
+
+            const partialMessage =
+                residualMessages[0] ||
+                'Some users were invited or skipped and are not group members yet.';
+
+            set({
+                validationErrors: nextErrors,
+                pendingGroupMemberAdds,
+                // Invited users are not members — do not auto-add on submit
+                shouldAddPendingMembersOnSubmit: false,
+                lastGroupAddPartialMessage: partialMessage,
+            });
+
+            return {
+                ok: false,
+                reason: partialMessage,
+                fullyResolved: false,
+                invitedCount,
+                skippedCount,
+            };
+        } catch (error: any) {
+            const reason =
+                error?.message || 'Failed to add users to the group. Please try again.';
+            const accessDenied =
+                typeof reason === 'string' &&
+                (/permission/i.test(reason) ||
+                    /not accepting/i.test(reason) ||
+                    /limit reached/i.test(reason) ||
+                    error?.status === 403);
+
+            set({
+                lastGroupAddPartialMessage: reason,
+                ...(accessDenied
+                    ? {
+                          groupAddPermissionDeniedReason: reason,
+                          canAddMissingMembers: false,
+                      }
+                    : {}),
+            });
+            return {ok: false, reason};
+        } finally {
+            set({isAddingMissingMembers: false});
+        }
+    },
+
+    clearGroupForReselect: () => {
+        const nextErrors = {...get().validationErrors};
+        delete nextErrors[DraftValidationErrorKey.GROUP_MISMATCH];
+        set({
+            groupId: undefined,
+            pendingGroupMemberAdds: [],
+            shouldAddPendingMembersOnSubmit: false,
+            requestOpenGroupPicker: true,
+            validationErrors: nextErrors,
+            isFetchingGroupAddPermission: false,
+            isAddingMissingMembers: false,
+            groupAddPermissionDeniedReason: null,
+            canAddMissingMembers: null,
+            lastGroupAddPartialMessage: null,
+        });
+    },
+
+    consumeOpenGroupPickerRequest: () => set({requestOpenGroupPicker: false}),
 
     runIntegrityValidation: async (keysToValidate) => {
         console.log("running integrity validation");
@@ -194,6 +465,9 @@ export const useExpenseDraftStore = create<ExpenseDraftState>((set, get) => ({
         }
 
         // --- 3. GROUP MISMATCH VALIDATOR ENGINE (ASYNCHRONOUS) ---
+        let pendingGroupMemberAdds = state.pendingGroupMemberAdds;
+        let shouldAddPendingMembersOnSubmit = state.shouldAddPendingMembersOnSubmit;
+
         if (targetKeys.includes(DraftValidationErrorKey.GROUP_MISMATCH)) {
             if (state.groupId && (state.payers.length > 0 || state.splitParticipants.length > 0)) {
                 set({isValidating: true});
@@ -244,24 +518,43 @@ export const useExpenseDraftStore = create<ExpenseDraftState>((set, get) => ({
                         });
 
                         const missingUsersPayload = Array.from(deduplicatedMissingUsers.values());
+                        const pendingAdds: UniqueUserIdentity[] = missingUsersPayload.map((user) => ({
+                            user_id: user.id,
+                            user_type: user.user_type,
+                        }));
 
-                        nextErrors[DraftValidationErrorKey.GROUP_MISMATCH] = {
-                            message: `${missingUsersPayload.map(u => u.name).join(', ')} missing from group profile.`,
-                            data: {
-                                group: groupMeta,
-                                missingUsers: missingUsersPayload
-                            }
-                        };
+                        // User already opted to add missing members on submit — keep flag, refresh list, no warning.
+                        if (state.shouldAddPendingMembersOnSubmit) {
+                            pendingGroupMemberAdds = pendingAdds;
+                        } else {
+                            nextErrors[DraftValidationErrorKey.GROUP_MISMATCH] = {
+                                message: `${missingUsersPayload.map(u => u.name).join(', ')} ${missingUsersPayload.length === 1 ? 'is' : 'are'} not in this group. Add them to the group or choose a different group.`,
+                                data: {
+                                    group: groupMeta,
+                                    missingUsers: missingUsersPayload
+                                }
+                            };
+                        }
+                    } else if (validationResult.success && validationResult.missingMembers.length === 0) {
+                        pendingGroupMemberAdds = [];
+                        shouldAddPendingMembersOnSubmit = false;
                     }
                 } catch (err) {
                     console.error("Unified background group integrity check failed:", err);
                 } finally {
                     set({isValidating: false});
                 }
+            } else if (!state.groupId) {
+                pendingGroupMemberAdds = [];
+                shouldAddPendingMembersOnSubmit = false;
             }
         }
 
-        set({validationErrors: nextErrors});
+        set({
+            validationErrors: nextErrors,
+            pendingGroupMemberAdds,
+            shouldAddPendingMembersOnSubmit,
+        });
     },
 
     resetDraft: () => set({
@@ -284,5 +577,13 @@ export const useExpenseDraftStore = create<ExpenseDraftState>((set, get) => ({
         localAttachmentUris: [],
         validationErrors: {},
         isValidating: false,
+        pendingGroupMemberAdds: [],
+        shouldAddPendingMembersOnSubmit: false,
+        requestOpenGroupPicker: false,
+        isFetchingGroupAddPermission: false,
+        isAddingMissingMembers: false,
+        groupAddPermissionDeniedReason: null,
+        canAddMissingMembers: null,
+        lastGroupAddPartialMessage: null,
     }),
 }));

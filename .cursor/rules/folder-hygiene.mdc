@@ -1,0 +1,29 @@
+---
+description: Project folder hygiene — colocate screen-private UI; keep components/ shared-only
+alwaysApply: true
+---
+
+# Folder hygiene (Split Smarter)
+
+Follow [.llm/folder-hygiene.md](mdc:.llm/folder-hygiene.md) for all new or moved UI.
+
+## Non-negotiables
+
+- `app/` routes stay thin — import a screen entry; no business UI in routes.
+- Product UI lives under `src/screens/{domain}/…` with private `components/`, `hooks/`, `types/` colocated.
+- `src/components/` is **shared-only** (2+ screens). Never mirror a screen path under `src/components/` for private UI.
+- Promote to shared only on second consumer (`common/`, `list-items/`, `skeletons/`, `empty-states/`, `modals/`, `global/`).
+- Keep `src/api/` and `src/store/` global — do not bury axios clients inside screens.
+- Folders: `kebab-case`. Screen entry: `index.tsx` (or re-export from it).
+- No new `src/features/` or scratch roots. Playgrounds → `src/screens/dev/`.
+- Extract large inline subcomponents to sibling files under the owning folder.
+
+## Quick shape
+
+```text
+src/screens/{domain}/{screen}/
+  index.tsx
+  components/   # private
+  hooks/        # private
+app/...route.tsx  → imports the screen entry only
+```

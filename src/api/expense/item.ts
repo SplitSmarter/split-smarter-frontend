@@ -1,3 +1,4 @@
+import qs from "qs";
 import axiosUserInstance from "@/src/api/axiosUserServiceInstance";
 import {SuccessResponse, PaginationResponse} from "@/src/api/dto/ApiResponse";
 import {handleApiError} from "@/src/api/utils/mapper";
@@ -10,8 +11,16 @@ import {
     SearchExpenseItemResponse,
     UpdateExpenseItemRequest,
 } from "@/src/api/dto/expense/item";
+import {ExpenseItemSource} from "@/src/api/dto/constants";
 
-const BASE_PATH = "expense/item/v1"; // Update prefix if using a specific route like /expense/v1
+const BASE_PATH = "expense/item/v1";
+
+/** @deprecated Use ListUserExpenseItemsApi */
+export const GetExpenseItemsApi = async (
+    source_type: ExpenseItemSource[] = [ExpenseItemSource.SYSTEM, ExpenseItemSource.CUSTOM],
+    offset = 0,
+    limit = 100,
+) => ListUserExpenseItemsApi({source_type, offset, limit});
 
 /**
  * Creates a new custom expense item for the authenticated user.
@@ -66,7 +75,17 @@ export const ListUserExpenseItemsApi = async (
     try {
         const res = await axiosUserInstance.get<SuccessResponse<ExpenseItemResponse[]>>(
             `${BASE_PATH}/`,
-            {params}
+            {
+                params: {
+                    source_type: params?.source_type ?? [
+                        ExpenseItemSource.SYSTEM,
+                        ExpenseItemSource.CUSTOM,
+                    ],
+                    offset: params?.offset ?? 0,
+                    limit: params?.limit ?? 100,
+                },
+                paramsSerializer: (query) => qs.stringify(query, {arrayFormat: "repeat"}),
+            }
         );
 
         if (res.data && res.data.success) {

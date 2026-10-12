@@ -1,10 +1,12 @@
-import {useCallback, useMemo, useRef, useState} from "react";
+import {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import MapView, {Region} from "react-native-maps";
+import {useCurrentLocation} from "@/src/hooks/useCurrentLocation";
 import {
     BANGALORE_REGION,
     DUMMY_EXPENSES,
     MEMORIES,
 } from "../dummyExpenseMapData";
+import {MY_LOCATION_REGION_DELTA} from "../constants/mapConstants";
 import {
     DayOption,
     DisplayView,
@@ -25,6 +27,11 @@ import {
 
 export function useSpatialMap() {
     const mapRef = useRef<MapView>(null);
+    const {isLoading: isLocationLoading, refreshLocation} = useCurrentLocation();
+
+    useEffect(() => {
+        refreshLocation(false);
+    }, [refreshLocation]);
 
     // Filter & Mode state
     const [scopeMode, setScopeMode] = useState<ScopeMode>("general");
@@ -91,7 +98,7 @@ export function useSpatialMap() {
     // 3. Compute total visible expenditure
     const visibleTotal = useMemo(() => {
         return filteredExpenses.reduce(
-            (sum, e) => sum + (e.user_contribution ?? e.total_amount),
+            (sum, e) => sum + (e.user_share ?? e.total_amount),
             0
         );
     }, [filteredExpenses]);
@@ -238,9 +245,20 @@ export function useSpatialMap() {
         setRegion(newRegion);
     }, []);
 
-    const recenter = useCallback(() => {
-        mapRef.current?.animateToRegion(BANGALORE_REGION, 500);
-    }, []);
+    const handleMyLocationPress = useCallback(async () => {
+        const targetCoords = await refreshLocation(true);
+        if (!targetCoords) return;
+
+        mapRef.current?.animateToRegion(
+            {
+                latitude: targetCoords.latitude,
+                longitude: targetCoords.longitude,
+                latitudeDelta: MY_LOCATION_REGION_DELTA,
+                longitudeDelta: MY_LOCATION_REGION_DELTA,
+            },
+            400
+        );
+    }, [refreshLocation]);
 
     return {
         mapRef,
@@ -273,7 +291,8 @@ export function useSpatialMap() {
         selectedTripHull: selectedMemoryHull,
         selectedMemoryHull,
         onRegionChangeComplete,
-        recenter,
+        isLocationLoading,
+        handleMyLocationPress,
         flyToTrip: flyToMemory,
         flyToMemory,
     };

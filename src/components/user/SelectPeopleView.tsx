@@ -80,7 +80,7 @@ export const SelectPeopleView = ({
             {hasSelection && (
                 <View className="mb-4 px-1">
                     <AppText variant="caption-xs"
-                             className="font-bold mb-2 text-text-secondary uppercase tracking-widest">Selected</AppText>
+                             className="font-bold mb-2 text-text-primary-lighter uppercase tracking-widest">Selected</AppText>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                         {localSelectedIds.map(id => {
                             const user = relations.find(r => r.with_user.id === id)?.with_user ||
@@ -136,8 +136,8 @@ export const SelectPeopleView = ({
                 ) : !isSearching && !loadingRelations && (
                     /* Initial Empty State (No friends at all) */
                     <View className="items-center py-10">
-                        <Iconify icon="heroicons:user-plus" size={40} color={COLORS.icon_secondary_light}/>
-                        <AppText className="text-text-secondary mt-2">You haven&#39;t added any friends yet.</AppText>
+                        <Iconify icon="heroicons:user-plus" size={40} color={COLORS.icon_primary_light}/>
+                        <AppText className="text-text-primary-lighter mt-2">You haven&#39;t added any friends yet.</AppText>
                     </View>
                 )}
 
@@ -163,8 +163,8 @@ export const SelectPeopleView = ({
                 {/* --- Search Empty State --- */}
                 {isSearching && !isSearchingGlobal && filteredRelations.length === 0 && globalResults.length === 0 && (
                     <View className="items-center py-10">
-                        <Iconify icon="heroicons:face-frown" size={40} color={COLORS.icon_secondary_light}/>
-                        <AppText className="text-text-secondary mt-2">No results for &#34;{search}&#34;</AppText>
+                        <Iconify icon="heroicons:face-frown" size={40} color={COLORS.icon_primary_light}/>
+                        <AppText className="text-text-primary-lighter mt-2">No results for &#34;{search}&#34;</AppText>
                     </View>
                 )}
 
@@ -188,17 +188,17 @@ export const SelectPeopleView = ({
 const UserListItem = ({user, isSelected, onPress, subtext}: any) => (
     <Pressable
         onPress={onPress}
-        className={`flex-row items-center p-3 rounded-2xl mb-2 ${isSelected ? 'bg-bg-secondary/10 border border-bg-secondary/30' : 'bg-white dark:bg-zinc-900 border border-transparent'}`}
+        className={`flex-row items-center p-3 rounded-2xl mb-2 ${isSelected ? 'bg-accent-sky-bg border border-accent-sky' : 'bg-white dark:bg-zinc-900 border border-transparent'}`}
     >
         <AppImage url={user.avatar?.url} size="sm" variant="circular"/>
         <View className="flex-1 ml-3">
             <AppText className="font-semibold text-text-primary">{user.name}</AppText>
-            <AppText variant="caption-xs" className="text-text-secondary opacity-60">{subtext}</AppText>
+            <AppText variant="caption-xs" className="text-text-primary-lighter opacity-60">{subtext}</AppText>
         </View>
         {isSelected ? (
-            <Iconify icon="heroicons:check-circle-solid" size={24} color={COLORS.icon_primary_darker_light}/>
+            <Iconify icon="heroicons:check-circle-solid" size={24} color="#0284C7"/>
         ) : (
-            <Iconify icon="heroicons:check-circle" size={24} color={COLORS.icon_secondary_light}/>
+            <Iconify icon="heroicons:check-circle" size={24} color={COLORS.icon_primary_light}/>
         )}
     </Pressable>
 );

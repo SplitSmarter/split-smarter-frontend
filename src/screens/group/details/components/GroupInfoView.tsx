@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { COLORS } from '@/src/constants/colors';
 import {
     View,
     ScrollView,
@@ -146,7 +147,7 @@ export const GroupInfoView: React.FC<GroupInfoViewProps> = ({
                         contentFit="cover"
                     />
                 ) : (
-                    <View style={{ backgroundColor: '#2D6A4F', width: '100%', height: '100%' }} />
+                    <View style={{ backgroundColor: COLORS.light.brand.primary, width: '100%', height: '100%' }} />
                 )}
             </View>
 
@@ -197,14 +198,14 @@ export const GroupInfoView: React.FC<GroupInfoViewProps> = ({
                         </AppText>
 
                         {isAddingUser ? (
-                            <ActivityIndicator size="small" color="#2D6A4F" className="py-1" />
+                            <ActivityIndicator size="small" color={COLORS.light.brand.primary} className="py-1" />
                         ) : (
                             <Pressable
                                 onPress={() => setIsAddUserBottomSheetVisible(true)}
                                 className="flex-row items-center py-1 active:opacity-60"
                             >
-                                <Iconify icon="heroicons:user-plus" size={16} color="#2D6A4F" />
-                                <AppText className="text-[#2D6A4F] font-semibold ml-1.5 text-sm">
+                                <Iconify icon="heroicons:user-plus" size={16} color={COLORS.light.brand.primary} />
+                                <AppText className="text-bg-secondary font-semibold ml-1.5 text-sm">
                                     Add Members
                                 </AppText>
                             </Pressable>

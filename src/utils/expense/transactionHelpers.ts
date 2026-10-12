@@ -56,14 +56,14 @@ export const executeTransactionSubmit = async (
         return {success: true, message: response.message};
 
     } else {
-        // 1. Structural Validation Guards to guarantee fields match AddTransferRequest requirements
         if (!transferDraft.sender || !transferDraft.recipient) {
             throw new Error("Cannot execute transfer: Sender or Recipient details are missing.");
         }
+        if (!transferDraft.paymentCategoryId) {
+            throw new Error("Cannot execute transfer: Payment category is required.");
+        }
 
         const transferPayload = mapTransferDraftToRequest(transferDraft);
-
-        console.log("Transfer Payload dispatched via createTransferApi:", transferPayload);
         const response = await createTransferApi(transferPayload);
         return {success: true, message: response.message || "Transfer logged successfully"};
     }
@@ -94,6 +94,10 @@ export const validateTransactionSubmit = async (
         }
         if (!transferDraft.sender) {
             Alert.alert("Validation Error", "Sender entity context is missing.");
+            return false;
+        }
+        if (!transferDraft.paymentCategoryId) {
+            Alert.alert("Validation Error", "Please select a payment category.");
             return false;
         }
         return true;

@@ -16,6 +16,7 @@ import {
     View
 } from 'react-native';
 import { Iconify } from "react-native-iconify";
+import { COLORS } from '@/src/constants/colors';
 
 interface ApiExpenseItem {
     id: number;
@@ -36,6 +37,7 @@ type FilterTab = 'All' | 'Default' | 'Custom';
 const MultiExpenseItemSelect = ({ onSave, onAddNew }: Props) => {
     const { theme } = themeStore();
     const isDark = theme === 'dark';
+    const brand = isDark ? COLORS.dark.brand : COLORS.light.brand;
 
     const draft = useExpenseDraftStore();
 
@@ -51,7 +53,7 @@ const MultiExpenseItemSelect = ({ onSave, onAddNew }: Props) => {
         const fetchAllItems = async () => {
             try {
                 setLoading(true);
-                const res = await GetExpenseItemsApi([ExpenseItemSource.DEFAULT, ExpenseItemSource.CUSTOM]);
+                const res = await GetExpenseItemsApi([ExpenseItemSource.SYSTEM, ExpenseItemSource.CUSTOM]);
                 if (res.data) {
                     const mappedItems: ApiExpenseItem[] = res.data.map(item => ({
                         id: item.id,
@@ -77,7 +79,7 @@ const MultiExpenseItemSelect = ({ onSave, onAddNew }: Props) => {
             const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase());
             const matchesTab =
                 activeTab === 'All' ||
-                (activeTab === 'Default' && item.item_type === ExpenseItemSource.DEFAULT) ||
+                (activeTab === 'Default' && item.item_type === ExpenseItemSource.SYSTEM) ||
                 (activeTab === 'Custom' && item.item_type === ExpenseItemSource.CUSTOM);
             return matchesSearch && matchesTab;
         });
@@ -197,9 +199,9 @@ const MultiExpenseItemSelect = ({ onSave, onAddNew }: Props) => {
                             <Pressable
                                 key={tab}
                                 onPress={() => setActiveTab(tab)}
-                                className={`px-6 py-2 rounded-full mr-2 ${activeTab === tab ? 'bg-emerald-600' : 'bg-transparent border border-emerald-600/20'}`}
+                                className={`px-6 py-2 rounded-full mr-2 ${activeTab === tab ? 'bg-accent-sky' : 'bg-transparent border border-accent-sky/20'}`}
                             >
-                                <AppText className={activeTab === tab ? 'text-white font-bold' : 'text-emerald-600'}>{tab}</AppText>
+                                <AppText className={activeTab === tab ? 'text-white font-bold' : 'text-accent-sky'}>{tab}</AppText>
                             </Pressable>
                         ))}
                     </View>
@@ -219,7 +221,7 @@ const MultiExpenseItemSelect = ({ onSave, onAddNew }: Props) => {
                                 onPress={() => handleToggle(item)}
                                 className={`flex-row items-center p-4 mb-3 rounded-2xl border ${
                                     isSelected
-                                        ? (isDark ? 'bg-emerald-900/20 border-emerald-500' : 'bg-emerald-50 border-emerald-200')
+                                        ? 'bg-accent-sky-bg border-accent-sky'
                                         : (isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-100')
                                 }`}
                             >
@@ -236,7 +238,7 @@ const MultiExpenseItemSelect = ({ onSave, onAddNew }: Props) => {
                                 </View>
                                 <View>
                                     {isSelected ? (
-                                        <Iconify icon="heroicons:check-circle-solid" size={26} color="#10B981" />
+                                        <Iconify icon="heroicons:check-circle-solid" size={26} color="#0284C7" />
                                     ) : (
                                         <Iconify icon="heroicons:plus-circle" size={26} color={isDark ? "#333" : "#D1D5DB"} />
                                     )}
@@ -244,7 +246,7 @@ const MultiExpenseItemSelect = ({ onSave, onAddNew }: Props) => {
                             </Pressable>
                         );
                     }}
-                    ListEmptyComponent={loading ? <ActivityIndicator className="mt-10" color="#059669" /> : (
+                    ListEmptyComponent={loading ? <ActivityIndicator className="mt-10" color={brand.primary} /> : (
                         <View className="items-center mt-10">
                             <AppText className="opacity-40">No items found</AppText>
                         </View>
@@ -255,16 +257,16 @@ const MultiExpenseItemSelect = ({ onSave, onAddNew }: Props) => {
                 <View className={`p-4 pb-8 flex-row ${isDark ? 'bg-black border-t border-gray-900' : 'bg-white border-t border-gray-100'}`}>
                     <Pressable
                         onPress={onAddNew}
-                        className="flex-1 h-14 border border-emerald-600 rounded-2xl flex-row items-center justify-center mr-2 active:opacity-70"
+                        className="flex-1 h-14 border border-bg-secondary rounded-2xl flex-row items-center justify-center mr-2 active:opacity-70"
                     >
-                        <Iconify icon="heroicons:plus" size={20} color="#059669" />
-                        <AppText className="ml-2 text-emerald-600 font-bold">Add New</AppText>
+                        <Iconify icon="heroicons:plus" size={20} color={brand.primary} />
+                        <AppText className="ml-2 text-bg-secondary font-bold">Add New</AppText>
                     </Pressable>
                     <Pressable
                         onPress={handleConfirmSelection}
-                        className="flex-[2] h-14 bg-emerald-600 rounded-2xl items-center justify-center active:opacity-90 shadow-sm"
+                        className="flex-[2] h-14 bg-bg-secondary rounded-2xl items-center justify-center active:opacity-90 shadow-sm"
                     >
-                        <AppText className="text-white font-bold text-lg">Save Selection</AppText>
+                        <AppText className="text-text-primary-lighter font-bold text-lg">Save Selection</AppText>
                     </Pressable>
                 </View>
 
@@ -281,16 +283,16 @@ const MultiExpenseItemSelect = ({ onSave, onAddNew }: Props) => {
                             </View>
 
                             <AppText className="text-center opacity-70 mb-6">
-                                The items sum to <AppText className="font-bold text-emerald-500">₹{selectedItemsTotal.toFixed(2)}</AppText>, but the expense amount is set to <AppText className="font-bold text-amber-500">₹{draft.totalAmount.toFixed(2)}</AppText>. How would you like to proceed?
+                                The items sum to <AppText className="font-bold text-green-increase">₹{selectedItemsTotal.toFixed(2)}</AppText>, but the expense amount is set to <AppText className="font-bold text-amber-500">₹{draft.totalAmount.toFixed(2)}</AppText>. How would you like to proceed?
                             </AppText>
 
                             <View className="gap-y-3">
                                 {/* Option 1: Overwrite state with items cost calculation and save */}
                                 <Pressable
                                     onPress={handleUpdateAmountAndSave}
-                                    className="w-full h-12 bg-emerald-600 rounded-xl items-center justify-center active:opacity-90"
+                                    className="w-full h-12 bg-bg-secondary rounded-xl items-center justify-center active:opacity-90"
                                 >
-                                    <AppText className="text-white font-bold">Update Amount to ₹{selectedItemsTotal.toFixed(2)}</AppText>
+                                    <AppText className="text-text-primary-lighter font-bold">Update Amount to ₹{selectedItemsTotal.toFixed(2)}</AppText>
                                 </Pressable>
 
                                 {/* Option 3: Dismiss warning modal and return right back to item lists modifications */}
@@ -298,7 +300,7 @@ const MultiExpenseItemSelect = ({ onSave, onAddNew }: Props) => {
                                     onPress={() => setMismatchModalVisible(false)}
                                     className="w-full h-12 items-center justify-center active:opacity-60"
                                 >
-                                    <AppText className="text-emerald-600 dark:text-emerald-400 font-bold">
+                                    <AppText className="text-text-link font-bold">
                                         Go back
                                     </AppText>
                                 </Pressable>

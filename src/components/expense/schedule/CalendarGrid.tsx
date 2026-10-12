@@ -24,7 +24,7 @@ export const CalendarGrid = ({
     const weekdays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
     return (
-        <View className="bg-emerald-700 rounded-[36px] p-5 shadow-xl mx-4 mb-4">
+        <View className="bg-bg-secondary rounded-[36px] p-5 shadow-xl mx-4 mb-4">
             {/* Calendar Sub-Header */}
             <View className="flex-row justify-between items-center mb-4 px-2">
                 {onIntervalChangeClick ? (

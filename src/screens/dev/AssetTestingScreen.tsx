@@ -53,11 +53,11 @@ export default function AssetTestingScreen() {
                     </View>
                     <View className="gap-y-2">
                         <View className="flex-row justify-between">
-                            <AppText className="text-text-secondary">Camera:</AppText>
+                            <AppText className="text-text-primary-lighter">Camera:</AppText>
                             {renderStatus(camera)}
                         </View>
                         <View className="flex-row justify-between">
-                            <AppText className="text-text-secondary">Gallery:</AppText>
+                            <AppText className="text-text-primary-lighter">Gallery:</AppText>
                             {renderStatus(media)}
                         </View>
                     </View>
@@ -97,7 +97,7 @@ export default function AssetTestingScreen() {
                 {/* --- SECTION 3: Live Upload Queue --- */}
                 <View className="flex-row justify-between items-center mb-4">
                     <AppText variant="h4" className="text-text-primary">Live Upload Queue</AppText>
-                    <AppText variant="caption-xs" className="text-text-secondary">
+                    <AppText variant="caption-xs" className="text-text-primary-lighter">
                         {Object.values(queue).length} Items
                     </AppText>
                 </View>
@@ -106,7 +106,7 @@ export default function AssetTestingScreen() {
                     <View
                         className="py-10 bg-zinc-50 dark:bg-zinc-900/50 rounded-3xl items-center border border-dashed border-zinc-200 dark:border-zinc-800">
                         <Iconify icon="heroicons:cloud-arrow-up" size={32} color="#666"/>
-                        <AppText className="text-text-secondary italic mt-2">No uploads in current session.</AppText>
+                        <AppText className="text-text-primary-lighter italic mt-2">No uploads in current session.</AppText>
                     </View>
                 ) : (
                     <View className="gap-y-3 mb-20">
@@ -138,7 +138,7 @@ export default function AssetTestingScreen() {
                                                 task.status === 'failed' ? 'bg-red-500' : 'bg-blue-500'
                                         }`}/>
                                         <AppText variant="caption-xs"
-                                                 className="uppercase tracking-wider font-bold text-text-secondary">
+                                                 className="uppercase tracking-wider font-bold text-text-primary-lighter">
                                             {task.status}
                                         </AppText>
                                     </View>

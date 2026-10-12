@@ -74,7 +74,7 @@ export const CurrencyModal = React.memo(({
                 onPress={() => onSelect(item.code)}
                 className={`flex-row items-center p-4 rounded-2xl border mb-2.5 ${
                     isSelected
-                        ? 'border-bg-secondary bg-bg-secondary/5'
+                        ? 'border-accent-sky bg-accent-sky-bg'
                         : 'border-zinc-100 dark:border-zinc-900 bg-zinc-50/40 dark:bg-zinc-900/20'
                 }`}
             >
@@ -97,7 +97,7 @@ export const CurrencyModal = React.memo(({
                 {/* Currency Description Core Meta Segment */}
                 <View className="flex-1 ml-3.5">
                     <View className="flex-row items-center gap-x-1.5">
-                        <AppText className={`font-bold text-sm ${isSelected ? 'text-bg-secondary' : 'text-text-primary'}`}>
+                        <AppText className={`font-bold text-sm ${isSelected ? 'text-accent-sky' : 'text-text-primary'}`}>
                             {item.code}
                         </AppText>
                         <AppText variant="caption-xs" className="opacity-40 text-text-primary text-[11px]">
@@ -112,7 +112,7 @@ export const CurrencyModal = React.memo(({
                 {/* Contextualized User Exchange Rate Metric Box */}
                 {showConversionRates && localConversionTranslation.length > 0 && (
                     <View className="items-end mr-2">
-                        <AppText className={`text-[10px] font-semibold ${isSelected ? 'text-bg-secondary/80 font-bold' : 'text-text-primary-lighter'}`}>
+                        <AppText className={`text-[10px] font-semibold ${isSelected ? 'text-accent-sky/80 font-bold' : 'text-text-primary-lighter'}`}>
                             {localConversionTranslation}
                         </AppText>
                     </View>

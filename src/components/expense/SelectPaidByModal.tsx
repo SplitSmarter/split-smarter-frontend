@@ -118,7 +118,7 @@ export const SelectPaidByModal = ({ visible, setPayers, onClose, payers, totalEx
                             </View>
 
                             {/* Header */}
-                            <View className="px-6 py-4 flex-row items-center border-b border-dashed border-bg-secondary-lighter/40">
+                            <View className="px-6 py-4 flex-row items-center border-b border-dashed border-border-input/40">
                                 <Pressable onPress={onClose} className="p-1">
                                     <Iconify icon="heroicons:chevron-left" size={24} color="rgb(var(--color-text-primary))" />
                                 </Pressable>
@@ -142,7 +142,7 @@ export const SelectPaidByModal = ({ visible, setPayers, onClose, payers, totalEx
                             </View>
 
                             {/* Footer - Pinned to bottom */}
-                            <View className="p-6 bg-bg-primary-lighter border-t border-bg-secondary-lighter/10">
+                            <View className="p-6 bg-bg-primary-lighter border-t border-border-input/10">
                                 <AppButton variant="primary" size="lg" onPress={onClose}>
                                     Confirm Selection
                                 </AppButton>

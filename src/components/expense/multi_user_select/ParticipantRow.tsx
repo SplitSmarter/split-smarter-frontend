@@ -154,7 +154,7 @@ const ParticipantRow = memo(({
                 {/* Split Action Input Slots */}
                 {splitMode === 'equal' && (
                     <View className="items-end">
-                        <AppText className="font-bold text-emerald-600 dark:text-emerald-400">
+                        <AppText className="font-bold text-green-increase">
                             ₹{item.amount.toFixed(2)}
                         </AppText>
                     </View>

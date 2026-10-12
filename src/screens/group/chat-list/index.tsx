@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { COLORS } from '@/src/constants/colors';
 import { View, FlatList, RefreshControl, ActivityIndicator } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { ScreenWrapper } from "@/src/components/common/ScreenWrapper";
@@ -112,11 +113,15 @@ const ExpenseChatGroupListScreen = () => {
     }, [groups, expenses, activeTab, searchQuery]);
 
     return (
-        <ScreenWrapper backgroundColor="#2D6A4F" statusBarStyle="light-content" withPadding={false}>
+        <ScreenWrapper
+            backgroundColor={isDark ? COLORS.dark.brand.primary : COLORS.light.brand.primary}
+            statusBarStyle="light-content"
+            withPadding={false}
+        >
             {/* Direct Central Header Container Box */}
-            <View className="bg-[#2D6A4F] pt-4 pb-6 rounded-b-[30px] w-full">
+            <View className="bg-bg-secondary pt-4 pb-6 rounded-b-[30px] w-full">
                 <View className="items-center mb-4">
-                    <AppText variant="h3" className="text-white">Expenses</AppText>
+                    <AppText variant="h3" className="text-text-secondary">Expenses</AppText>
                 </View>
 
                 <SearchHeader searchQuery={searchQuery} onSearchChange={setSearchQuery} />
@@ -125,21 +130,30 @@ const ExpenseChatGroupListScreen = () => {
 
             {/* List Canvas Section */}
             <View className="flex-1 mt-4">
-                <View className={`flex-1 rounded-t-[24px] overflow-hidden ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+                <View className="flex-1 rounded-t-[24px] overflow-hidden bg-bg-primary">
                     {loading && !refreshing ? (
-                        <View className="flex-1 justify-center items-center"><ActivityIndicator color="#2D6A4F" size="large" /></View>
+                        <View className="flex-1 justify-center items-center">
+                            <ActivityIndicator
+                                color={isDark ? COLORS.dark.brand.primary : COLORS.light.brand.primary}
+                                size="large"
+                            />
+                        </View>
                     ) : (
                         <FlatList
                             data={unifiedDisplayItems}
                             keyExtractor={(item) => item.id}
                             renderItem={({ item }) => <ActivityListItem item={item} isDark={isDark} />}
                             refreshControl={
-                                <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#2D6A4F" />
+                                <RefreshControl
+                                    refreshing={refreshing}
+                                    onRefresh={handleRefresh}
+                                    tintColor={isDark ? COLORS.dark.brand.primary : COLORS.light.brand.primary}
+                                />
                             }
                             contentContainerStyle={{ paddingBottom: 100, paddingTop: 10 }}
                             ListEmptyComponent={
                                 <View className="items-center pt-20">
-                                    <AppText className="opacity-40">
+                                    <AppText className="text-text-primary-lighter">
                                         {searchQuery ? t('common.no_results') : t('common.no_items', { item: activeTab })}
                                     </AppText>
                                 </View>

@@ -1,6 +1,6 @@
 import axiosUserInstance from "@/src/api/axiosUserServiceInstance"; // Adjust instance name as per your setup
-import { SuccessResponse } from "@/src/api/dto/ApiResponse";
-import { handleApiError } from "@/src/api/utils/mapper";
+import {PaginationResponse, SuccessResponse} from "@/src/api/dto/ApiResponse";
+import {handleApiError} from "@/src/api/utils/mapper";
 import {
     AddExpenseCategoryRequest,
     ExpenseCategoryResponse
@@ -55,6 +55,7 @@ export const GetExpenseCategoriesApi = async (
             return {
                 message: res.data.message,
                 data: res.data.data,
+                pagination: res.data.pagination as PaginationResponse | undefined,
             };
         }
         throw new Error("Invalid Response Schema");

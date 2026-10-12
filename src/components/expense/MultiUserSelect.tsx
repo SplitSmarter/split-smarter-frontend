@@ -1,22 +1,23 @@
 import {RelationWithUserType} from "@/src/api/dto/constants";
 import {GetRelationsApi} from "@/src/api/relations/relation";
+import {GetGroupMembershipsApi} from "@/src/api/group/membership";
 import {AppText} from '@/src/components/common/AppText';
 import ModeTabBar from "@/src/components/expense/multi_user_select/ModeTabBar";
 import ParticipantRow from "@/src/components/expense/multi_user_select/ParticipantRow";
 import SuggestionsSection from "@/src/components/expense/multi_user_select/SuggestionSection";
+import TypeToggleBar, { SplitSelectType } from "@/src/components/expense/multi_user_select/TypeToggleBar";
 import {themeStore} from "@/src/store/themeStore";
 import {userStore} from "@/src/store/userStore";
+import { COLORS } from '@/src/constants/colors';
 import {useExpenseDraftStore, PayerUser as StorePayerUser} from "@/src/store/draft/expenseDraftStore";
-import React, {useEffect, useMemo, useState, useRef} from 'react';
+import {DraftValidationErrorKey} from "@/src/interfaces/expense/draft_validation";
+import React, {useCallback, useEffect, useMemo, useState, useRef} from 'react';
 import {
     FlatList,
     Pressable,
-    StyleSheet,
     View,
-    SafeAreaView,
     Modal
 } from 'react-native';
-import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {Iconify} from "react-native-iconify";
 import {useRouter} from "expo-router";
 import { ScreenWrapper } from "../common/ScreenWrapper";
@@ -41,7 +42,7 @@ export interface UserItem {
 }
 
 interface MultiUserSplitSelectProps {
-    type: 'split' | 'paidBy';
+    type: SplitSelectType;
     onSave?: (users: UserItem[]) => void;
 }
 
@@ -57,9 +58,11 @@ const MultiUserSplitSelect = ({type, onSave}: MultiUserSplitSelectProps) => {
 
     const draft = useExpenseDraftStore();
     const totalExpense = draft.totalAmount;
+    const selectedGroupId = draft.groupId;
 
+    const [activeType, setActiveType] = useState<SplitSelectType>(type);
     const [splitMode, setSplitMode] = useState<SplitMode>('equal');
-    const [allRelations, setAllRelations] = useState<ToggleUserPayload[]>([]);
+    const [availableUsers, setAvailableUsers] = useState<ToggleUserPayload[]>([]);
     const [loading, setLoading] = useState(true);
 
     const [isTotalLocked, setIsTotalLocked] = useState<boolean>(true);
@@ -70,6 +73,7 @@ const MultiUserSplitSelect = ({type, onSave}: MultiUserSplitSelectProps) => {
 
     const splitModeRef = useRef<SplitMode>('equal');
     const isTotalLockedRef = useRef<boolean>(true);
+    const activeTypeRef = useRef<SplitSelectType>(type);
 
     useEffect(() => {
         splitModeRef.current = splitMode;
@@ -79,14 +83,24 @@ const MultiUserSplitSelect = ({type, onSave}: MultiUserSplitSelectProps) => {
         isTotalLockedRef.current = isTotalLocked;
     }, [isTotalLocked]);
 
+    useEffect(() => {
+        activeTypeRef.current = activeType;
+    }, [activeType]);
+
     const onAddNewUser = () => {
         router.push('/(authenticated)/user/add');
     };
 
     const manualAmountsRef = useRef<Record<string, number>>({});
 
+    const handleChangeActiveType = useCallback((nextType: SplitSelectType) => {
+        if (nextType === activeTypeRef.current) return;
+        manualAmountsRef.current = {};
+        setActiveType(nextType);
+    }, []);
+
     const selectedUsers = useMemo<UserItem[]>(() => {
-        const targetingStoreList = type === 'paidBy' ? draft.payers : draft.splitParticipants;
+        const targetingStoreList = activeType === 'paidBy' ? draft.payers : draft.splitParticipants;
 
         return targetingStoreList.map(u => {
             const isSelf = currentUser &&
@@ -110,7 +124,7 @@ const MultiUserSplitSelect = ({type, onSave}: MultiUserSplitSelectProps) => {
                 user_type: u.user_type
             };
         });
-    }, [draft.payers, draft.splitParticipants, type, currentUser, totalExpense, splitMode, isTotalLocked]);
+    }, [draft.payers, draft.splitParticipants, activeType, currentUser, totalExpense, splitMode, isTotalLocked]);
 
     const selectedUsersRef = useRef<UserItem[]>([]);
 
@@ -129,7 +143,7 @@ const MultiUserSplitSelect = ({type, onSave}: MultiUserSplitSelectProps) => {
             user_type: u.user_type
         }));
 
-        if (type === 'paidBy') {
+        if (activeTypeRef.current === 'paidBy') {
             draft.setPayers(serializedStoreList);
         } else {
             draft.setSplitParticipants(serializedStoreList);
@@ -141,56 +155,121 @@ const MultiUserSplitSelect = ({type, onSave}: MultiUserSplitSelectProps) => {
     };
 
     useEffect(() => {
+        const mapToPayload = (
+            id: number | string,
+            name: string,
+            avatarUrl: string | null | undefined,
+            userType: RelationWithUserType,
+        ): ToggleUserPayload => {
+            const isSelf = !!currentUser &&
+                String(id) === String(currentUser.id) &&
+                userType === RelationWithUserType.USER;
+            return {
+                id: String(id),
+                name: isSelf ? "You" : name,
+                avatarUrl: avatarUrl || null,
+                user_type: userType,
+            };
+        };
+
         const fetchUsers = async () => {
             try {
                 setLoading(true);
-                const res = await GetRelationsApi({limit: 50});
-                if (res?.data) {
-                    const mapped: ToggleUserPayload[] = res.data.map((rel: any) => {
-                        const isSelf = currentUser &&
-                            String(rel.with_user.id) === String(currentUser.id) &&
-                            rel.with_user.user_type === RelationWithUserType.USER;
-                        return {
-                            id: String(rel.with_user.id),
-                            name: isSelf ? "You" : rel.with_user.name,
-                            avatarUrl: rel.with_user.avatar?.url || null,
-                            user_type: rel.with_user.user_type
-                        };
-                    });
-                    setAllRelations(mapped);
+                setAvailableUsers([]);
+
+                if (selectedGroupId) {
+                    const res = await GetGroupMembershipsApi(selectedGroupId, {offset: 0, limit: 100});
+                    if (res?.data) {
+                        setAvailableUsers(
+                            res.data.map((membership) =>
+                                mapToPayload(
+                                    membership.user.id,
+                                    membership.user.name,
+                                    membership.user.avatar?.url,
+                                    membership.user.user_type,
+                                )
+                            )
+                        );
+                    }
+                } else {
+                    const res = await GetRelationsApi({limit: 50});
+                    if (res?.data) {
+                        setAvailableUsers(
+                            res.data.map((rel) =>
+                                mapToPayload(
+                                    rel.with_user.id,
+                                    rel.with_user.name,
+                                    rel.with_user.avatar?.url,
+                                    rel.with_user.user_type,
+                                )
+                            )
+                        );
+                    }
                 }
             } catch (e) {
-                console.error("Error fetching relations registry data:", e);
+                console.error(
+                    selectedGroupId
+                        ? "Error fetching group membership registry data:"
+                        : "Error fetching relations registry data:",
+                    e
+                );
+                setAvailableUsers([]);
             } finally {
                 setLoading(false);
             }
         };
+
         fetchUsers();
-    }, [currentUser]);
+    }, [currentUser, selectedGroupId]);
+
+    // Re-check group membership when payers / split participants change
+    useEffect(() => {
+        if (!selectedGroupId) return;
+        const timer = setTimeout(() => {
+            void draft.runIntegrityValidation(DraftValidationErrorKey.GROUP_MISMATCH);
+        }, 350);
+        return () => clearTimeout(timer);
+    }, [selectedGroupId, draft.payers, draft.splitParticipants]);
 
     const filteredSuggestions = useMemo<ToggleUserPayload[]>(() => {
         const suggestionsList: ToggleUserPayload[] = [];
-        if (currentUser) {
-            const selfKey = getUserItemKey(currentUser.id, RelationWithUserType.USER);
-            const isSelfSelected = selectedUsers.some(su => getUserItemKey(su.id, su.user_type) === selfKey);
-            if (!isSelfSelected) {
-                suggestionsList.push({
-                    id: String(currentUser.id),
-                    name: "You",
-                    avatarUrl: currentUser.avatar?.url || null,
-                    user_type: RelationWithUserType.USER
-                });
-            }
+        const selectedKeys = new Set(
+            selectedUsers.map((su) => getUserItemKey(su.id, su.user_type))
+        );
+
+        const selfKey = currentUser
+            ? getUserItemKey(currentUser.id, RelationWithUserType.USER)
+            : null;
+        const selfInAvailable = !!selfKey && availableUsers.some(
+            (user) => getUserItemKey(user.id, user.user_type) === selfKey
+        );
+
+        // Relations mode: always offer "You" even if not returned by the relations API.
+        // Group mode: only include self when they are an actual group member.
+        if (
+            currentUser &&
+            selfKey &&
+            !selectedKeys.has(selfKey) &&
+            !selfInAvailable &&
+            !selectedGroupId
+        ) {
+            suggestionsList.push({
+                id: String(currentUser.id),
+                name: "You",
+                avatarUrl: currentUser.avatar?.url || null,
+                user_type: RelationWithUserType.USER,
+            });
         }
-        allRelations.forEach(relUser => {
-            const relKey = getUserItemKey(relUser.id, relUser.user_type);
-            const isAlreadySelected = selectedUsers.some(su => getUserItemKey(su.id, su.user_type) === relKey);
-            if (!isAlreadySelected) {
-                suggestionsList.push(relUser);
+
+        availableUsers.forEach((user) => {
+            const userKey = getUserItemKey(user.id, user.user_type);
+            if (!selectedKeys.has(userKey)) {
+                suggestionsList.push(user);
             }
         });
+
         return suggestionsList;
-    }, [allRelations, selectedUsers, currentUser]);
+    }, [availableUsers, selectedUsers, currentUser, selectedGroupId]);
 
     // Shared targeted lock operational layout block (Common logic abstraction)
     const executeInternalTargetLock = (id: string, computedAmount: number, activeUsers: UserItem[]) => {
@@ -535,17 +614,25 @@ const MultiUserSplitSelect = ({type, onSave}: MultiUserSplitSelectProps) => {
     return (
         <ScreenWrapper
             withPadding={false}
+            backgroundColor={isDark ? COLORS.dark.bg.primary : COLORS.light.bg.primary}
             statusBarStyle={isDark ? "light-content" : "dark-content"}
             className="bg-bg-primary"
         >
             <View className="flex-1">
+                <TypeToggleBar
+                    activeType={activeType}
+                    isDark={isDark}
+                    onChangeType={handleChangeActiveType}
+                />
+
                 {/* Upper Horizontal Quick Suggestions Bar */}
                 <SuggestionsSection
                     loading={loading}
                     allUsers={filteredSuggestions}
                     selectedUsers={selectedUsers}
+                    title={selectedGroupId ? 'Group Members' : 'Suggestions'}
                     onToggleUser={handleToggleUser}
-                    onAddNewUser={onAddNewUser}
+                    onAddNewUser={selectedGroupId ? undefined : onAddNewUser}
                 />
 
                 {/* Calculation Mode Switcher Bar */}
@@ -560,7 +647,7 @@ const MultiUserSplitSelect = ({type, onSave}: MultiUserSplitSelectProps) => {
                     <FlatList
                         data={selectedUsers}
                         keyExtractor={item => getUserItemKey(item.id, item.user_type)}
-                        extraData={[splitMode, totalExpense, selectedUsers, isTotalLocked]}
+                        extraData={[splitMode, totalExpense, selectedUsers, isTotalLocked, activeType]}
                         showsVerticalScrollIndicator={false}
                         contentContainerStyle={{paddingBottom: 16}}
                         renderItem={({item}) => (
@@ -603,17 +690,18 @@ const MultiUserSplitSelect = ({type, onSave}: MultiUserSplitSelectProps) => {
                                     {isTotalLocked ? (
                                         <Iconify icon="heroicons:lock-closed" size={14} color="#F59E0B"/>
                                     ) : (
-                                        <Iconify icon="heroicons:lock-open" size={14} color="#10B981"/>
+                                        <Iconify icon="heroicons:lock-open" size={14} color={COLORS.light.brand.primary}/>
                                     )}
                                 </Pressable>
                             </View>
-                            <AppText variant="body-small" className="text-emerald-500 font-medium">
-                                Splitting with {selectedUsers.length} {selectedUsers.length === 1 ? 'person' : 'people'}
+                            <AppText variant="body-small" className="text-green-increase font-medium">
+                                {activeType === 'paidBy' ? 'Paid by' : 'Splitting with'}{' '}
+                                {selectedUsers.length} {selectedUsers.length === 1 ? 'person' : 'people'}
                             </AppText>
                         </View>
                         <View className="items-end">
                             <AppText variant="h2"
-                                     className="font-black tracking-tight text-emerald-600 dark:text-emerald-400">
+                                     className="font-black tracking-tight text-green-increase">
                                 ₹{totalExpense.toFixed(2)}
                             </AppText>
                             {splitMode === 'equal' && selectedUsers.length > 0 && (
@@ -627,7 +715,7 @@ const MultiUserSplitSelect = ({type, onSave}: MultiUserSplitSelectProps) => {
                     <Pressable
                         onPress={() => onSave?.(selectedUsers)}
                         style={({pressed}) => [{transform: [{scale: pressed ? 0.98 : 1}]}]}
-                        className="h-14 bg-emerald-600 dark:bg-emerald-500 rounded-2xl flex-row items-center justify-center active:opacity-95 shadow-sm"
+                        className="h-14 bg-bg-secondary rounded-2xl flex-row items-center justify-center active:opacity-95 shadow-sm"
                     >
                         <AppText className="text-white font-bold text-lg tracking-wide mr-2">Confirm Selection</AppText>
                         <Iconify icon="heroicons:arrow-right-20-solid" size={20} color="white"/>
@@ -663,9 +751,5 @@ const MultiUserSplitSelect = ({type, onSave}: MultiUserSplitSelectProps) => {
         </ScreenWrapper>
     );
 };
-
-const styles = StyleSheet.create({
-    container: {flex: 1}
-});
 
 export default MultiUserSplitSelect;

@@ -1,4 +1,5 @@
 import React, {useState, useEffect} from 'react';
+import { COLORS } from '@/src/constants/colors';
 import {View, ScrollView, ActivityIndicator, Pressable} from 'react-native';
 import {Iconify} from 'react-native-iconify';
 import {useTranslation} from 'react-i18next';
@@ -56,7 +57,7 @@ export const PaymentCategorySelector: React.FC = () => {
 
             {loadingCategories ? (
                 <View className="py-4 items-center justify-center">
-                    <ActivityIndicator size="small" color="#2D6A4F"/>
+                    <ActivityIndicator size="small" color={COLORS.light.brand.primary}/>
                 </View>
             ) : (
                 <ScrollView
@@ -72,8 +73,8 @@ export const PaymentCategorySelector: React.FC = () => {
                                 onPress={() => setPaymentCategoryId(cat.id as any)}
                                 className={`w-20 py-3 px-2 rounded-2xl items-center justify-between border ${
                                     isSelected
-                                        ? 'bg-bg-secondary/10 border-bg-secondary/30'
-                                        : 'bg-bg-primary border-bg-secondary-lighter'
+                                        ? 'bg-accent-sky-bg border-accent-sky'
+                                        : 'bg-bg-primary border-border-input'
                                 }`}
                             >
                                 <View className="mb-2 items-center justify-center">
@@ -89,7 +90,7 @@ export const PaymentCategorySelector: React.FC = () => {
                                 <AppText
                                     variant="caption-xs"
                                     numberOfLines={1}
-                                    className={`font-semibold text-center ${isSelected ? 'text-green-increase' : 'text-text-primary'}`}
+                                    className={`font-semibold text-center ${isSelected ? 'text-accent-sky' : 'text-text-primary'}`}
                                 >
                                     {cat.name}
                                 </AppText>

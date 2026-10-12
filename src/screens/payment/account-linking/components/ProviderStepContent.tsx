@@ -25,7 +25,7 @@ export const ProviderStepContent: React.FC<ProviderStepContentProps> = ({
     if (isLoading) {
         return (
             <View className="py-8 items-center justify-center">
-                <ActivityIndicator size="small" className="text-icon-secondary"/>
+                <ActivityIndicator size="small" className="text-icon-primary"/>
                 <AppText variant="caption-xs" className="text-text-primary-lighter mt-2">
                     Loading providers...
                 </AppText>
@@ -62,7 +62,7 @@ export const ProviderStepContent: React.FC<ProviderStepContentProps> = ({
         return (
             <View
                 className="py-6 items-center justify-center bg-bg-canvas rounded-2xl border border-bg-primary-darker p-4 mt-1">
-                <Ionicons name="alert-circle-outline" size={28} className="text-icon-secondary mb-2"/>
+                <Ionicons name="alert-circle-outline" size={28} className="text-status-error mb-2"/>
                 <AppText variant="body-small" className="font-semibold text-text-primary text-center">
                     No Providers Available
                 </AppText>
@@ -96,11 +96,11 @@ export const ProviderStepContent: React.FC<ProviderStepContentProps> = ({
                                     contentFit="contain"
                                     style={{width: 20, height: 20}}
                                     fallbackComponent={
-                                        <Ionicons name="wallet-outline" size={16} className="text-icon-secondary"/>
+                                        <Ionicons name="wallet-outline" size={16} className="text-icon-primary"/>
                                     }
                                 />
                             ) : (
-                                <Ionicons name="wallet-outline" size={16} className="text-icon-secondary"/>
+                                <Ionicons name="wallet-outline" size={16} className="text-icon-primary"/>
                             )}
                         </View>
 

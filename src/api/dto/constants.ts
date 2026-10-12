@@ -66,8 +66,8 @@ export enum GroupIntent {
 }
 
 export enum ExpenseItemSource {
-    DEFAULT = "DEFAULT",
-    CUSTOM = "CUSTOM"
+    CUSTOM = "CUSTOM",
+    SYSTEM = "SYSTEM",
 }
 
 export type Currency =

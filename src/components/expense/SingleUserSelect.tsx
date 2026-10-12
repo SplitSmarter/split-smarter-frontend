@@ -17,6 +17,7 @@ import { GetRelationsApi } from "@/src/api/relations/relation";
 import { ImageInfo } from "@/src/constants/user/asset";
 import ParticipantRow from "@/src/components/expense/multi_user_select/ParticipantRow";
 import SuggestionsSection from "@/src/components/expense/multi_user_select/SuggestionSection";
+import { COLORS } from '@/src/constants/colors';
 
 export interface SelectedUserPayload {
     id: string;
@@ -144,13 +145,13 @@ const SingleUserSelect = ({ selectedUser, onSelectUser, title }: SingleUserSelec
 
                 {/* Subtitle Header Separator */}
                 <View className="px-4 pt-4 flex-row items-center justify-between">
-                    <AppText variant="caption-xs" className="font-semibold tracking-wider text-text-secondary uppercase">
+                    <AppText variant="caption-xs" className="font-semibold tracking-wider text-text-primary-lighter uppercase">
                         {title || t('transfer.active_selection', 'ACTIVE SELECTION')}
                     </AppText>
                     {selectedUser && (
                         <View className="flex-row items-center gap-x-1">
-                            <Iconify icon="heroicons:check-circle-20-solid" size={14} color="#10B981" />
-                            <AppText variant="caption-xs" className="text-emerald-500 font-medium">Ready</AppText>
+                            <Iconify icon="heroicons:check-circle-20-solid" size={14} color={COLORS.light.brand.primary} />
+                            <AppText variant="caption-xs" className="text-green-increase font-medium">Ready</AppText>
                         </View>
                     )}
                 </View>
@@ -159,7 +160,7 @@ const SingleUserSelect = ({ selectedUser, onSelectUser, title }: SingleUserSelec
                 <View className="flex-1 px-4 mt-3">
                     {loading ? (
                         <View className="flex-1 items-center justify-center pt-8">
-                            <ActivityIndicator size="small" color="#10B981" />
+                            <ActivityIndicator size="small" color={COLORS.light.brand.primary} />
                         </View>
                     ) : selectedUser ? (
                         <FlatList
@@ -181,11 +182,11 @@ const SingleUserSelect = ({ selectedUser, onSelectUser, title }: SingleUserSelec
                             )}
                         />
                     ) : (
-                        <View className={`items-center justify-center p-8 rounded-2xl border border-dashed border-bg-secondary-lighter/20 ${
+                        <View className={`items-center justify-center p-8 rounded-2xl border border-dashed border-border-input/20 ${
                             isDark ? 'bg-gray-900/30' : 'bg-gray-50/50'
                         }`}>
                             <Iconify icon="heroicons:user" size={28} color={isDark ? '#4B5563' : '#9CA3AF'} className="opacity-60 mb-2" />
-                            <AppText variant="body-small" className="text-text-secondary text-center opacity-60">
+                            <AppText variant="body-small" className="text-text-primary-lighter text-center opacity-60">
                                 {t('transfer.no_recipient_selected', 'Tap a suggestion above to designate this participant field.')}
                             </AppText>
                         </View>

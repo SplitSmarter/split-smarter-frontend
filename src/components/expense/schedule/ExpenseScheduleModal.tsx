@@ -33,7 +33,7 @@ export const ExpenseScheduleModal = ({ visible, onClose, onSaveSchedule, initial
 
     // Day Selection states
     const [selectedDays, setSelectedDays] = useState<number[]>([17]);
-    const [selectedWeekdays, setSelectedWeekdays] = useState<string[]>([]);
+    const [selectedWeekdays, setSelectedWeekdays] = useState<Weekday[]>([]);
     const [intervalValue, setIntervalValue] = useState<number>(1);
 
     // Human Readable String Computed Property Summary
@@ -62,9 +62,9 @@ export const ExpenseScheduleModal = ({ visible, onClose, onSaveSchedule, initial
         );
     };
 
-    const handleToggleWeekday = (day: string) => {
-        setSelectedWeekdays(prev =>
-            prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
+    const handleToggleWeekday = (day: Weekday) => {
+        setSelectedWeekdays((prev) =>
+            prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
         );
     };
 
@@ -101,27 +101,40 @@ export const ExpenseScheduleModal = ({ visible, onClose, onSaveSchedule, initial
                 recurring_details: null
             };
         } else {
-            // Map selected state array blocks directly down to strict Pydantic definitions
+            // Map UI selections to backend DateWeekly | DateMonthly | DateYearly | DateCustom
             let selectedValues: DateComponentUnion[] = [];
+            const startYmd = (initialDate || new Date().toISOString()).split('T')[0];
+            const startMonthIndex = Number(startYmd.split('-')[1]) - 1;
+            const months: Month[] = [
+                'january', 'february', 'march', 'april', 'may', 'june',
+                'july', 'august', 'september', 'october', 'november', 'december',
+            ];
+            const startMonth = months[Math.max(0, Math.min(11, startMonthIndex))];
 
             if (selectedPeriod === 'weekly') {
-                selectedValues = selectedWeekdays.map(d => ({ weekday: d as unknown as Weekday }));
-            } else if (selectedPeriod === 'monthly' || selectedPeriod === 'daily') {
-                selectedValues = selectedDays.map(d => ({ day: d }));
+                if (selectedWeekdays.length === 0) {
+                    Alert.alert('Select weekdays', 'Pick at least one weekday for a weekly schedule.');
+                    return;
+                }
+                selectedValues = selectedWeekdays.map((d) => ({weekday: d}));
+            } else if (selectedPeriod === 'monthly') {
+                selectedValues = selectedDays.map((d) => ({day: d}));
             } else if (selectedPeriod === 'yearly') {
-                selectedValues = selectedDays.map(d => ({ day: d, month: 'August' as unknown as Month }));
+                selectedValues = selectedDays.map((d) => ({day: d, month: startMonth}));
+            } else if (selectedPeriod === 'daily') {
+                selectedValues = [];
             }
 
             payload = {
                 date: undefined,
                 is_recurring: true,
                 recurring_details: {
-                    recurring_period: selectedPeriod.toUpperCase(), // converts to backend ENUM token format
+                    recurring_period: selectedPeriod, // lowercase: daily|weekly|monthly|yearly
                     interval: intervalValue,
                     selected_values: selectedValues,
-                    start_date: new Date().toISOString().split('T')[0],
-                    end_date: undefined // Forever loop
-                }
+                    start_date: startYmd,
+                    end_date: undefined,
+                },
             };
         }
 
@@ -161,8 +174,8 @@ export const ExpenseScheduleModal = ({ visible, onClose, onSaveSchedule, initial
                             {selectedPeriod === 'weekly' ? (
                                 <WeekdaySelector selectedWeekdays={selectedWeekdays} onToggleWeekday={handleToggleWeekday} />
                             ) : selectedPeriod === 'daily' ? (
-                                <View className="p-8 mx-4 bg-emerald-700/10 rounded-3xl items-center border border-emerald-700/20">
-                                    <AppText className="text-emerald-800 font-semibold mb-2">Daily Configuration Pool Active</AppText>
+                                <View className="p-8 mx-4 bg-bg-secondary-lighter rounded-3xl items-center border border-bg-secondary/20">
+                                    <AppText className="text-bg-secondary font-semibold mb-2">Daily Configuration Pool Active</AppText>
                                     <AppText className="text-gray-500 text-center text-sm">Triggers automatically across ongoing dates based on selected operational interval metrics.</AppText>
                                 </View>
                             ) : (
@@ -193,7 +206,7 @@ export const ExpenseScheduleModal = ({ visible, onClose, onSaveSchedule, initial
                         </AppText>
                     </View>
 
-                    <AppButton variant="primary" className="w-full bg-emerald-700 py-3.5 rounded-full" onPress={handleCompilePayload}>
+                    <AppButton variant="primary" className="w-full py-3.5 rounded-full" onPress={handleCompilePayload}>
                         Set Schedule
                     </AppButton>
                 </View>

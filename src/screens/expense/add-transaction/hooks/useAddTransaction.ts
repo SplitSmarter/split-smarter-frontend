@@ -1,4 +1,4 @@
-import {useState, useMemo, useRef, useCallback} from 'react';
+import {useState, useMemo, useRef, useCallback, useEffect} from 'react';
 import {Alert} from 'react-native';
 import {router, useFocusEffect} from 'expo-router';
 import {themeStore} from '@/src/store/themeStore';
@@ -11,6 +11,7 @@ import {executeTransactionSubmit, validateTransactionSubmit} from '@/src/utils/e
 import {DateComponentPayload} from '@/src/constants/expense/schedule';
 import {TransactionTabType} from '../constants/addTransaction.constants';
 import {DateSelectionResult} from '@/src/components/common/types/selectDateBottomSheet.types';
+import {mapDateSelectionToRecurringDetails} from '@/src/utils/expense/recurringDateMapper';
 import {GetTransactionStatusApi, InitiateTransactionApi} from '@/src/api/user_payment/transaction';
 
 export const useAddTransaction = () => {
@@ -81,14 +82,29 @@ export const useAddTransaction = () => {
             };
         }
         if (errors[DraftValidationErrorKey.GROUP_MISMATCH]) {
+            const denial = expenseDraft.groupAddPermissionDeniedReason;
+            const mismatchPayload = errors[DraftValidationErrorKey.GROUP_MISMATCH];
             return {
-                type: 'WARNING',
+                type: denial ? 'ERROR' : 'WARNING',
                 key: DraftValidationErrorKey.GROUP_MISMATCH,
-                payload: errors[DraftValidationErrorKey.GROUP_MISMATCH],
+                payload: denial
+                    ? {...mismatchPayload, message: `Can't add members: ${denial}`}
+                    : mismatchPayload,
             };
         }
         return null;
-    }, [expenseDraft.validationErrors, activeTab]);
+    }, [
+        expenseDraft.validationErrors,
+        expenseDraft.groupAddPermissionDeniedReason,
+        activeTab,
+    ]);
+
+    // Auto-open mismatch warning when a group conflict is detected
+    useEffect(() => {
+        if (activeValidationContent?.key === DraftValidationErrorKey.GROUP_MISMATCH) {
+            setValidationModalVisible(true);
+        }
+    }, [activeValidationContent?.key, expenseDraft.validationErrors[DraftValidationErrorKey.GROUP_MISMATCH]]);
 
     const readableDate = useMemo(() => {
         const d = new Date(expenseDraft.expenseDate);
@@ -102,8 +118,25 @@ export const useAddTransaction = () => {
         );
     };
 
-    const handleSaveCompiledSchedule = (_payload: DateComponentPayload) => {
-        Alert.alert("Schedule Registered", "The recurring rules have been successfully bound to this tracking schema.");
+    const handleSaveCompiledSchedule = (payload: DateComponentPayload) => {
+        if (!payload.is_recurring || !payload.recurring_details) {
+            expenseDraft.setIsRecurring(false);
+            if (payload.date) {
+                expenseDraft.setExpenseDate(new Date(payload.date).toISOString());
+            }
+            expenseDraft.setRecurringDetails(null);
+        } else {
+            expenseDraft.setIsRecurring(true);
+            const start = payload.recurring_details.start_date || payload.date;
+            if (start) {
+                expenseDraft.setExpenseDate(new Date(start).toISOString());
+            }
+            expenseDraft.setRecurringDetails(payload.recurring_details);
+        }
+        Alert.alert(
+            'Schedule Registered',
+            'The recurring rules have been successfully bound to this tracking schema.'
+        );
     };
 
     const handleMediaSelection = async (fromCamera: boolean) => {
@@ -139,15 +172,11 @@ export const useAddTransaction = () => {
             expenseDraft.setExpenseDate(new Date(result.selectedDate).toISOString());
             expenseDraft.setRecurringDetails(null);
         } else {
+            const recurringDetails = mapDateSelectionToRecurringDetails(result);
             expenseDraft.setIsRecurring(true);
+            // Keep a display date in the draft; Mapper nulls expense_date on the API payload.
             expenseDraft.setExpenseDate(new Date(result.startDate).toISOString());
-            expenseDraft.setRecurringDetails({
-                recurring_period: result.recurringPeriod,
-                interval: result.interval,
-                selected_values: result.selectedValues ? [result.selectedValues as any] : [],
-                start_date: new Date(result.startDate).toISOString(),
-                end_date: result.endDate ? new Date(result.endDate).toISOString() : undefined,
-            });
+            expenseDraft.setRecurringDetails(recurringDetails);
         }
     };
 
@@ -192,7 +221,7 @@ export const useAddTransaction = () => {
             const response = await InitiateTransactionApi({
                 client_reference_id: clientReferenceId,
                 user_id: Number(transferDraft.recipient.id),
-                user_type: transferDraft.recipient.user_type,
+                user_type: transferDraft.recipient.user_type ?? undefined,
                 amount: transferDraft.amount,
                 currency: transferDraft.currency,
             });
@@ -221,6 +250,8 @@ export const useAddTransaction = () => {
     };
 
     const handleSubmitData = async () => {
+        if (expenseDraft.isAddingMissingMembers || isSubmitting) return;
+
         setIsLocalValidating(true);
         const isValid = await validateTransactionSubmit(activeTab);
         setIsLocalValidating(false);
@@ -265,6 +296,7 @@ export const useAddTransaction = () => {
         isProcessing,
         isSubmitting,
         isLocalValidating,
+        isAddingMissingMembers: expenseDraft.isAddingMissingMembers,
         scheduleModalVisible,
         validationModalVisible,
         activeValidationContent,

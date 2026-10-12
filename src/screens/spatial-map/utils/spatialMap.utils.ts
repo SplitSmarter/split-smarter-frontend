@@ -107,7 +107,7 @@ export function aggregateExpensesByPlace(
 
         const existing = placeMap.get(placeId);
         if (existing) {
-            existing.totalAmount += exp.user_contribution ?? exp.total_amount;
+            existing.totalAmount += exp.user_share ?? exp.total_amount;
             existing.expensesCount += 1;
             existing.expenses.push(exp);
         } else {
@@ -117,7 +117,7 @@ export function aggregateExpensesByPlace(
                 latitude: exp.place.geo.latitude,
                 longitude: exp.place.geo.longitude,
                 address: exp.place.address,
-                totalAmount: exp.user_contribution ?? exp.total_amount,
+                totalAmount: exp.user_share ?? exp.total_amount,
                 expensesCount: 1,
                 isLocal,
                 expenses: [exp],

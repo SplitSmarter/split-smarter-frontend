@@ -34,6 +34,7 @@ npm-debug.*
 yarn-debug.*
 yarn-error.*
 temp
+logs
 
 # macOS
 .DS_Store

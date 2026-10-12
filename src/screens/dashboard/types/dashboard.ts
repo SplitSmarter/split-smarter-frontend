@@ -5,14 +5,13 @@ export interface BasicImage {
     extension: string;
 }
 
-export interface ExpenseDataPoint {
+/** One chart point = one expense's spend (user_share). */
+export interface ExpenseSpendPoint {
     id: string;
     timestamp: string;
+    /** Spend share in user currency. */
     amount: number;
     category: string;
-}
-
-export interface FormattedAnalyticsPoint extends ExpenseDataPoint {
     value: number;
     label: string;
     date: string;
@@ -23,6 +22,7 @@ export interface Transaction {
     id: string;
     title: string;
     timeLabel: string;
+    /** Spend share in user currency (from user_share). */
     amount: number;
     type: 'expense' | 'income';
     icon: BasicImage;
@@ -33,8 +33,6 @@ export interface Transaction {
 export interface UserProfile {
     name: string;
     avatar: BasicImage;
-    totalBalance: number;
-    rewardPoints: number;
 }
 
 export interface SpendCategory {

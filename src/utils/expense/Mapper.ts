@@ -1,24 +1,24 @@
 import {
     AddExpenseRequest,
-    ComponentTypeUnion,
     DateComponent,
     ExpensePaidByDto,
     ExpenseSharersDto,
     ItemComponent,
-    RecurringDateComponent as ApiRecurringDateComponent,
-    DateComponentUnion as ApiDateComponentUnion
 } from "@/src/api/dto/expense/expense";
 import {RelationWithUserType} from "@/src/api/dto/constants";
-import {ExpenseComponentType, PaidTowards, ExpenseRecurringPeriod, TransferMode} from "@/src/api/dto/expense/constant";
+import {PaidTowards} from "@/src/api/dto/expense/constant";
 import {ExpenseDraftState, PayerUser, ExpenseItem} from "@/src/store/draft/expenseDraftStore";
 import {RecurringDateComponent as UiRecurringDateComponent} from "@/src/constants/expense/schedule";
 import {systemStore} from "@/src/store/systemStore";
 import {AddTransferRequest} from "@/src/api/dto/expense/transfer";
 import {TransferDraftState} from "@/src/store/draft/transferDraftStore";
+import {sanitizeRecurringDetailsForApi} from "@/src/utils/expense/recurringDateMapper";
 
 /**
  * Transforms UI-centric scheduling and recurring details into the strict
- * backend DTO format without bypassing TypeScript type safety rules.
+ * backend DTO format. Backend requires:
+ * - one-time: expense_date set, recurring_details null
+ * - recurring: expense_date null, recurring_details with lowercase period + union selected_values
  */
 const mapDraftDateDetailsToPayload = (
     isRecurringDraft: boolean,
@@ -29,71 +29,74 @@ const mapDraftDateDetailsToPayload = (
 
     if (!isRecurringDraft || !recurringDetailsDraft) {
         return {
-            expense_date: formattedDate as any,
+            expense_date: formattedDate,
             is_recurring: false,
-            recurring_details: null
+            recurring_details: null,
         };
     }
 
-    // Explicitly parse the UI string value into the rigid backend enum schema
-    let apiRecurringPeriod: ExpenseRecurringPeriod;
-    const periodUpper = recurringDetailsDraft.recurring_period.toUpperCase();
+    return {
+        expense_date: null,
+        is_recurring: true,
+        recurring_details: sanitizeRecurringDetailsForApi(recurringDetailsDraft),
+    };
+};
 
-    switch (periodUpper) {
-        case "WEEKLY":
-            apiRecurringPeriod = ExpenseRecurringPeriod.WEEKLY;
-            break;
-        case "MONTHLY":
-            apiRecurringPeriod = ExpenseRecurringPeriod.MONTHLY;
-            break;
-        case "YEARLY":
-            apiRecurringPeriod = ExpenseRecurringPeriod.YEARLY;
-            break;
-        case "CUSTOM":
-        case "DAILY": // If 'daily' maps directly to custom logic on your backend
-            apiRecurringPeriod = ExpenseRecurringPeriod.CUSTOM;
-            break;
-        default:
-            apiRecurringPeriod = ExpenseRecurringPeriod.CUSTOM;
+
+/**
+ * Builds line_items for AddExpenseRequest.
+ * When the user selected nothing, falls back to the system default expense item
+ * loaded at startup via GetSystemDefaultsApi.
+ */
+const buildLineItems = (draftState: ExpenseDraftState): ItemComponent[] => {
+    if (draftState.expenseItems && draftState.expenseItems.length > 0) {
+        return draftState.expenseItems.map((itemDraft: ExpenseItem): ItemComponent => ({
+            expense_item_id: Number(itemDraft.id),
+            quantity: Math.max(1, Number(itemDraft.quantity || 1)),
+            unit_cost: Number(itemDraft.cost),
+            currency: draftState.currency,
+            shared_between: null,
+        }));
     }
 
-    const apiRecurringDetails: ApiRecurringDateComponent = {
-        recurring_period: apiRecurringPeriod,
-        custom_period_duration: recurringDetailsDraft.custom_period_duration ?? null,
-        interval: recurringDetailsDraft.interval,
-        selected_values: (recurringDetailsDraft.selected_values || []) as ApiDateComponentUnion[],
-        start_date: recurringDetailsDraft.start_date ? recurringDetailsDraft.start_date.split('T')[0] : null,
-        end_date: recurringDetailsDraft.end_date ? recurringDetailsDraft.end_date.split('T')[0] : null
-    };
+    const fallbackItemId = systemStore.getState().defaults.defaultExpenseItem?.id;
+    if (!fallbackItemId) {
+        throw new Error(
+            "Default expense item is not loaded yet. Wait for system defaults, or select an item."
+        );
+    }
 
-    return {
-        expense_date: formattedDate,
-        is_recurring: true,
-        recurring_details: apiRecurringDetails
-    };
+    return [
+        {
+            expense_item_id: fallbackItemId,
+            quantity: 1,
+            unit_cost: Number(draftState.totalAmount),
+            currency: draftState.currency,
+            shared_between: null,
+        },
+    ];
 };
 
 /**
  * Transforms the client-side Zustand form draft state into a strictly-typed
- * payload required by the FastAPI Pydantic validation schemas.
+ * payload required by the FastAPI Pydantic AddExpenseRequest schema.
  */
-export const mapExpenseDraftToRequest = (draftState: ExpenseDraftState, uploadedAssetIds: string[] = []): AddExpenseRequest => {
-
-    // 1. Process Date Details through isolated sub-mapper framework
+export const mapExpenseDraftToRequest = (
+    draftState: ExpenseDraftState,
+    uploadedAssetIds: string[] = []
+): AddExpenseRequest => {
     const dateDetailsPayload = mapDraftDateDetailsToPayload(
         draftState.isRecurring,
         draftState.expenseDate,
         draftState.recurringDetails
     );
 
-    // 2. Process Payers list array maps
     const paidByUsersPayload: ExpensePaidByDto[] = draftState.payers.map((payerDraft: PayerUser) => ({
         user_id: Number(payerDraft.id),
         user_type: payerDraft.user_type || RelationWithUserType.USER,
         amount: Number(payerDraft.amount)
     }));
 
-    // 3. Process Sharers list array maps
     const sharersPayload: ExpenseSharersDto[] = draftState.splitParticipants.map((sharerDraft: PayerUser) => ({
         user_id: Number(sharerDraft.id),
         user_type: sharerDraft.user_type || RelationWithUserType.USER,
@@ -102,68 +105,17 @@ export const mapExpenseDraftToRequest = (draftState: ExpenseDraftState, uploaded
         shared_item_id: null
     }));
 
-    // 4. Construct components union block based on polymorphic layout rules
-    let componentsPayload: ComponentTypeUnion;
-    console.log(draftState.expenseType);
-    if (draftState.expenseType === ExpenseComponentType.ITEM) {
-        if (!draftState.expenseItems || draftState.expenseItems.length === 0) {
+    const defaultCategoryId =
+        draftState.defaultCategoryId
+        ?? systemStore.getState().defaults.defaultExpenseCategory?.id
+        ?? 1;
 
-            // Extract the snapshot values directly from the newly extended systemStore data models
-            const systemDefaults = systemStore.getState().defaults;
-
-            // Derive fallback item schema identification metrics seamlessly
-            const fallbackItemId = systemDefaults.defaultExpenseItem?.id ?? 1;
-            const fallbackQuantity = 1;
-
-            componentsPayload = {
-                type: ExpenseComponentType.ITEM,
-                items: [
-                    {
-                        id: fallbackItemId,
-                        quantity: fallbackQuantity,
-                        unit_cost: Number(draftState.totalAmount),
-                        currency: draftState.currency,
-                        shared_between: null
-                    }
-                ]
-            };
-        } else {
-            componentsPayload = {
-                type: ExpenseComponentType.ITEM,
-                items: draftState.expenseItems.map((itemDraft: ExpenseItem, index: number): ItemComponent => {
-                    const itemId = index + 1;
-                    return {
-                        id: itemId,
-                        quantity: Number(itemDraft.quantity || 1),
-                        unit_cost: Number(itemDraft.cost),
-                        currency: draftState.currency,
-                        shared_between: null
-                    };
-                })
-            };
-        }
-    } else {
-        console.error("Not implemented");
-        componentsPayload = {
-            type: ExpenseComponentType.TRANSFER,
-            users: draftState.splitParticipants.map((sharerDraft: PayerUser) => ({
-                user_id: Number(sharerDraft.id),
-                user_type: sharerDraft.user_type || RelationWithUserType.USER,
-                amount: Number(sharerDraft.amount)
-            })),
-            amount: Number(draftState.totalAmount),
-            currency: draftState.currency
-        };
-    }
-
-    // 5. Package everything safely into the final AddExpenseRequest layout
     return {
-        expense_type: draftState.expenseType,
         name: draftState.title,
         description: draftState.description.trim() === "" ? null : draftState.description,
         total_cost: Number(draftState.totalAmount),
         category_id: draftState.categoryId ?? null,
-        default_category_id: draftState.defaultCategoryId ?? 1,
+        default_category_id: defaultCategoryId,
         group_id: draftState.groupId ?? null,
         place_id: draftState.expenseLocation?.id ? Number(draftState.expenseLocation.id) : null,
         paid_by_users: paidByUsersPayload,
@@ -171,18 +123,22 @@ export const mapExpenseDraftToRequest = (draftState: ExpenseDraftState, uploaded
         currency: draftState.currency,
         date_details: dateDetailsPayload,
         extra_fields: [],
-        components: componentsPayload,
+        line_items: buildLineItems(draftState),
         assets: uploadedAssetIds.length > 0 ? uploadedAssetIds : null,
+        add_missing_members_to_group: Boolean(
+            draftState.shouldAddPendingMembersOnSubmit && draftState.groupId,
+        ),
     };
 };
 
 /**
- * Maps the live TransferDraftStore state into a standardized AddTransferRequest payload
+ * Maps the live TransferDraftStore state into backend AddTransferRequest.
+ * Enforces user XOR merchant on each side (and matching payment-mapping fields).
  */
 export const mapTransferDraftToRequest = (
-    draft: TransferDraftState
+    draft: TransferDraftState,
+    uploadedAssetIds: string[] = []
 ): AddTransferRequest => {
-    // Normalize and clean up the transfer execution date format (YYYY-MM-DD)
     let cleanDateStr = new Date().toISOString().split('T')[0];
     if (draft.transferDate) {
         cleanDateStr = draft.transferDate.includes('T')
@@ -190,30 +146,53 @@ export const mapTransferDraftToRequest = (
             : draft.transferDate;
     }
 
+    if (!draft.sender || !draft.recipient) {
+        throw new Error('Transfer requires both sender and recipient.');
+    }
+    if (!draft.paymentCategoryId) {
+        throw new Error('Transfer requires a payment category.');
+    }
+
+    const fromIsMerchant = draft.sender.kind === 'merchant';
+    const toIsMerchant = draft.recipient.kind === 'merchant';
+    const fromAccount = draft.paymentAccountId || null;
+    const toAccount = draft.toPaymentAccountId || null;
+
+    const autoName =
+        draft.name.trim() ||
+        `Transfer to ${draft.recipient.name}`.slice(0, 80);
+
     return {
-        name: draft.name,
+        name: autoName,
         amount: draft.amount,
         currency: draft.currency,
         transfer_date: cleanDateStr,
 
-        // Sender details mapping
-        from_user_id: draft.sender ? Number(draft.sender.id) : 0,
-        from_user_type: draft.sender?.user_type || RelationWithUserType.USER,
+        from_user_id: fromIsMerchant ? null : Number(draft.sender.id),
+        from_user_type: fromIsMerchant
+            ? null
+            : draft.sender.user_type || RelationWithUserType.USER,
+        from_merchant_id: fromIsMerchant ? Number(draft.sender.id) : null,
+        from_merchant_location_id: fromIsMerchant
+            ? draft.sender.merchantLocationId ?? null
+            : null,
+        from_user_payment_account_mapping_id: fromIsMerchant ? null : fromAccount,
+        from_merchant_payment_account_mapping_id: fromIsMerchant ? fromAccount : null,
 
-        // Recipient details mapping (can be user, account, or merchant context)
-        to_user_id: draft.recipient ? Number(draft.recipient.id) : null,
-        to_user_type: draft.recipient?.user_type || null,
+        to_user_id: toIsMerchant ? null : Number(draft.recipient.id),
+        to_user_type: toIsMerchant
+            ? null
+            : draft.recipient.user_type || RelationWithUserType.USER,
+        to_merchant_id: toIsMerchant ? Number(draft.recipient.id) : null,
+        to_merchant_location_id: toIsMerchant
+            ? draft.recipient.merchantLocationId ?? null
+            : null,
+        to_user_payment_account_mapping_id: toIsMerchant ? null : toAccount,
+        to_merchant_payment_account_mapping_id: toIsMerchant ? toAccount : null,
 
-        // Financial mapping hooks
-        to_payment_account_mapping_id: draft.toPaymentAccountId || null,
-        to_merchant_id: draft.toMerchantId || null,
-        to_merchant_location_id: draft.toMerchantLocationId || null,
-        payment_category_id: draft.paymentCategoryId || "",
-        payment_account_mapping_id: draft.paymentAccountId || null,
-
-        // Group & Metadata context
+        payment_category_id: draft.paymentCategoryId,
         group_id: draft.groupId ? Number(draft.groupId) : null,
         description: draft.description?.trim() || null,
-        // mode: (draft.mode || TransferMode.OTHER) as TransferMode,
+        assets: uploadedAssetIds.length > 0 ? uploadedAssetIds : null,
     };
 };

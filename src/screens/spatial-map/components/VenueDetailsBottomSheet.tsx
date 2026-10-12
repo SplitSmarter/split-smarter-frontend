@@ -86,7 +86,7 @@ export function VenueDetailsBottomSheet({
                         <AppText variant="h3" className="mb-1 font-bold text-text-primary">
                             Locations Cluster
                         </AppText>
-                        <AppText variant="body-small" className="mb-4 text-text-secondary">
+                        <AppText variant="body-small" className="mb-4 text-text-primary-lighter">
                             {formatINR(clusterTotal)} · {sheet.venues.length} places
                         </AppText>
                         {sheet.venues.map((v) => {
@@ -113,7 +113,7 @@ export function VenueDetailsBottomSheet({
                                         </View>
                                         <AppText
                                             variant="body-xs"
-                                            className="mt-1 text-text-secondary"
+                                            className="mt-1 text-text-primary-lighter"
                                             numberOfLines={1}
                                         >
                                             {v.expensesCount} visit{v.expensesCount === 1 ? '' : 's'}
@@ -157,7 +157,7 @@ function VenueSheet({venue}: { venue: PlaceAgg }) {
                     {venue.placeName}
                 </AppText>
             </View>
-            <AppText variant="body-small" className="mb-4 mt-1 text-text-secondary">
+            <AppText variant="body-small" className="mb-4 mt-1 text-text-primary-lighter">
                 {venue.address ? `${venue.address} · ` : ''}
                 {venue.expensesCount} visit{venue.expensesCount === 1 ? '' : 's'}
             </AppText>
@@ -173,7 +173,7 @@ function VenueSheet({venue}: { venue: PlaceAgg }) {
 
 function TxnRow({txn}: { txn: ExpenseDetailsBasicResponse }) {
     const formattedTime = formatExpenseTime(txn.expense_date);
-    const amount = txn.user_contribution ?? txn.total_amount ?? 0;
+    const amount = txn.user_share ?? txn.total_amount ?? 0;
     const iconUrl = txn.category?.icon?.url;
 
     return (
@@ -198,7 +198,7 @@ function TxnRow({txn}: { txn: ExpenseDetailsBasicResponse }) {
                 </AppText>
             </View>
             {txn.name ? (
-                <AppText variant="body-xs" className="mt-1 text-text-secondary" numberOfLines={1}>
+                <AppText variant="body-xs" className="mt-1 text-text-primary-lighter" numberOfLines={1}>
                     {txn.name}
                 </AppText>
             ) : null}

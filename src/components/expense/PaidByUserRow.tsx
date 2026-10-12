@@ -43,7 +43,7 @@ export const PaidByUserRow = ({ user, amount, percentage, isLocked, onToggleLock
             onSwipeableRightOpen={onDelete}     // Swiped left -> Delete
             friction={2}
         >
-            <View className="flex-row items-center justify-between p-4 bg-white dark:bg-zinc-900 border-b border-bg-secondary-lighter">
+            <View className="flex-row items-center justify-between p-4 bg-white dark:bg-zinc-900 border-b border-border-input">
                 <View className="flex-row items-center flex-1">
                     <View className="relative">
                         <AppImage url={user.avatar_url} size="md" variant="circular" />
@@ -55,7 +55,7 @@ export const PaidByUserRow = ({ user, amount, percentage, isLocked, onToggleLock
                     </View>
                     <View className="ml-3">
                         <AppText className="font-bold text-text-primary">{user.name}</AppText>
-                        <AppText variant="caption-xs" className="text-text-secondary">{percentage}%</AppText>
+                        <AppText variant="caption-xs" className="text-text-primary-lighter">{percentage}%</AppText>
                     </View>
                 </View>
 

@@ -69,15 +69,17 @@ export interface TransferComponentDto {
 }
 
 export interface ItemComponent {
-    id: number;
+    id?: number | null;
+    expense_item_id?: number | null;
     quantity: number;
-    unit_cost: number;
+    unit_cost?: number | null;
+    unit_price?: number | null;
     currency: Currency;
     shared_between?: ExpenseSharersDto[] | null;
 }
 
 export interface ItemsBaseComponentDto {
-    type: ExpenseComponentType.item; // 👈 Ensure capitalization matches python enum boundaries exactly
+    type: ExpenseComponentType.item;
     items: ItemComponent[];
 }
 
@@ -85,21 +87,21 @@ export type ComponentTypeUnion =
     | TransferComponentDto
     | ItemsBaseComponentDto;
 
-// 5. Consolidated Parent Target Payload Contract Form Request
+/** Matches backend AddExpenseRequest (line_items, no expense_type/components). */
 export interface AddExpenseRequest {
-    expense_type: ExpenseComponentType;
     name: string;
     description?: string | null;
-    total_cost: number; // 👈 Fixed: Added required total parameters metrics
+    total_cost: number;
     category_id?: number | null;
-    default_category_id: number; // 👈 Fixed: Added required fallback context field
+    default_category_id: number;
     group_id?: number | null;
     place_id?: number | null;
     paid_by_users: ExpensePaidByDto[];
-    sharers: ExpenseSharersDto[]; // 👈 Fixed: Synchronized back from contributors structure
+    sharers: ExpenseSharersDto[];
     currency: Currency;
-    date_details: DateComponent; // 👈 Fixed: Structured nested payload entity block
-    extra_fields: ExpenseExtraFields[]; // 👈 Fixed: Appended explicit collection parameter array
-    components: ComponentTypeUnion;
-    assets?: string[] | null; // Array of UUID strings
+    date_details: DateComponent;
+    extra_fields: ExpenseExtraFields[];
+    line_items: ItemComponent[];
+    assets?: string[] | null;
+    add_missing_members_to_group?: boolean;
 }

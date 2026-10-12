@@ -37,6 +37,7 @@ const AddTransfer = () => {
         if (!draft.sender && currentUser) {
             draft.setSender({
                 id: String(currentUser.id),
+                kind: 'user',
                 name: "You",
                 avatar: currentUser.avatar || null,
                 user_type: RelationWithUserType.USER
@@ -65,12 +66,19 @@ const AddTransfer = () => {
         if (!currentSender || !currentRecipient) return;
 
         const currentUserIdStr = currentUser ? String(currentUser.id) : null;
-        const isSenderSelf = currentSender.id === currentUserIdStr && currentSender.user_type === RelationWithUserType.USER;
-        const isRecipientSelf = currentRecipient.id === currentUserIdStr && currentRecipient.user_type === RelationWithUserType.USER;
+        const isSenderSelf =
+            currentSender.kind === 'user' &&
+            currentSender.id === currentUserIdStr &&
+            currentSender.user_type === RelationWithUserType.USER;
+        const isRecipientSelf =
+            currentRecipient.kind === 'user' &&
+            currentRecipient.id === currentUserIdStr &&
+            currentRecipient.user_type === RelationWithUserType.USER;
 
         if (!isSenderSelf && !isRecipientSelf && currentUser) {
             const selfContext: TransferParticipant = {
                 id: String(currentUser.id),
+                kind: 'user',
                 name: "You",
                 avatar: currentUser.avatar || null,
                 user_type: RelationWithUserType.USER
@@ -88,7 +96,12 @@ const AddTransfer = () => {
         const participant = target === 'sender' ? draft.sender : draft.recipient;
         const currentUserIdStr = currentUser ? String(currentUser.id) : null;
 
-        if (participant && participant.id === currentUserIdStr && participant.user_type === RelationWithUserType.USER) {
+        if (
+            participant &&
+            participant.kind === 'user' &&
+            participant.id === currentUserIdStr &&
+            participant.user_type === RelationWithUserType.USER
+        ) {
             return;
         }
 
@@ -99,20 +112,22 @@ const AddTransfer = () => {
     const getCurrentlySelectedId = (): number | undefined => {
         if (!activeSelectionTarget) return undefined;
         const participant = activeSelectionTarget === 'sender' ? draft.sender : draft.recipient;
-        return participant ? Number(participant.id) : undefined;
+        if (!participant || participant.kind !== 'user') return undefined;
+        return Number(participant.id);
     };
 
     const getCurrentlySelectedMerchantId = (): number | undefined => {
         if (!activeSelectionTarget) return undefined;
-        // If your app tracks merchant IDs explicitly or within participant state
         const participant = activeSelectionTarget === 'sender' ? draft.sender : draft.recipient;
-        // Assuming merchants might share IDs or you track them via participant id/type
-        return participant ? Number(participant.id) : undefined;
+        if (!participant || participant.kind !== 'merchant') return undefined;
+        return Number(participant.id);
     };
 
     const getCurrentlySelectedType = useCallback(() => {
         if (!activeSelectionTarget) return undefined;
-        return activeSelectionTarget === 'sender' ? draft.sender?.user_type : draft.recipient?.user_type;
+        const participant = activeSelectionTarget === 'sender' ? draft.sender : draft.recipient;
+        if (!participant || participant.kind !== 'user') return undefined;
+        return participant.user_type ?? undefined;
     }, [activeSelectionTarget, draft]);
 
     const handleUserSelected = useCallback((userId: number, userType: RelationWithUserType, relations: any[], globalUsers: any[]) => {
@@ -124,6 +139,7 @@ const AddTransfer = () => {
         if (matchedRelation) {
             selectedParticipant = {
                 id: String(matchedRelation.with_user.id),
+                kind: 'user',
                 name: matchedRelation.with_user.name,
                 avatar: matchedRelation.with_user.avatar || null,
                 user_type: matchedRelation.with_user.user_type
@@ -133,6 +149,7 @@ const AddTransfer = () => {
             if (matchedGlobal) {
                 selectedParticipant = {
                     id: String(matchedGlobal.id),
+                    kind: 'user',
                     name: matchedGlobal.name,
                     avatar: matchedGlobal.avatar || null,
                     user_type: userType
@@ -146,7 +163,12 @@ const AddTransfer = () => {
             const currentOpposite = target === 'sender' ? draft.recipient : draft.sender;
 
             // If the selected user is already in the opposite slot, clear the opposite slot
-            if (currentOpposite && currentOpposite.id === selectedParticipant.id && currentOpposite.user_type === selectedParticipant.user_type) {
+            if (
+                currentOpposite &&
+                currentOpposite.kind === 'user' &&
+                currentOpposite.id === selectedParticipant.id &&
+                currentOpposite.user_type === selectedParticipant.user_type
+            ) {
                 if (target === 'sender') {
                     draft.setRecipient(null);
                 } else {
@@ -170,17 +192,22 @@ const AddTransfer = () => {
 
         const selectedParticipant: TransferParticipant = {
             id: String(merchant.id),
+            kind: 'merchant',
             name: merchant.name,
             avatar: merchant.logo || null,
-            // Assuming merchants use USER or a specific merchant type based on your DTO
-            user_type: RelationWithUserType.USER
+            user_type: null,
+            merchantLocationId: null,
         };
 
         const target = activeSelectionTarget;
         const currentOpposite = target === 'sender' ? draft.recipient : draft.sender;
 
         // Clear opposite slot if the merchant matches the opposite participant
-        if (currentOpposite && currentOpposite.id === selectedParticipant.id) {
+        if (
+            currentOpposite &&
+            currentOpposite.kind === 'merchant' &&
+            currentOpposite.id === selectedParticipant.id
+        ) {
             if (target === 'sender') {
                 draft.setRecipient(null);
             } else {
@@ -199,7 +226,11 @@ const AddTransfer = () => {
     }, [activeSelectionTarget, draft]);
     const isUserSelf = (participant: TransferParticipant | null): boolean => {
         if (!participant || !currentUser) return false;
-        return participant.id === String(currentUser.id) && participant.user_type === RelationWithUserType.USER;
+        return (
+            participant.kind === 'user' &&
+            participant.id === String(currentUser.id) &&
+            participant.user_type === RelationWithUserType.USER
+        );
     };
 
     const activeCurrencyConfig = Currency[draft.currency];
@@ -212,7 +243,7 @@ const AddTransfer = () => {
                     <Pressable onPress={() => openSelectorFor('sender')}
                                className="flex-1 items-center active:opacity-75">
                         <View
-                            className="w-12 h-12 rounded-full bg-emerald-500/10 items-center justify-center mb-2 border border-emerald-500/20">
+                            className="w-12 h-12 rounded-full bg-bg-secondary-lighter items-center justify-center mb-2 border border-bg-secondary/20">
                             <Iconify icon="heroicons:user-minus" size={22}
                                      color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary}/>
                         </View>
@@ -227,7 +258,7 @@ const AddTransfer = () => {
                     <View className="px-2 items-center justify-center">
                         <Pressable
                             onPress={handleSwapParticipants}
-                            className="bg-bg-primary p-2.5 rounded-full border border-bg-secondary-lighter shadow-sm active:bg-gray-100 dark:active:bg-zinc-800"
+                            className="bg-bg-primary p-2.5 rounded-full border border-border-input shadow-sm active:bg-gray-100 dark:active:bg-zinc-800"
                         >
                             <Iconify icon="heroicons:arrows-right-left" size={18}
                                      color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary}/>
@@ -261,7 +292,7 @@ const AddTransfer = () => {
                         renderLeftIcon={() => (
                             <Pressable
                                 onPress={() => setCurrencySheetOpen(true)}
-                                className="flex-row items-center mr-2 pr-2 border-r border-bg-secondary-lighter"
+                                className="flex-row items-center mr-2 pr-2 border-r border-border-input"
                             >
                                 <AppText className="text-green-increase text-heading-h3 font-bold">
                                     {activeCurrencyConfig?.symbol ?? '₹'}
@@ -290,8 +321,8 @@ const AddTransfer = () => {
                                 onPress={() => handleQuickAmountSelect(amt)}
                                 className={`flex-1 mx-1 py-3 rounded-xl items-center border transition-all ${
                                     isSelected
-                                        ? 'bg-bg-secondary/10 border-bg-secondary/30'
-                                        : 'bg-bg-primary border-bg-secondary-lighter shadow-xs'
+                                        ? 'bg-accent-sky-bg border-accent-sky'
+                                        : 'bg-bg-primary border-border-input shadow-xs'
                                 }`}
                             >
                                 <AppText variant="body-small"

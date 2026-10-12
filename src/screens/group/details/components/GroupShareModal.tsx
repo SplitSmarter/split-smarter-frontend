@@ -1,4 +1,5 @@
 import React from 'react';
+import { COLORS } from '@/src/constants/colors';
 import { View, Modal, Pressable, Alert, Clipboard, Share } from 'react-native';
 import { Iconify } from 'react-native-iconify';
 import { AppText } from "@/src/components/common/AppText";
@@ -54,7 +55,7 @@ export const GroupShareModal: React.FC<GroupShareModalProps> = ({
                         <Iconify icon="heroicons:x-mark" size={20} color={isDark ? "#FFF" : "#000"} />
                     </Pressable>
 
-                    <Iconify icon="heroicons:qr-code" size={36} color="#2D6A4F" className="mb-1" />
+                    <Iconify icon="heroicons:qr-code" size={36} color={COLORS.light.brand.primary} className="mb-1" />
                     <AppText variant="h3" className="font-black text-foreground text-center text-xl mb-1">
                         Group Invitation
                     </AppText>
@@ -67,7 +68,7 @@ export const GroupShareModal: React.FC<GroupShareModalProps> = ({
                         <View className="w-full h-full items-center justify-center border-4 border-dashed border-zinc-300 rounded-2xl relative">
                             <Iconify icon="heroicons:qr-code" size={110} color="#18181B" />
                             <View className="absolute p-1 bg-white rounded-xl">
-                                <Iconify icon="heroicons:user-group-solid" size={24} color="#2D6A4F" />
+                                <Iconify icon="heroicons:user-group-solid" size={24} color={COLORS.light.brand.primary} />
                             </View>
                         </View>
                     </View>
@@ -85,7 +86,7 @@ export const GroupShareModal: React.FC<GroupShareModalProps> = ({
                                 onPress={handleNativeShare}
                                 className="p-2 rounded-xl bg-bg-secondary/10 border border-bg-secondary/20 active:opacity-60"
                             >
-                                <Iconify icon="heroicons:chat-bubble-left-right" size={16} color="#2D6A4F" />
+                                <Iconify icon="heroicons:chat-bubble-left-right" size={16} color={COLORS.light.brand.primary} />
                             </Pressable>
 
                             {/* Direct Clipboard Copier */}
@@ -93,7 +94,7 @@ export const GroupShareModal: React.FC<GroupShareModalProps> = ({
                                 onPress={handleCopyInviteLink}
                                 className="p-2 rounded-xl bg-bg-secondary/10 border border-bg-secondary/20 active:opacity-60"
                             >
-                                <Iconify icon="heroicons:document-duplicate" size={16} color="#2D6A4F" />
+                                <Iconify icon="heroicons:document-duplicate" size={16} color={COLORS.light.brand.primary} />
                             </Pressable>
                         </View>
                     </View>

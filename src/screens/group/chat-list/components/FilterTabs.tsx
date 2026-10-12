@@ -20,10 +20,14 @@ export const FilterTabs = ({ activeTab, onTabSelect }: FilterTabsProps) => {
                         key={tab}
                         onPress={() => onTabSelect(tab)}
                         className={`px-8 py-2 rounded-full mr-3 ${
-                            isActive ? 'bg-[#409167]' : 'bg-transparent'
-                        } border border-white/20`}
+                            isActive ? 'bg-white' : 'bg-white/10'
+                        }`}
                     >
-                        <AppText className={`font-medium ${isActive ? 'text-white' : 'text-white/70'}`}>
+                        <AppText
+                            className={`font-medium ${
+                                isActive ? 'text-bg-secondary' : 'text-text-secondary'
+                            }`}
+                        >
                             {tab}
                         </AppText>
                     </Pressable>

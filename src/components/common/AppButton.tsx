@@ -1,6 +1,14 @@
 // /src/components/common/AppButton.tsx
 import React, { ReactNode } from 'react';
-import { Pressable, PressableProps, View, GestureResponderEvent, ActivityIndicator } from 'react-native';
+import {
+    Pressable,
+    PressableProps,
+    View,
+    GestureResponderEvent,
+    ActivityIndicator,
+    StyleSheet,
+    ViewStyle,
+} from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { AppText } from "@/src/components/common/AppText";
 import { themeStore } from '@/src/store/themeStore';
@@ -52,24 +60,26 @@ export const AppButton = ({
     };
 
     const getIconColor = () => {
+        // Primary CTA sits on bg-secondary — icons must match white CTA label text
         if (variant === 'primary') {
-            return isDark ? COLORS.icon_secondary_dark : COLORS.icon_secondary_light;
+            return isDark ? COLORS.dark.text.contrast : COLORS.light.text.contrast;
         }
-        return isDark ? COLORS.icon_primary_dark : COLORS.icon_primary_light;
+        return isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary;
     };
 
-    const getShadowStyle = (isPressed: boolean) => {
-        if (!hasShadow || isInteractionDisabled) return "";
+    // StyleSheet shadows — avoid NativeWind shadow-* during theme flips (nav-context race)
+    const getShadowStyle = (isPressed: boolean): ViewStyle | undefined => {
+        if (!hasShadow || isInteractionDisabled) return undefined;
 
         if (platform === 'android') {
-            return isPressed ? "elevation-1 opacity-90" : "elevation-4 shadow-black";
+            return {elevation: isPressed ? 1 : 4};
         }
 
-        if (isPressed) return "shadow-sm opacity-80";
+        if (isPressed) {
+            return styles.shadowPressed;
+        }
 
-        return isDark
-            ? "shadow-lg shadow-white/10"
-            : "shadow-lg shadow-black/30";
+        return isDark ? styles.shadowDark : styles.shadowLight;
     };
 
     const getBorderStyle = () => {
@@ -90,12 +100,19 @@ export const AppButton = ({
         >
             {({ pressed }) => (
                 <View
-                    style={(pressed && !isInteractionDisabled) ? { transform: [{ scale: 0.96 }] } : { transform: [{ scale: 1 }] }}
+                    style={[
+                        (pressed && !isInteractionDisabled)
+                            ? {transform: [{scale: 0.96}]}
+                            : {transform: [{scale: 1}]},
+                        getShadowStyle(pressed),
+                        pressed && !isInteractionDisabled && platform === 'android'
+                            ? {opacity: 0.9}
+                            : undefined,
+                    ]}
                     className={`
                         flex-row gap-x-2 rounded-full items-center justify-center border w-full
                         ${variant === 'primary' ? "bg-bg-secondary" : "bg-bg-primary-lighter"}
                         ${getBorderStyle()}
-                        ${getShadowStyle(pressed)}
                         ${sizes[size]}
                         ${isInteractionDisabled ? 'opacity-60' : ''}
                     `}
@@ -131,3 +148,25 @@ export const AppButton = ({
         </Pressable>
     );
 };
+
+const styles = StyleSheet.create({
+    shadowLight: {
+        shadowColor: '#000',
+        shadowOffset: {width: 0, height: 4},
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+    },
+    shadowDark: {
+        shadowColor: '#fff',
+        shadowOffset: {width: 0, height: 4},
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+    },
+    shadowPressed: {
+        shadowColor: '#000',
+        shadowOffset: {width: 0, height: 1},
+        shadowOpacity: 0.15,
+        shadowRadius: 2,
+        opacity: 0.8,
+    },
+});

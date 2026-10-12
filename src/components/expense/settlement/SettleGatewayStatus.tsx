@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { COLORS } from '@/src/constants/colors';
 import { View, Pressable, Alert, Linking, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { Iconify } from 'react-native-iconify';
@@ -26,7 +27,7 @@ const SettleGatewayStatus = React.memo(({ loading, gatewayDetails, selectedCurre
         return (
             <View className="w-full p-4 rounded-2xl mb-6 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800 h-16 justify-center">
                 <View className="flex-row items-center justify-center">
-                    <ActivityIndicator size="small" color="#2D6A4F" />
+                    <ActivityIndicator size="small" color={COLORS.light.brand.primary} />
                     <AppText className="text-xs text-text-primary-lighter ml-3 font-medium">Resolving routing parameters...</AppText>
                 </View>
             </View>
@@ -37,8 +38,8 @@ const SettleGatewayStatus = React.memo(({ loading, gatewayDetails, selectedCurre
         <View className="w-full p-4 rounded-2xl mb-6 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800 min-h-[64px] justify-center">
             {gatewayDetails?.hasValidGateway ? (
                 <View className="flex-row items-start">
-                    <View className="p-1.5 rounded-lg bg-emerald-500/10 mt-0.5">
-                        <View className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <View className="p-1.5 rounded-lg bg-bg-secondary-lighter mt-0.5">
+                        <View className="w-2 h-2 rounded-full bg-bg-secondary" />
                     </View>
                     <View className="ml-3 flex-1">
                         <AppText className="font-bold text-text-primary text-sm leading-5">

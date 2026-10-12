@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { COLORS } from '@/src/constants/colors';
 import { ScrollView, View, Pressable } from 'react-native';
 import { Image } from 'expo-image';
 import { Iconify } from 'react-native-iconify';
@@ -62,7 +63,7 @@ export const SettlementActionGrid = ({
 
                             <AppText
                                 variant="body-small"
-                                className={`font-bold mb-3 ${isOwedToCurrentUser ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}
+                                className={`font-bold mb-3 ${isOwedToCurrentUser ? 'text-green-increase' : 'text-red-decrease'}`}
                             >
                                 {isOwedToCurrentUser ? '+' : '-'}{targetCurrencySymbol}{Math.abs(syntheticBalanceEvaluator).toFixed(2)}
                             </AppText>
@@ -80,7 +81,7 @@ export const SettlementActionGrid = ({
                                 <Pressable
                                     onPress={() => setSettleTarget({ member: member, amount: syntheticBalanceEvaluator })}
                                     className="w-full bg-gray-200 py-2 rounded-xl active:opacity-70"
-                                    style={{ backgroundColor: '#2D6A4F' }}
+                                    style={{ backgroundColor: COLORS.light.brand.primary }}
                                 >
                                     <AppText variant="body-small" className="text-center font-bold text-white">SETTLE</AppText>
                                 </Pressable>

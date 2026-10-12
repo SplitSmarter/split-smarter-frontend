@@ -111,7 +111,7 @@ export const SelectEntityBottomSheet = ({
                                 : 'bg-transparent'
                         }`}
                     >
-                        <AppText className={`font-semibold ${activeTab === 'people' ? 'text-text-primary' : 'text-text-secondary'}`}>
+                        <AppText className={`font-semibold ${activeTab === 'people' ? 'text-text-primary' : 'text-text-primary-lighter'}`}>
                             People
                         </AppText>
                     </Pressable>
@@ -123,7 +123,7 @@ export const SelectEntityBottomSheet = ({
                                 : 'bg-transparent'
                         }`}
                     >
-                        <AppText className={`font-semibold ${activeTab === 'merchant' ? 'text-text-primary' : 'text-text-secondary'}`}>
+                        <AppText className={`font-semibold ${activeTab === 'merchant' ? 'text-text-primary' : 'text-text-primary-lighter'}`}>
                             Merchants
                         </AppText>
                     </Pressable>

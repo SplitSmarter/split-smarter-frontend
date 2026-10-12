@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useEffect, useState } from 'react';
+import { COLORS } from '@/src/constants/colors';
 import {
     Modal,
     View,
@@ -122,7 +123,7 @@ export const SelectGroupCategoryBottomSheet = ({
 
                             {loading ? (
                                 <View className="flex-1 justify-center">
-                                    <ActivityIndicator size="large" color="#2D6A4F" />
+                                    <ActivityIndicator size="large" color={COLORS.light.brand.primary} />
                                 </View>
                             ) : (
                                 <ScrollView
@@ -130,7 +131,7 @@ export const SelectGroupCategoryBottomSheet = ({
                                     contentContainerStyle={{ paddingBottom: 40 }}
                                     keyboardShouldPersistTaps="handled"
                                 >
-                                    <View className="bg-bg-primary-lighter rounded-3xl p-4 border border-bg-secondary-lighter">
+                                    <View className="bg-bg-primary-lighter rounded-3xl p-4 border border-border-input">
                                         <AppText variant="body-base" className="font-bold mb-4 text-text-primary">
                                             All Categories
                                         </AppText>
@@ -140,7 +141,7 @@ export const SelectGroupCategoryBottomSheet = ({
                                                     key={item.id}
                                                     onPress={() => onSelect(item)}
                                                     className={`items-center w-1/4 mb-6 p-2 rounded-xl ${
-                                                        item.id === selectedId ? 'bg-bg-secondary/10 border border-bg-secondary' : ''
+                                                        item.id === selectedId ? 'bg-accent-sky-bg border border-accent-sky' : ''
                                                     }`}
                                                 >
                                                     <View className="w-14 h-14 mb-2">

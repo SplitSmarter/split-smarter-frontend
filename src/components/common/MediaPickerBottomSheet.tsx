@@ -1,5 +1,6 @@
 import { AppText } from "@/src/components/common/AppText";
 import { themeStore } from '@/src/store/themeStore';
+import { COLORS } from '@/src/constants/colors';
 import {BottomSheetModal, BottomSheetBackdrop, BottomSheetBackdropProps, BottomSheetView} from '@gorhom/bottom-sheet';
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Pressable, View } from 'react-native';
@@ -41,9 +42,10 @@ export const MediaPickerBottomSheet = ({visible, onClose, onSelect}: MediaPicker
     const Option = ({title, iconComponent, onPress}: {title: string, iconComponent: React.ReactNode, onPress: () => void}) => (
         <Pressable
             onPress={onPress}
-            className="flex-row items-center p-5 bg-zinc-100 dark:bg-zinc-800 rounded-3xl mb-3 active:opacity-60"
+            className="flex-row items-center p-5 bg-zinc-100 dark:bg-zinc-800 rounded-3xl mb-3"
+            style={({pressed}) => (pressed ? {opacity: 0.6} : undefined)}
         >
-            <View className="bg-emerald-100 dark:bg-emerald-900/30 p-3 rounded-2xl">
+            <View className="bg-bg-secondary-lighter p-3 rounded-2xl">
                 {iconComponent}
             </View>
             <AppText className="ml-4 font-semibold text-lg text-text-primary">{title}</AppText>
@@ -69,13 +71,13 @@ export const MediaPickerBottomSheet = ({visible, onClose, onSelect}: MediaPicker
 
                 <Option
                     title="Take Photo"
-                    iconComponent={<Iconify icon="heroicons:camera" size={24} color="#059669" />}
+                    iconComponent={<Iconify icon="heroicons:camera" size={24} color={COLORS.light.brand.primary} />}
                     onPress={() => onSelect(true)}
                 />
 
                 <Option
                     title="Choose from Gallery"
-                    iconComponent={<Iconify icon="heroicons:photo" size={24} color="#059669" />}
+                    iconComponent={<Iconify icon="heroicons:photo" size={24} color={COLORS.light.brand.primary} />}
                     onPress={() => onSelect(false)}
                 />
             </BottomSheetView>

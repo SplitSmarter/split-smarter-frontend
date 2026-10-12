@@ -24,7 +24,7 @@ const OnboardingScreen = () => {
     const colorSwatches = [
         { name: 'Canvas', className: 'bg-bg-canvas', text: 'text-text-primary' },
         { name: 'Primary', className: 'bg-bg-primary', text: 'text-text-primary' },
-        { name: 'Secondary (Brand)', className: 'bg-bg-secondary', text: 'text-text-secondary' },
+        { name: 'Secondary (Brand)', className: 'bg-bg-secondary', text: 'text-text-primary-lighter' },
         { name: 'Success', className: 'bg-green-increase', text: 'text-white' },
         { name: 'Danger', className: 'bg-red-decrease', text: 'text-white' },
     ];

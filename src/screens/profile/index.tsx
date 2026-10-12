@@ -1,4 +1,5 @@
 import React from 'react';
+import { COLORS } from '@/src/constants/colors';
 import {View, ScrollView, Pressable, ActivityIndicator, SafeAreaView, Dimensions} from 'react-native';
 import { Iconify } from 'react-native-iconify';
 import { useRouter } from 'expo-router';
@@ -19,7 +20,7 @@ export default function ProfileScreen() {
     if (isLoading) {
         return (
             <View className={`flex-1 justify-center items-center ${isDark ? 'bg-zinc-950' : 'bg-gray-50'}`}>
-                <ActivityIndicator size="large" color="#2D6A4F" />
+                <ActivityIndicator size="large" color={COLORS.light.brand.primary} />
             </View>
         );
     }
@@ -29,7 +30,7 @@ export default function ProfileScreen() {
             <View className={`flex-1 justify-center items-center p-6 ${isDark ? 'bg-zinc-950' : 'bg-gray-50'}`}>
                 <Iconify icon="heroicons:user-circle" size={80} color={isDark ? "#3F3F46" : "#A1A1AA"} />
                 <AppText variant="h3" className="font-bold mt-4 text-text-primary text-center">Not Logged In</AppText>
-                <AppText variant="body-base" className="text-text-secondary text-center mt-2 mb-6 opacity-80">
+                <AppText variant="body-base" className="text-text-primary-lighter text-center mt-2 mb-6 opacity-80">
                     Please log in to manage your expense tracking profiles and sync splits.
                 </AppText>
                 <AppButton variant="primary" className="w-full rounded-2xl" onPress={() => router.replace('/login')}>
@@ -75,7 +76,7 @@ export default function ProfileScreen() {
                     </View>
 
                     <AppText variant="h4" className="font-bold text-text-primary mt-4">{user.name}</AppText>
-                    <AppText variant="body-small" className="text-text-secondary opacity-70 lowercase mt-0.5">{user.email || 'No email linked'}</AppText>
+                    <AppText variant="body-small" className="text-text-primary-lighter opacity-70 lowercase mt-0.5">{user.email || 'No email linked'}</AppText>
 
                     <View className="mt-3 px-3 py-1 bg-bg-secondary/10 border border-bg-secondary/20 rounded-full">
                         <AppText variant="caption-xs" className="font-bold text-bg-secondary uppercase tracking-wider">
@@ -86,7 +87,7 @@ export default function ProfileScreen() {
 
                 {/* Account Specifications List */}
                 <View className="mt-8 px-6">
-                    <AppText variant="caption-xs" className="font-bold uppercase tracking-widest text-text-secondary opacity-50 px-2 mb-2">
+                    <AppText variant="caption-xs" className="font-bold uppercase tracking-widest text-text-primary-lighter opacity-50 px-2 mb-2">
                         Account Information
                     </AppText>
 
@@ -97,7 +98,7 @@ export default function ProfileScreen() {
                                 <Iconify icon="heroicons:currency-dollar" size={22} color={isDark ? "#A1A1AA" : "#71717A"} />
                                 <AppText className="font-medium text-text-primary ml-2">Primary Currency</AppText>
                             </View>
-                            <AppText className="font-semibold text-text-secondary text-right" numberOfLines={1}>{user.currency}</AppText>
+                            <AppText className="font-semibold text-text-primary-lighter text-right" numberOfLines={1}>{user.currency}</AppText>
                         </View>
 
                         <View className="flex-row items-center justify-between p-4 border-b border-gray-500/5">
@@ -105,7 +106,7 @@ export default function ProfileScreen() {
                                 <Iconify icon="heroicons:globe-alt" size={22} color={isDark ? "#A1A1AA" : "#71717A"} />
                                 <AppText className="font-medium text-text-primary ml-2">Country / Region</AppText>
                             </View>
-                            <AppText className="font-semibold text-text-secondary text-right" numberOfLines={1}>
+                            <AppText className="font-semibold text-text-primary-lighter text-right" numberOfLines={1}>
                                 {`${user.city ? `${user.city}, ` : ''}${user.country}`}
                             </AppText>
                         </View>
@@ -115,14 +116,14 @@ export default function ProfileScreen() {
                                 <Iconify icon="heroicons:phone" size={22} color={isDark ? "#A1A1AA" : "#71717A"} />
                                 <AppText className="font-medium text-text-primary ml-2">Phone Number</AppText>
                             </View>
-                            <AppText className="font-semibold text-text-secondary text-right" numberOfLines={1}>{user.phone_number || 'Not provided'}</AppText>
+                            <AppText className="font-semibold text-text-primary-lighter text-right" numberOfLines={1}>{user.phone_number || 'Not provided'}</AppText>
                         </View>
                     </View>
                 </View>
 
                 {/* Subscription Feature Limits Section */}
                 <View className="mt-6 px-6">
-                    <AppText variant="caption-xs" className="font-bold uppercase tracking-widest text-text-secondary opacity-50 px-2 mb-2">
+                    <AppText variant="caption-xs" className="font-bold uppercase tracking-widest text-text-primary-lighter opacity-50 px-2 mb-2">
                         Plan Features & Limits
                     </AppText>
 
@@ -132,7 +133,7 @@ export default function ProfileScreen() {
                                 <Iconify icon="heroicons:map-pin" size={22} color={isDark ? "#A1A1AA" : "#71717A"} />
                                 <AppText className="font-medium text-text-primary ml-2">Max Saved Places</AppText>
                             </View>
-                            <AppText className="font-semibold text-text-secondary text-right" numberOfLines={1}>{user.max_saved_places} locations</AppText>
+                            <AppText className="font-semibold text-text-primary-lighter text-right" numberOfLines={1}>{user.max_saved_places} locations</AppText>
                         </View>
 
                         <View className="flex-row items-center justify-between p-4 border-b border-gray-500/5">
@@ -140,7 +141,7 @@ export default function ProfileScreen() {
                                 <Iconify icon="heroicons:map" size={22} color={isDark ? "#A1A1AA" : "#71717A"} />
                                 <AppText className="font-medium text-text-primary ml-2">Premium Maps Access</AppText>
                             </View>
-                            <AppText className="font-semibold text-text-secondary text-right" numberOfLines={1}>{user.can_use_premium_map ? "Enabled" : "Disabled"}</AppText>
+                            <AppText className="font-semibold text-text-primary-lighter text-right" numberOfLines={1}>{user.can_use_premium_map ? "Enabled" : "Disabled"}</AppText>
                         </View>
 
                         <View className="flex-row items-center justify-between p-4">
@@ -148,7 +149,7 @@ export default function ProfileScreen() {
                                 <Iconify icon="heroicons:cloud-arrow-up" size={22} color={isDark ? "#A1A1AA" : "#71717A"} />
                                 <AppText className="font-medium text-text-primary ml-2">Cloud Core Syncing</AppText>
                             </View>
-                            <AppText className="font-semibold text-text-secondary text-right" numberOfLines={1}>{user.has_cloud_sync ? "Active" : "Unavailable"}</AppText>
+                            <AppText className="font-semibold text-text-primary-lighter text-right" numberOfLines={1}>{user.has_cloud_sync ? "Active" : "Unavailable"}</AppText>
                         </View>
                     </View>
                 </View>

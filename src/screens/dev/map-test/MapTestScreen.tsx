@@ -20,7 +20,7 @@ import {Iconify} from 'react-native-iconify';
 import {AppText} from '@/src/components/common/AppText';
 import {AppBottomSheet} from '@/src/components/common/AppBottomSheet';
 import {themeStore} from '@/src/store/themeStore';
-import {darkMapStyle} from '@/src/screens/place/SelectMapScreen.styles';
+import {darkMapStyle} from '@/src/constants/darkMapStyle';
 import {
     BANGALORE_REGION,
     CATEGORY_META,
@@ -453,7 +453,7 @@ export function RegionalExpenseMap() {
                     Map Preferences
                 </AppText>
 
-                <AppText variant="body-xs" className="text-text-secondary font-bold uppercase mb-2">
+                <AppText variant="body-xs" className="text-text-primary-lighter font-bold uppercase mb-2">
                     Filter Spots
                 </AppText>
                 <View className="flex-row gap-x-2 mb-5">
@@ -481,7 +481,7 @@ export function RegionalExpenseMap() {
                     ))}
                 </View>
 
-                <AppText variant="body-xs" className="text-text-secondary font-bold uppercase mb-2">
+                <AppText variant="body-xs" className="text-text-primary-lighter font-bold uppercase mb-2">
                     Overlays
                 </AppText>
                 <Pressable
@@ -513,7 +513,7 @@ export function RegionalExpenseMap() {
                         <AppText variant="h3" className="text-text-primary font-bold mb-1">
                             {sheet.cluster.label}
                         </AppText>
-                        <AppText variant="body-small" className="text-text-secondary mb-4">
+                        <AppText variant="body-small" className="text-text-primary-lighter mb-4">
                             {formatINR(sheet.cluster.amount)} · {sheet.cluster.venues.length} places
                         </AppText>
                         {sheet.cluster.venues.map((v) => (
@@ -526,7 +526,7 @@ export function RegionalExpenseMap() {
                                     <AppText variant="body-base" className="text-text-primary font-semibold">
                                         {CATEGORY_META[v.category].icon} {v.venueName}
                                     </AppText>
-                                    <AppText variant="body-xs" className="text-text-secondary">
+                                    <AppText variant="body-xs" className="text-text-primary-lighter">
                                         {v.visits} visit{v.visits === 1 ? '' : 's'} · {v.neighborhood}
                                     </AppText>
                                 </View>
@@ -720,7 +720,7 @@ function VenueSheet({venue}: { venue: VenueAgg }) {
             <AppText variant="h3" className="text-text-primary font-bold">
                 {meta.icon} {venue.venueName}
             </AppText>
-            <AppText variant="body-small" className="text-text-secondary mt-1 mb-4">
+            <AppText variant="body-small" className="text-text-primary-lighter mt-1 mb-4">
                 {venue.neighborhood} · {meta.label} · {venue.visits} visit{venue.visits === 1 ? '' : 's'}
             </AppText>
             <AppText variant="h4" className="text-text-primary font-bold mb-3">

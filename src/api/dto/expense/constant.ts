@@ -7,11 +7,13 @@ export enum PaidTowards {
     // Add other backend enum keys as per your layout
 }
 
+/** Matches backend `ExpenseRecurringPeriod` string values (lowercase). */
 export enum ExpenseRecurringPeriod {
-    WEEKLY = "WEEKLY",
-    MONTHLY = "MONTHLY",
-    YEARLY = "YEARLY",
-    CUSTOM = "CUSTOM"
+    DAILY = "daily",
+    WEEKLY = "weekly",
+    MONTHLY = "monthly",
+    YEARLY = "yearly",
+    CUSTOM = "custom",
 }
 
 export enum ExpenseItemSource {
@@ -44,15 +46,38 @@ export enum ExpenseStatus {
 }
 
 
-export type Weekday = "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY" | "SUNDAY";
-export type Month = "JANUARY" | "FEBRUARY" | "MARCH" | "APRIL" | "MAY" | "JUNE" | "JULY" | "AUGUST" | "SEPTEMBER" | "OCTOBER" | "NOVEMBER" | "DECEMBER";
+/** Matches backend `Weekday` enum values (lowercase). */
+export type Weekday =
+    | "monday"
+    | "tuesday"
+    | "wednesday"
+    | "thursday"
+    | "friday"
+    | "saturday"
+    | "sunday";
 
+/** Matches backend `Month` enum values (lowercase). */
+export type Month =
+    | "january"
+    | "february"
+    | "march"
+    | "april"
+    | "may"
+    | "june"
+    | "july"
+    | "august"
+    | "september"
+    | "october"
+    | "november"
+    | "december";
+
+/** Matches backend TransferMode (lowercase string values). */
 export enum TransferMode {
-    CASH = "CASH",
-    UPI = "UPI",
-    CARD = "CARD",
-    NET_BANKING = "NET_BANKING",
-    OTHER = "OTHER"
+    UPI = 'upi',
+    CARD = 'card',
+    NET_BANKING = 'net_banking',
+    CASH = 'cash',
+    OTHER = 'other',
 }
 
 export enum UserMerchantSource {
@@ -65,4 +90,39 @@ export enum UserMerchantSource {
 export enum UserMerchantLocationSource {
     MANUAL = "MANUAL",
     SYSTEM = "SYSTEM"
+}
+
+export enum BudgetPeriod {
+    DAILY = "daily",
+    MONTHLY = "monthly",
+    QUARTERLY = "quarterly",
+    YEARLY = "yearly",
+}
+
+export enum BudgetAudienceType {
+    USER = "user",
+    USER_SHARED = "user_shared",
+    GROUP = "group",
+}
+
+export enum BudgetMemberRole {
+    OWNER = "owner",
+    EDITOR = "editor",
+    VIEWER = "viewer",
+}
+
+export enum BudgetCapMode {
+    SOFT = "soft",
+    HARD = "hard",
+}
+
+export enum AnalyticsBucket {
+    DAY = "day",
+    WEEK = "week",
+    MONTH = "month",
+}
+
+export enum AnalyticsGroupBy {
+    NONE = "none",
+    CATEGORY = "category",
 }

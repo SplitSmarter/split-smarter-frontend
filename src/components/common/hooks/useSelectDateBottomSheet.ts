@@ -63,7 +63,7 @@ export const useSelectDateBottomSheet = (
             textLighter: isDark ? '#9CA3AF' : '#64748B',
             accentSky: isDark ? '#38BDF8' : '#0284C7',
             accentSkyBg: isDark ? 'rgba(56, 189, 248, 0.12)' : '#E0F2FE',
-            ctaBg: '#10B981',
+            ctaBg: isDark ? '#32966E' : '#2B8761',
             border: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.06)',
             segmentedBg: isDark ? '#1F2937' : '#E2E8F0',
         }),

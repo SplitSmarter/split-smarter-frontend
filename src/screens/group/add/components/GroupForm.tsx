@@ -99,7 +99,7 @@ export const GroupForm = React.memo(({
                                     <Pressable
                                         onPress={() => onRemoveUser(user)}
                                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                                        className="absolute -top-1 -left-1 bg-emerald-600 rounded-full border-2 border-white"
+                                        className="absolute -top-1 -left-1 bg-bg-secondary rounded-full border-2 border-white"
                                     >
                                         <Iconify icon="heroicons:x-mark" size={12} color="black" />
                                     </Pressable>
@@ -122,7 +122,7 @@ export const GroupForm = React.memo(({
 
             {/* Submission Layout CTA Blocks */}
             <View className="gap-y-3">
-                <AppButton variant="primary" className="h-14 rounded-2xl bg-emerald-700 shadow-md" onPress={onSubmit} loading={loading}>
+                <AppButton variant="primary" className="h-14 rounded-2xl shadow-md" onPress={onSubmit} loading={loading}>
                     Save
                 </AppButton>
                 <AppButton variant="secondary" className="h-14 rounded-2xl" onPress={onCancel}>

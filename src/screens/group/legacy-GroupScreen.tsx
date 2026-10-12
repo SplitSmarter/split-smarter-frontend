@@ -44,7 +44,7 @@ const GroupListItem = ({ item }: { item: typeof GROUPS[0] }) => {
 
     return (
         <Pressable
-            className="flex-row items-center px-4 py-3 bg-bg-primary border-b border-bg-secondary-lighter/20"
+            className="flex-row items-center px-4 py-3 bg-bg-primary border-b border-border-input/20"
             android_ripple={{ color: 'rgba(0,0,0,0.05)' }}
         >
             {/* Avatar Section */}
@@ -53,7 +53,7 @@ const GroupListItem = ({ item }: { item: typeof GROUPS[0] }) => {
                     url={item.avatar}
                     size="xl"
                     variant="circular"
-                    className="border border-bg-secondary-lighter/30"
+                    className="border border-border-input/30"
                 />
                 {item.unreadCount > 0 && (
                     <View className="absolute -top-1 -right-1 bg-green-primary w-5 h-5 rounded-full items-center justify-center border-2 border-bg-primary">
@@ -107,7 +107,7 @@ export const GroupScreen = () => {
     return (
         <SafeAreaView className="flex-1 bg-bg-primary">
             {/* WhatsApp Style Header */}
-            <View className="px-4 py-4 flex-row justify-between items-center bg-bg-primary border-b border-bg-secondary-lighter/10">
+            <View className="px-4 py-4 flex-row justify-between items-center bg-bg-primary border-b border-border-input/10">
                 <AppText variant="h2" className="font-bold text-text-primary">Groups</AppText>
                 <View className="flex-row gap-x-4">
                     <Iconify icon="heroicons:magnifying-glass" size={24} color="rgb(var(--color-text-primary))" />

@@ -1,4 +1,11 @@
 export const ROUTES = {
+    expenseDetails: (id: string | number): {
+        pathname: "/(authenticated)/expense/details";
+        params: { id: string };
+    } => ({
+        pathname: "/(authenticated)/expense/details",
+        params: { id: String(id) },
+    }),
     categoryDetails: (id: string | number): {
         pathname: "/(authenticated)/expense/categories/[categoryId]";
         params: { categoryId: string };

@@ -38,7 +38,7 @@ export function LayerOptionsBottomSheet({
                 </AppText>
 
                 {/* Marker Filter Section */}
-                <AppText variant="body-xs" className="mb-2 font-bold uppercase text-text-secondary">
+                <AppText variant="body-xs" className="mb-2 font-bold uppercase text-text-primary-lighter">
                     Filter Spots
                 </AppText>
                 <View className="mb-5 flex-row flex-wrap gap-2">
@@ -67,7 +67,7 @@ export function LayerOptionsBottomSheet({
                 </View>
 
                 {/* Overlays Section */}
-                <AppText variant="body-xs" className="mb-2 font-bold uppercase text-text-secondary">
+                <AppText variant="body-xs" className="mb-2 font-bold uppercase text-text-primary-lighter">
                     Overlays
                 </AppText>
                 <Pressable

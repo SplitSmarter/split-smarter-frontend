@@ -224,16 +224,16 @@ export const SelectSinglePeopleBottomSheet = ({
                         Select Person
                     </AppText>
                     <Pressable onPress={handleAddNewUser} className="p-2 rounded-full active:opacity-60">
-                        <Iconify icon="heroicons:user-plus" size={24} color={!isDark ? COLORS.light.icon.darker : COLORS.light.text.contrast} />
+                        <Iconify icon="heroicons:user-plus" size={24} color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary} />
                     </Pressable>
                 </View>
 
                 <View className="my-4 flex-row items-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl px-4 h-12">
-                    <Iconify icon="heroicons:magnifying-glass" size={20} color={isDark ? '#71717A' : '#A1A1AA'} />
+                    <Iconify icon="heroicons:magnifying-glass" size={20} color={isDark ? COLORS.dark.icon.lighter : COLORS.light.icon.lighter} />
                     <BottomSheetTextInput
                         style={[styles.input, { color: isDark ? '#FFF' : '#000' }]}
                         placeholder="Search name, email, or phone..."
-                        placeholderTextColor={isDark ? '#71717A' : '#A1A1AA'}
+                        placeholderTextColor={isDark ? COLORS.dark.text.placeholder : COLORS.light.text.placeholder}
                         value={search}
                         onChangeText={setSearch}
                     />
@@ -244,7 +244,7 @@ export const SelectSinglePeopleBottomSheet = ({
 
                 {loadingRelations && combinedListData.length === 0 ? (
                     <View className="flex-1 justify-center items-center py-20">
-                        <ActivityIndicator size="large" color="#2D6A4F" />
+                        <ActivityIndicator size="large" color={COLORS.light.brand.primary} />
                     </View>
                 ) : (
                     <BottomSheetFlatList
@@ -269,19 +269,19 @@ const UserRowItem = React.memo(({ user, isSelected, onPress, subtext }: any) => 
             onPress={() => onPress(user.id, user.user_type)}
             className={`flex-row items-center p-3 rounded-2xl mb-2 ${
                 isSelected
-                    ? 'bg-bg-secondary/10 border border-bg-secondary/30'
+                    ? 'bg-accent-sky-bg border border-accent-sky'
                     : 'bg-white dark:bg-zinc-900 border border-transparent'
             }`}
         >
             <AppImage url={user.avatar?.url} size="sm" variant="circular" />
             <View className="flex-1 ml-3">
                 <AppText className="font-semibold text-text-primary">{user.name}</AppText>
-                <AppText variant="caption-xs" className="text-text-secondary opacity-60">{subtext}</AppText>
+                <AppText variant="caption-xs" className="text-text-primary-lighter opacity-60">{subtext}</AppText>
             </View>
             {isSelected ? (
-                <Iconify icon="heroicons:check-circle-solid" size={24} color={COLORS.icon_primary_darker_light} />
+                <Iconify icon="heroicons:check-circle-solid" size={24} color="#0284C7" />
             ) : (
-                <Iconify icon="heroicons:check-circle" size={24} color={COLORS.icon_secondary_light} />
+                <Iconify icon="heroicons:check-circle" size={24} color={COLORS.icon_primary_light} />
             )}
         </Pressable>
     );

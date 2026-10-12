@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { COLORS } from '@/src/constants/colors';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, View, Platform, BackHandler } from 'react-native';
 import { Iconify } from "react-native-iconify";
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -143,9 +144,13 @@ const GroupDetailsScreen = () => {
     }
 
     return (
-        <ScreenWrapper backgroundColor="#2D6A4F" statusBarStyle="light-content" withPadding={false}>
+        <ScreenWrapper
+            backgroundColor={isDark ? COLORS.dark.brand.primary : COLORS.light.brand.primary}
+            statusBarStyle="light-content"
+            withPadding={false}
+        >
             {/* --- FIXED HEADER CONTAINER --- */}
-            <View className="bg-[#2D6A4F] pt-4 pb-6 w-full">
+            <View className="bg-bg-secondary pt-4 pb-6 w-full">
                 <View className="flex-row items-center justify-between w-full px-4 mb-6">
 
                     {/* 👈 FIXED BACK BUTTON: Moved completely out of the inner touch target container */}
@@ -199,7 +204,7 @@ const GroupDetailsScreen = () => {
                                 className={`px-8 h-12 justify-center rounded-[20px] mr-3 ${isActive ? 'bg-white' : 'bg-white/10'}`}
                             >
                                 <AppText variant="body-base"
-                                         className={`font-bold ${isActive ? 'text-[#2D6A4F]' : 'text-white'}`}>
+                                         className={`font-bold ${isActive ? 'text-bg-secondary' : 'text-white'}`}>
                                     {tab}
                                 </AppText>
                             </Pressable>
@@ -214,7 +219,7 @@ const GroupDetailsScreen = () => {
                     {activeTab === 'Transactions' ? (
                         transactionsLoading ? (
                             <View className="flex-1 justify-center items-center">
-                                <ActivityIndicator color="#2D6A4F" size="large"/>
+                                <ActivityIndicator color={COLORS.light.brand.primary} size="large"/>
                             </View>
                         ) : (
                             <ScrollView
@@ -222,7 +227,7 @@ const GroupDetailsScreen = () => {
                                 showsVerticalScrollIndicator={false}
                                 refreshControl={
                                     <RefreshControl refreshing={transactionsLoading} onRefresh={handleTabRefresh}
-                                                    tintColor={isDark ? "white" : "#2D6A4F"}/>
+                                                    tintColor={isDark ? "white" : COLORS.light.brand.primary}/>
                                 }
                             >
                                 <GroupTransactionsTab expenses={expenses} transfers={transfers} isDark={isDark}/>
@@ -236,13 +241,13 @@ const GroupDetailsScreen = () => {
                                 <RefreshControl
                                     refreshing={activeTab === 'Settlements' ? settlementsLoading : groupLoading}
                                     onRefresh={handleTabRefresh}
-                                    tintColor={isDark ? "white" : "#2D6A4F"}
+                                    tintColor={isDark ? "white" : COLORS.light.brand.primary}
                                 />
                             }
                         >
                             {activeTab === 'Overview' && (
                                 groupLoading ? (
-                                    <ActivityIndicator color="#2D6A4F" size="large" className="mt-8"/>
+                                    <ActivityIndicator color={COLORS.light.brand.primary} size="large" className="mt-8"/>
                                 ) : (
                                     <GroupOverviewTab group={group} isDark={isDark}/>
                                 )
@@ -250,7 +255,7 @@ const GroupDetailsScreen = () => {
 
                             {activeTab === 'Settlements' && (
                                 settlementsLoading ? (
-                                    <ActivityIndicator color="#2D6A4F" size="large" className="mt-8"/>
+                                    <ActivityIndicator color={COLORS.light.brand.primary} size="large" className="mt-8"/>
                                 ) : (
                                     <GroupSettlementsTab
                                         groupId={groupId}
@@ -268,7 +273,7 @@ const GroupDetailsScreen = () => {
             {/* --- FIXED FLOATING ACTION BUTTON --- */}
             {activeTab === 'Transactions' && (
                 <Pressable
-                    className="absolute bottom-10 right-6 w-16 h-16 bg-[#2D6A4F] rounded-full items-center justify-center z-50"
+                    className="absolute bottom-10 right-6 w-16 h-16 bg-bg-secondary rounded-full items-center justify-center z-50"
                     onPress={() => router.push("/expense/add")}
                     style={({ pressed }) => [
                         {

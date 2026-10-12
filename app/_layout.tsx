@@ -171,7 +171,11 @@ export default function RootLayout() {
         }
     }, [isAppReady, isAuthLoading]);
 
-    const navigationTheme = useMemo(() => (theme === "dark" ? DarkTheme : DefaultTheme), [theme]);
+    // Stable theme object — avoid recreating ThemeProvider value identity thrash
+    const navigationTheme = useMemo(
+        () => (theme === "dark" ? DarkTheme : DefaultTheme),
+        [theme],
+    );
 
     if (!themeHydrated || !configHydrated || !isAppReady || isAuthLoading) return null;
 

@@ -1,0 +1,97 @@
+---
+description: When/how to use AppText, AppTextV2, ScreenWrapper, AppButton, and related shared primitives
+alwaysApply: true
+---
+
+# UI primitives
+
+Follow [.llm/ui-primitives.md](mdc:.llm/ui-primitives.md). Colors: [.llm/color-palette.md](mdc:.llm/color-palette.md) §0.
+
+## Imports — concrete files only
+
+```tsx
+import { AppText } from '@/src/components/common/AppText';
+import { AppTextV2 } from '@/src/components/common/AppTextV2';
+import { AppButton } from '@/src/components/common/AppButton';
+import { AppButtonV2 } from '@/src/components/common/AppButtonV2';
+import { ScreenWrapper } from '@/src/components/common/ScreenWrapper';
+```
+
+Do **not** add `index.ts` barrels that re-export “latest” as the default `AppText` / `AppButton`.
+
+## When to use
+
+| Primitive | Use |
+| :--- | :--- |
+| `AppText` | Default product copy (`variant` + color via `className`) |
+| `AppTextV2` | Semantic `colorScheme` (CVA); `secondary` = muted body, not white CTA |
+| `AppButton` / `AppButtonV2` | CTAs; icons via `renderIcon={(c,s) => <Iconify icon="…" … />}` |
+| `ScreenWrapper` | Full screens owning safe area + status bar |
+| `AppInput` / `AppBottomSheet` / `AppImage(V2)` | Prefer over one-off RN primitives |
+
+## ScreenWrapper
+
+- **Do:** onboarding, dashboard shell, standalone routes.
+- **Do not:** bottom sheets, modals, nested content already inside tab/stack chrome.
+- `withPadding` default `true`; `false` for full-bleed.
+- `backgroundColor` (camelCase) fills SafeAreaView **including the phone status-bar strip**. `className` does not.
+- Defaults follow theme canvas; green headers must pass `COLORS.*.brand.primary` + `statusBarStyle="light-content"`.
+- Never write `backgroundcolor` — prop is ignored → white notification row.
+
+## Do
+
+```tsx
+<AppText variant="h3" className="text-text-primary">Title</AppText>
+<AppText className="text-text-primary-lighter">Meta</AppText>
+
+<AppTextV2 variant="body-small" colorScheme="secondary">Muted</AppTextV2>
+
+<AppButton variant="primary" renderIcon={(c) => <Iconify icon="heroicons:plus-circle" size={18} color={c} />}>
+  Create
+</AppButton>
+
+// Neutral screen
+<ScreenWrapper
+  backgroundColor={isDark ? COLORS.dark.bg.primary : COLORS.light.bg.primary}
+  statusBarStyle={isDark ? 'light-content' : 'dark-content'}
+>
+  {children}
+</ScreenWrapper>
+
+// Green header — status bar matches brand chrome
+<ScreenWrapper
+  backgroundColor={isDark ? COLORS.dark.brand.primary : COLORS.light.brand.primary}
+  statusBarStyle="light-content"
+  withPadding={false}
+>
+  {children}
+</ScreenWrapper>
+```
+
+## Do not
+
+```tsx
+// Version-picking barrel
+import { AppText } from '@/src/components/common/features/AppText';
+
+// Raw Text for product UI (prefer AppText / AppTextV2)
+<Text className="text-lg">Title</Text>
+
+// White CTA token as muted body
+<AppText className="text-text-secondary">Loading more...</AppText>
+
+// Wrong prop case → white status bar strip
+<ScreenWrapper backgroundcolor={COLORS.light.brand.primary} />
+
+// className alone does not paint the notification row
+<ScreenWrapper className="bg-bg-secondary" />
+
+// ScreenWrapper around sheet / modal body
+<AppBottomSheet><ScreenWrapper>{…}</ScreenWrapper></AppBottomSheet>
+```
+
+## Also
+
+- Iconify `icon` = string literal (see iconify-string-literals rule).
+- Sheet portal pitfalls: [.llm/exceptions.md](mdc:.llm/exceptions.md).
+- Private UI stays under `src/screens/…`; promote to `src/components/` only on a second consumer.

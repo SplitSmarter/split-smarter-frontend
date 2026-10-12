@@ -1,15 +1,18 @@
-import React, {useCallback, useMemo} from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {View, StyleSheet} from 'react-native';
 import MapView, {Circle, Heatmap, Marker, Polygon, PROVIDER_GOOGLE} from 'react-native-maps';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 import {themeStore} from '@/src/store/themeStore';
-import {darkMapStyle} from '@/src/screens/place/SelectMapScreen.styles';
+import {darkMapStyle} from '@/src/constants/darkMapStyle';
+import {MyLocationFab} from '@/src/components/common/MyLocationFab';
 import {BANGALORE_REGION, HABIT_RADIUS_M, HOME_GEO, MEMORIES} from './dummyExpenseMapData';
 
 import {useSpatialMap} from './hooks/useSpatialMap';
+import {useMapTabBarVisibility} from './hooks/useMapTabBarVisibility';
 import {MapHeader} from './components/MapHeader';
-import {RecenterButton} from './components/RecenterButton';
+import {DisplayViewFab} from './components/DisplayViewFab';
+import {DisplayViewOptionsBottomSheet} from './components/DisplayViewOptionsBottomSheet';
 import {TrailDaySelector} from './components/TrailDaySelector';
 import {LayerOptionsBottomSheet} from './components/LayerOptionsBottomSheet';
 import {VenueDetailsBottomSheet} from './components/VenueDetailsBottomSheet';
@@ -17,18 +20,25 @@ import {VenueDetailsBottomSheet} from './components/VenueDetailsBottomSheet';
 import {SpotsLayer} from './components/SpotsLayer';
 import {TrailLayer, TrailTxn} from './components/TrailLayer';
 import {TrailTimeLegend} from './components/TrailTimeLegend';
+import {
+    MAP_FAB_GAP,
+    MAP_FAB_SIZE,
+    TAB_BAR_CLEARANCE,
+} from './constants/mapConstants';
 import {PlaceAgg} from './types/spatialMap.types';
 import {ExpenseDetailsBasicResponse} from '@/src/api/dto/expense/expense';
 
 export function RegionalExpenseMap() {
     const isDark = themeStore((s) => s.theme === 'dark');
     const insets = useSafeAreaInsets();
+    const [showDisplayViewMenu, setShowDisplayViewMenu] = useState(false);
+    const {notifyActivity, setOverlayOpen} = useMapTabBarVisibility();
 
     const {
         mapRef,
         scopeMode,
         handleSelectScopeMode,
-        selectedTripId, // or selectedMemoryId from custom hook
+        selectedTripId,
         displayView,
         setDisplayView,
         monthId,
@@ -43,7 +53,7 @@ export function RegionalExpenseMap() {
         setSheet,
         showLayerMenu,
         setShowLayerMenu,
-        allVenues = [], // Contains array of PlaceAgg
+        allVenues = [],
         visibleTotal,
         days,
         activeTrail = [],
@@ -52,14 +62,13 @@ export function RegionalExpenseMap() {
         isZoomedIn,
         selectedTripHull,
         onRegionChangeComplete,
-        recenter,
+        isLocationLoading,
+        handleMyLocationPress,
         flyToTrip,
     } = useSpatialMap();
 
-    // Standardize places list
     const placesList: PlaceAgg[] = useMemo(() => allVenues || [], [allVenues]);
 
-    // Construct static ordered trail using `placesList` (PlaceAgg[])
     const staticOrderedTrail = useMemo<TrailTxn[]>(() => {
         if (activeTrail && activeTrail.length > 0) return activeTrail;
 
@@ -90,9 +99,14 @@ export function RegionalExpenseMap() {
         return trail;
     }, [activeTrail, placesList]);
 
+    useEffect(() => {
+        setOverlayOpen(Boolean(sheet || showLayerMenu || showDisplayViewMenu));
+    }, [sheet, showLayerMenu, showDisplayViewMenu, setOverlayOpen]);
+
     const handleSelectPlace = useCallback((place: PlaceAgg) => {
+        notifyActivity();
         setSheet({kind: 'venue', venue: place});
-    }, [setSheet]);
+    }, [notifyActivity, setSheet]);
 
     const handleSelectTrailTxn = useCallback((txn: TrailTxn) => {
         const foundPlace = placesList.find(
@@ -101,8 +115,56 @@ export function RegionalExpenseMap() {
 
         if (!foundPlace) return;
 
+        notifyActivity();
         setSheet({kind: 'venue', venue: foundPlace});
-    }, [placesList, setSheet]);
+    }, [notifyActivity, placesList, setSheet]);
+
+    const handleRegionChangeComplete = useCallback(
+        (
+            region: Parameters<typeof onRegionChangeComplete>[0],
+            details?: {isGesture?: boolean}
+        ) => {
+            onRegionChangeComplete(region);
+            if (details?.isGesture) {
+                notifyActivity();
+            }
+        },
+        [notifyActivity, onRegionChangeComplete]
+    );
+
+    const handleOpenDisplayViewMenu = useCallback(() => {
+        notifyActivity();
+        setShowDisplayViewMenu(true);
+    }, [notifyActivity]);
+
+    const onMyLocationPress = useCallback(() => {
+        notifyActivity();
+        void handleMyLocationPress();
+    }, [notifyActivity, handleMyLocationPress]);
+
+    const handleSelectTrailDate = useCallback(
+        (date: string) => {
+            notifyActivity();
+            setTrailDate(date);
+        },
+        [notifyActivity, setTrailDate]
+    );
+
+    const handleSelectMonth = useCallback(
+        (id: string) => {
+            notifyActivity();
+            setMonthId(id);
+        },
+        [notifyActivity, setMonthId]
+    );
+
+    // Always reserve tab-bar height so overlays never jump when tabs show/hide.
+    const bottomChromeInset = insets.bottom + TAB_BAR_CLEARANCE;
+
+    const displayViewFabBottom =
+        insets.bottom + 20 + TAB_BAR_CLEARANCE + (displayView === 'trail' ? 76 : 0);
+
+    const myLocationFabBottom = displayViewFabBottom + MAP_FAB_SIZE + MAP_FAB_GAP;
 
     return (
         <View className="flex-1 bg-background">
@@ -115,9 +177,11 @@ export function RegionalExpenseMap() {
                 toolbarEnabled={false}
                 showsCompass={false}
                 showsTraffic={false}
-                showsUserLocation={false}
+                showsUserLocation
+                showsMyLocationButton={false}
                 rotateEnabled={false}
-                onRegionChangeComplete={onRegionChangeComplete}
+                onPanDrag={notifyActivity}
+                onRegionChangeComplete={handleRegionChangeComplete}
             >
                 {/* VIEW 1: HEATMAP */}
                 {displayView === 'heatmap' && heatPoints.length > 0 && (
@@ -197,26 +261,44 @@ export function RegionalExpenseMap() {
                 memories={MEMORIES}
                 selectedMemoryId={selectedTripId}
                 onSelectMemory={flyToTrip}
-                displayView={displayView}
-                onSelectDisplayView={setDisplayView}
                 visibleTotal={visibleTotal}
                 onOpenLayerMenu={() => setShowLayerMenu(true)}
+                onInteraction={notifyActivity}
             />
 
-            <RecenterButton insetsTop={insets.top + 80} onPress={recenter}/>
+            <MyLocationFab
+                isLoading={isLocationLoading}
+                isDark={isDark}
+                onPress={onMyLocationPress}
+                style={{bottom: myLocationFabBottom, right: 12}}
+            />
+
+            <DisplayViewFab
+                insetsBottom={insets.bottom}
+                elevated={displayView === 'trail'}
+                displayView={displayView}
+                onPress={handleOpenDisplayViewMenu}
+            />
 
             {/* TRAIL DAY SELECTOR */}
             {displayView === 'trail' && (
                 <TrailDaySelector
-                    insetsBottom={insets.bottom}
+                    insetsBottom={bottomChromeInset}
                     mapMode={displayView}
                     days={days}
                     trailDate={trailDate}
-                    onSelectTrailDate={setTrailDate}
+                    onSelectTrailDate={handleSelectTrailDate}
                     monthId={monthId}
-                    onSelectMonth={setMonthId}
+                    onSelectMonth={handleSelectMonth}
                 />
             )}
+
+            <DisplayViewOptionsBottomSheet
+                isVisible={showDisplayViewMenu}
+                onClose={() => setShowDisplayViewMenu(false)}
+                displayView={displayView}
+                onSelectDisplayView={setDisplayView}
+            />
 
             <LayerOptionsBottomSheet
                 isVisible={showLayerMenu}

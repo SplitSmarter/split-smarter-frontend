@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Modal, Pressable, Alert, Linking } from 'react-native';
 import { Iconify } from 'react-native-iconify';
 import { AppText } from '@/src/components/common/AppText';
+import { COLORS } from '@/src/constants/colors';
 
 interface RemindModalProps {
     visible: boolean;
@@ -38,18 +39,18 @@ export const RemindModal: React.FC<RemindModalProps> = ({ visible, onClose, user
                     <AppText variant="h3" className="font-black text-foreground text-center text-lg mb-1">
                         Send Payment Reminder
                     </AppText>
-                    <AppText className="text-text-secondary text-xs text-center mb-6 px-4">
+                    <AppText className="text-text-primary-lighter text-xs text-center mb-6 px-4">
                         Choose your transmission line to request tracking settlement from <AppText className="font-bold text-foreground">{userName}</AppText>.
                     </AppText>
 
                     <View className="w-full space-y-3">
                         {/* WhatsApp Routing Option */}
-                        <Pressable onPress={handleSendWhatsApp} className="w-full flex-row items-center justify-between p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 active:opacity-70">
+                        <Pressable onPress={handleSendWhatsApp} className="w-full flex-row items-center justify-between p-4 rounded-xl bg-bg-secondary-lighter border border-bg-secondary/20 active:opacity-70">
                             <View className="flex-row items-center">
                                 <Iconify icon="logos:whatsapp-icon" size={20} />
-                                <AppText className="font-bold text-emerald-600 dark:text-emerald-400 text-sm ml-3">Custom WhatsApp Text</AppText>
+                                <AppText className="font-bold text-bg-secondary text-sm ml-3">Custom WhatsApp Text</AppText>
                             </View>
-                            <Iconify icon="heroicons:chevron-right" size={16} color="#059669" />
+                            <Iconify icon="heroicons:chevron-right" size={16} color={COLORS.light.brand.primary} />
                         </Pressable>
 
                         {/* Cloud System Pushes Option */}

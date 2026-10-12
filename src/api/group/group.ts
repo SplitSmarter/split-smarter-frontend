@@ -10,6 +10,7 @@ import {
 } from "@/src/api/dto/user/group";
 import {GroupStatus} from "@/src/api/dto/constants";
 import {BaseSettlementDetails} from "@/src/api/dto/expense/settlement";
+import {GroupMyRolePermissionsResponse} from "@/src/api/dto/user/group/permissions";
 
 const BASE_PATH = "/group/v1"; // Matching your backend router logic
 
@@ -99,6 +100,28 @@ export const CreateGroupApi = async (data: AddGroupRequest) => {
     }
 };
 
+
+/**
+ * Authenticated user's role + effective permissions in a group
+ * GET /group/v1/{group_id}/me/permissions
+ */
+export const GetMyGroupPermissionsApi = async (groupId: number) => {
+    try {
+        const res = await axiosUserInstance.get<SuccessResponse<GroupMyRolePermissionsResponse>>(
+            `${BASE_PATH}/${groupId}/me/permissions`
+        );
+
+        if (res.data && res.data.success) {
+            return {
+                message: res.data.message,
+                data: res.data.data,
+            };
+        }
+        throw new Error("Invalid Response Schema");
+    } catch (error: any) {
+        return handleApiError(error);
+    }
+};
 
 /**
  * Retrieves a list of memberships/members assigned to a specific group context identity

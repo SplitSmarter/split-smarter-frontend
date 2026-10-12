@@ -1,12 +1,26 @@
+import {RelationWithUserType} from '@/src/api/dto/constants';
 import {
-    BudgetGoal,
-    ExpenseDataPoint,
-    Merchant,
-    PeerSettlement,
-    SpendCategory,
-    Transaction,
-    UserProfile,
-} from '../types/dashboard';
+    AnalyticsSeriesResponse,
+} from '@/src/api/dto/expense/analytics';
+import {
+    BudgetAudienceType,
+    BudgetCapMode,
+    BudgetMemberRole,
+    BudgetPeriod,
+    AnalyticsBucket,
+    AnalyticsGroupBy,
+    ExpenseComponentType,
+    ExpenseStatus,
+} from '@/src/api/dto/expense/constant';
+import {BudgetRuleDetails} from '@/src/api/dto/expense/budget';
+import {
+    ExpenseCategoryBasicResponse,
+    ExpenseDetailsBasicResponse,
+    ExchangeRateDetails,
+} from '@/src/api/dto/expense/expense';
+import {BasicImage} from '@/src/api/dto/user/asset';
+import {BasicUserDetails} from '@/src/api/dto/user/user';
+import {UserProfile} from '../types/dashboard';
 
 export const MONTH_NAMES_SHORT = [
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -18,293 +32,419 @@ export const MONTH_NAMES_FULL = [
     'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
-export const MOCK_USER_PROFILE: UserProfile = {
-    name: 'Nilesh',
-    avatar: {
-        id: 'user-nilesh-avatar',
-        name: 'Nilesh Avatar',
-        url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
-        extension: 'jpg',
-    },
-    totalBalance: 12680.42,
-    rewardPoints: 100,
+export const CATEGORY_PALETTE = ['#FF7A00', '#3B82F6', '#2B8761', '#A855F7', '#EF4444', '#14B8A6'];
+
+const INR_RATE: ExchangeRateDetails = {
+    INR: 1,
+    USD: 0.012,
+    EUR: 0.011,
+    CAD: 0.016,
+    GBP: 0.0095,
 };
 
-export const MOCK_EXPENSES: ExpenseDataPoint[] = [
-    {id: '1', timestamp: '2026-01-15T10:20:00.000Z', amount: 420.5, category: 'Groceries'},
-    {id: '2', timestamp: '2026-02-18T14:12:00.000Z', amount: 310.8, category: 'Shopping'},
-    {id: '3', timestamp: '2026-03-22T08:45:00.000Z', amount: 648.24, category: 'Utilities'},
-    {id: '4', timestamp: '2026-04-10T19:30:00.000Z', amount: 890.1, category: 'Dining Out'},
-    {id: '5', timestamp: '2026-05-05T12:00:00.000Z', amount: 720.4, category: 'Entertainment'},
-    {id: '6', timestamp: '2026-06-28T16:15:00.000Z', amount: 1150.0, category: 'Travel'},
-    {id: '7', timestamp: '2026-07-14T09:10:00.000Z', amount: 980.0, category: 'Groceries'},
-    {id: '8', timestamp: '2026-08-19T11:25:00.000Z', amount: 1050.5, category: 'Shopping'},
-    {id: '9', timestamp: '2026-09-27T15:43:08.621Z', amount: 1280.75, category: 'Health'},
-    {id: '10', timestamp: '2026-10-02T18:00:00.000Z', amount: 1100.0, category: 'Subscriptions'},
-    {id: '11', timestamp: '2026-11-12T11:00:00.000Z', amount: 1150.0, category: 'Subscriptions'},
-    {id: '12', timestamp: '2026-12-05T12:00:00.000Z', amount: 1300.0, category: 'Subscriptions'},
-    {id: '13', timestamp: '2026-12-05T12:05:00.000Z', amount: 1310.0, category: 'Subscriptions'},
-    {id: '14', timestamp: '2026-12-05T12:10:00.000Z', amount: 1320.0, category: 'Subscriptions'},
-    {id: '15', timestamp: '2026-12-05T12:15:00.000Z', amount: 1330.0, category: 'Subscriptions'},
+const avatar = (id: string, url: string): BasicImage => ({
+    id,
+    name: id,
+    url,
+    extension: 'jpg',
+});
+
+const icon = (id: string, url: string): BasicImage => ({
+    id,
+    name: id,
+    url,
+    extension: 'png',
+});
+
+const selfUser: BasicUserDetails = {
+    id: 1,
+    name: 'Nilesh',
+    user_type: RelationWithUserType.USER,
+    avatar: avatar(
+        'user-nilesh-avatar',
+        'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150'
+    ),
+};
+
+const category = (
+    id: number,
+    title: string,
+    iconUrl: string
+): ExpenseCategoryBasicResponse => ({
+    id,
+    title,
+    icon: icon(`cat-${id}`, iconUrl),
+});
+
+const CAT_GROCERIES = category(
+    1,
+    'Groceries',
+    'https://cdn-icons-png.flaticon.com/512/3081/3081559.png'
+);
+const CAT_SHOPPING = category(
+    2,
+    'Shopping',
+    'https://cdn-icons-png.flaticon.com/512/3081/3081648.png'
+);
+const CAT_UTILITIES = category(
+    3,
+    'Utilities',
+    'https://cdn-icons-png.flaticon.com/512/1040/1040238.png'
+);
+const CAT_DINING = category(
+    4,
+    'Food & Dining',
+    'https://cdn-icons-png.flaticon.com/512/3081/3081559.png'
+);
+const CAT_TRAVEL = category(
+    5,
+    'Travel',
+    'https://cdn-icons-png.flaticon.com/512/201/201623.png'
+);
+const CAT_SUBSCRIPTIONS = category(
+    6,
+    'Subscriptions',
+    'https://cdn-icons-png.flaticon.com/512/5968/5968433.png'
+);
+
+/** Fixture category catalog for budget `category_ids` → icon/name lookup. */
+export const MOCK_CATEGORY_BY_ID: Record<number, ExpenseCategoryBasicResponse> = {
+    1: CAT_GROCERIES,
+    2: CAT_SHOPPING,
+    3: CAT_UTILITIES,
+    4: CAT_DINING,
+    5: CAT_TRAVEL,
+    6: CAT_SUBSCRIPTIONS,
+};
+
+/** UI profile shell (name/avatar). Spend total comes from analytics via mappers/hooks. */
+export const MOCK_USER_PROFILE: UserProfile = {
+    name: selfUser.name,
+    avatar: {
+        id: selfUser.avatar.id,
+        name: selfUser.avatar.name,
+        url: selfUser.avatar.url,
+        extension: selfUser.avatar.extension,
+    },
+};
+
+function makeExpense(
+    partial: Pick<
+        ExpenseDetailsBasicResponse,
+        'id' | 'name' | 'expense_date' | 'total_amount' | 'category'
+    > & {
+        /** Viewer's split share (spend). Defaults to full total. */
+        user_share?: number;
+        /** Viewer's cash paid. Defaults to full total. */
+        user_paid?: number;
+    } & Partial<ExpenseDetailsBasicResponse>
+): ExpenseDetailsBasicResponse {
+    const total = partial.total_amount;
+    const userShare = partial.user_share ?? total;
+    const userPaid = partial.user_paid ?? total;
+    return {
+        status: ExpenseStatus.ACTIVE,
+        expense_type: ExpenseComponentType.ITEM,
+        currency: 'INR',
+        exchange_rate: INR_RATE,
+        memory: null,
+        paid_by_users: [{...selfUser, amount: userPaid}],
+        sharers: [{...selfUser, amount: userShare}],
+        user_share: userShare,
+        user_paid: userPaid,
+        user_net: userPaid - userShare,
+        group: null,
+        place: null,
+        is_scheduled_blueprint: false,
+        has_attachment: false,
+        is_user_settled: true,
+        ...partial,
+    };
+}
+
+/** API-shaped expense list fixture (`GET /expense/v1/`). */
+export const MOCK_EXPENSE_LIST: ExpenseDetailsBasicResponse[] = [
+    makeExpense({
+        id: 101,
+        name: 'Adobe Creative Cloud',
+        expense_date: '2026-10-11',
+        total_amount: 4999,
+        user_share: 4999,
+        user_paid: 4999,
+        category: CAT_SUBSCRIPTIONS,
+        is_user_settled: true,
+    }),
+    makeExpense({
+        id: 102,
+        name: 'BigBasket Weekly',
+        expense_date: '2026-10-10',
+        total_amount: 2450,
+        user_share: 1225,
+        user_paid: 2450,
+        category: CAT_GROCERIES,
+        is_user_settled: false,
+    }),
+    makeExpense({
+        id: 103,
+        name: 'Office Supplies',
+        expense_date: '2026-06-28',
+        total_amount: 1999,
+        user_share: 1999,
+        user_paid: 1999,
+        category: CAT_SHOPPING,
+        is_user_settled: true,
+    }),
+    makeExpense({
+        id: 104,
+        name: 'Uber Airport',
+        expense_date: '2026-09-15',
+        total_amount: 850,
+        user_share: 850,
+        user_paid: 850,
+        category: CAT_TRAVEL,
+        is_user_settled: true,
+    }),
+    makeExpense({
+        id: 105,
+        name: 'Electricity Bill',
+        expense_date: '2026-09-05',
+        total_amount: 3200,
+        user_share: 1600,
+        user_paid: 1600,
+        category: CAT_UTILITIES,
+        is_user_settled: true,
+    }),
+    makeExpense({
+        id: 106,
+        name: 'Dinner at Truffles',
+        expense_date: '2026-08-22',
+        total_amount: 2800,
+        user_share: 1400,
+        user_paid: 2800,
+        category: CAT_DINING,
+        is_user_settled: false,
+    }),
 ];
 
-export const MOCK_TRANSACTIONS: Transaction[] = [
-    {
-        id: 't1',
-        title: 'Adobe Creative Cloud',
-        timeLabel: 'Today, 09:42',
-        amount: -59.99,
-        type: 'expense',
-        icon: {
-            id: 'icon-adobe',
-            name: 'Adobe Logo',
-            url: 'https://cdn-icons-png.flaticon.com/512/5968/5968433.png',
-            extension: 'png',
-        },
-        iconBgColor: 'bg-red-500/10',
-        iconBorderColor: 'border-red-500/20',
-    },
-    {
-        id: 't2',
-        title: 'Stripe Payout',
-        timeLabel: 'Today, 08:15',
-        amount: 187.5,
-        type: 'income',
-        icon: {
-            id: 'icon-stripe',
-            name: 'Stripe Logo',
-            url: 'https://cdn-icons-png.flaticon.com/512/5968/5968382.png',
-            extension: 'png',
-        },
-        iconBgColor: 'bg-blue-500/10',
-        iconBorderColor: 'border-blue-500/20',
-    },
-    {
-        id: 't3',
-        title: 'Office Supplies',
-        timeLabel: 'Jun 28, 10:22',
-        amount: -24.0,
-        type: 'expense',
-        icon: {
-            id: 'icon-office',
-            name: 'Office Box Icon',
-            url: 'https://cdn-icons-png.flaticon.com/512/3074/3074058.png',
-            extension: 'png',
-        },
-        iconBgColor: 'bg-zinc-800',
-        iconBorderColor: 'border-white/10',
-    },
-];
+const emptyTransferBlock = null;
 
-export const MOCK_SPEND_CATEGORIES: SpendCategory[] = [
-    {
-        id: 'c1',
-        name: 'Food & Dining',
-        percentage: 40,
-        color: '#FF7A00',
-        icon: {
-            id: 'cat-food',
-            name: 'Food Category',
-            url: 'https://cdn-icons-png.flaticon.com/512/3081/3081559.png',
-            extension: 'png',
-        },
+/** API-shaped analytics fixture (`GET /expense/v1/analytics/series`). */
+export const MOCK_ANALYTICS_SERIES: AnalyticsSeriesResponse = {
+    period_start: '2026-01-01',
+    period_end: '2026-12-31',
+    include_transfers: false,
+    bucket: AnalyticsBucket.MONTH,
+    group_by: AnalyticsGroupBy.CATEGORY,
+    totals: {
+        paid_inr: 142500,
+        shared_inr: 118200,
+        net_inr: 24300,
     },
-    {
-        id: 'c2',
-        name: 'Shopping',
-        percentage: 25,
-        color: '#3B82F6',
-        icon: {
-            id: 'cat-shopping',
-            name: 'Shopping Category',
-            url: 'https://cdn-icons-png.flaticon.com/512/3081/3081648.png',
-            extension: 'png',
+    series: [
+        {
+            period_start: '2026-01-01',
+            period_end: '2026-01-31',
+            totals: {paid_inr: 9200, shared_inr: 8400, net_inr: 800},
+            by_category: [
+                {category_id: 1, category_name: 'Groceries', paid_inr: 4200, shared_inr: 4200, net_inr: 0},
+                {category_id: 4, category_name: 'Food & Dining', paid_inr: 5000, shared_inr: 4200, net_inr: 800},
+            ],
+            transfers: emptyTransferBlock,
         },
-    },
-    {
-        id: 'c3',
-        name: 'Utilities',
-        percentage: 20,
-        color: '#10B981',
-        icon: {
-            id: 'cat-utilities',
-            name: 'Utilities Category',
-            url: 'https://cdn-icons-png.flaticon.com/512/1040/1040238.png',
-            extension: 'png',
+        {
+            period_start: '2026-02-01',
+            period_end: '2026-02-28',
+            totals: {paid_inr: 7800, shared_inr: 7200, net_inr: 600},
+            by_category: [
+                {category_id: 2, category_name: 'Shopping', paid_inr: 4800, shared_inr: 4800, net_inr: 0},
+                {category_id: 3, category_name: 'Utilities', paid_inr: 3000, shared_inr: 2400, net_inr: 600},
+            ],
+            transfers: emptyTransferBlock,
         },
-    },
-    {
-        id: 'c4',
-        name: 'Travel',
-        percentage: 15,
-        color: '#A855F7',
-        icon: {
-            id: 'cat-travel',
-            name: 'Travel Category',
-            url: 'https://cdn-icons-png.flaticon.com/512/201/201623.png',
-            extension: 'png',
+        {
+            period_start: '2026-03-01',
+            period_end: '2026-03-31',
+            totals: {paid_inr: 10500, shared_inr: 9800, net_inr: 700},
+            by_category: [
+                {category_id: 3, category_name: 'Utilities', paid_inr: 4500, shared_inr: 4500, net_inr: 0},
+                {category_id: 5, category_name: 'Travel', paid_inr: 6000, shared_inr: 5300, net_inr: 700},
+            ],
+            transfers: emptyTransferBlock,
         },
-    },
-];
+        {
+            period_start: '2026-04-01',
+            period_end: '2026-04-30',
+            totals: {paid_inr: 11200, shared_inr: 10100, net_inr: 1100},
+            by_category: [
+                {category_id: 4, category_name: 'Food & Dining', paid_inr: 7200, shared_inr: 6100, net_inr: 1100},
+                {category_id: 1, category_name: 'Groceries', paid_inr: 4000, shared_inr: 4000, net_inr: 0},
+            ],
+            transfers: emptyTransferBlock,
+        },
+        {
+            period_start: '2026-05-01',
+            period_end: '2026-05-31',
+            totals: {paid_inr: 9800, shared_inr: 9100, net_inr: 700},
+            by_category: [
+                {category_id: 2, category_name: 'Shopping', paid_inr: 5500, shared_inr: 5500, net_inr: 0},
+                {category_id: 6, category_name: 'Subscriptions', paid_inr: 4300, shared_inr: 3600, net_inr: 700},
+            ],
+            transfers: emptyTransferBlock,
+        },
+        {
+            period_start: '2026-06-01',
+            period_end: '2026-06-30',
+            totals: {paid_inr: 13400, shared_inr: 12200, net_inr: 1200},
+            by_category: [
+                {category_id: 5, category_name: 'Travel', paid_inr: 9000, shared_inr: 7800, net_inr: 1200},
+                {category_id: 1, category_name: 'Groceries', paid_inr: 4400, shared_inr: 4400, net_inr: 0},
+            ],
+            transfers: emptyTransferBlock,
+        },
+        {
+            period_start: '2026-07-01',
+            period_end: '2026-07-31',
+            totals: {paid_inr: 12100, shared_inr: 11500, net_inr: 600},
+            by_category: [
+                {category_id: 1, category_name: 'Groceries', paid_inr: 6100, shared_inr: 6100, net_inr: 0},
+                {category_id: 4, category_name: 'Food & Dining', paid_inr: 6000, shared_inr: 5400, net_inr: 600},
+            ],
+            transfers: emptyTransferBlock,
+        },
+        {
+            period_start: '2026-08-01',
+            period_end: '2026-08-31',
+            totals: {paid_inr: 12800, shared_inr: 11900, net_inr: 900},
+            by_category: [
+                {category_id: 2, category_name: 'Shopping', paid_inr: 7000, shared_inr: 7000, net_inr: 0},
+                {category_id: 4, category_name: 'Food & Dining', paid_inr: 5800, shared_inr: 4900, net_inr: 900},
+            ],
+            transfers: emptyTransferBlock,
+        },
+        {
+            period_start: '2026-09-01',
+            period_end: '2026-09-30',
+            totals: {paid_inr: 14100, shared_inr: 13200, net_inr: 900},
+            by_category: [
+                {category_id: 3, category_name: 'Utilities', paid_inr: 5200, shared_inr: 5200, net_inr: 0},
+                {category_id: 5, category_name: 'Travel', paid_inr: 8900, shared_inr: 8000, net_inr: 900},
+            ],
+            transfers: emptyTransferBlock,
+        },
+        {
+            period_start: '2026-10-01',
+            period_end: '2026-10-31',
+            totals: {paid_inr: 13600, shared_inr: 12400, net_inr: 1200},
+            by_category: [
+                {category_id: 6, category_name: 'Subscriptions', paid_inr: 5600, shared_inr: 5600, net_inr: 0},
+                {category_id: 1, category_name: 'Groceries', paid_inr: 8000, shared_inr: 6800, net_inr: 1200},
+            ],
+            transfers: emptyTransferBlock,
+        },
+        {
+            period_start: '2026-11-01',
+            period_end: '2026-11-30',
+            totals: {paid_inr: 12500, shared_inr: 11800, net_inr: 700},
+            by_category: [
+                {category_id: 6, category_name: 'Subscriptions', paid_inr: 6500, shared_inr: 6500, net_inr: 0},
+                {category_id: 2, category_name: 'Shopping', paid_inr: 6000, shared_inr: 5300, net_inr: 700},
+            ],
+            transfers: emptyTransferBlock,
+        },
+        {
+            period_start: '2026-12-01',
+            period_end: '2026-12-31',
+            totals: {paid_inr: 15500, shared_inr: 14600, net_inr: 900},
+            by_category: [
+                {category_id: 6, category_name: 'Subscriptions', paid_inr: 8200, shared_inr: 8200, net_inr: 0},
+                {category_id: 5, category_name: 'Travel', paid_inr: 7300, shared_inr: 6400, net_inr: 900},
+            ],
+            transfers: emptyTransferBlock,
+        },
+    ],
+    transfers: emptyTransferBlock,
+};
 
-export const MOCK_MERCHANTS: Merchant[] = [
-    {
-        id: 'm1',
-        name: 'Amazon',
-        amountSpent: 4320.0,
-        icon: {
-            id: 'merchant-amazon',
-            name: 'Amazon Logo',
-            url: 'https://cdn-icons-png.flaticon.com/512/5968/5968269.png',
-            extension: 'png',
-        },
-    },
-    {
-        id: 'm2',
-        name: 'Swiggy',
-        amountSpent: 2225.0,
-        icon: {
-            id: 'merchant-swiggy',
-            name: 'Swiggy Logo',
-            url: 'https://cdn-icons-png.flaticon.com/512/2819/2819194.png',
-            extension: 'png',
-        },
-    },
-    {
-        id: 'm3',
-        name: 'Uber',
-        amountSpent: 1150.0,
-        icon: {
-            id: 'merchant-uber',
-            name: 'Uber Logo',
-            url: 'https://cdn-icons-png.flaticon.com/512/5969/5969178.png',
-            extension: 'png',
-        },
-    },
-];
+const emptyProgressMaps = {
+    by_category: {} as Record<string, number>,
+    by_merchant: {} as Record<string, number>,
+    by_place: {} as Record<string, number>,
+    by_memory: {} as Record<string, number>,
+    by_user: {} as Record<string, number>,
+};
 
-export const MOCK_PEERS: PeerSettlement[] = [
+/** API-shaped budget detail fixtures (`GET /budget/v1/rules/{id}`). */
+export const MOCK_BUDGET_DETAILS: BudgetRuleDetails[] = [
     {
-        id: 'p1',
-        name: 'Sarah',
-        avatar: {
-            id: 'peer-sarah',
-            name: 'Sarah Avatar',
-            url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-            extension: 'jpg',
+        id: 201,
+        name: 'Home Rent',
+        amount: 15000,
+        period: BudgetPeriod.MONTHLY,
+        period_value: 1,
+        start_date: '2026-10-01',
+        end_date: '2026-10-25',
+        is_active: true,
+        audience_type: BudgetAudienceType.USER_SHARED,
+        group_id: null,
+        cap_mode: BudgetCapMode.SOFT,
+        category_ids: [3],
+        merchant_ids: [],
+        place_ids: [],
+        memory_ids: [],
+        members: [{user_id: 1, role: BudgetMemberRole.OWNER}],
+        current_instance: {
+            id: 301,
+            start_date: '2026-10-01',
+            end_date: '2026-10-25',
+            amount: 15000,
         },
-        amount: 1200,
-        type: 'owe_you',
-    },
-    {
-        id: 'p2',
-        name: 'Rahul',
-        avatar: {
-            id: 'peer-rahul',
-            name: 'Rahul Avatar',
-            url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-            extension: 'jpg',
+        progress: {
+            spent: 14915,
+            remaining: 85,
+            percent: 99.4,
+            ...emptyProgressMaps,
+            by_category: {'3': 14915},
+            fair_share: [],
+            warnings: [],
         },
-        amount: -500,
-        type: 'you_owe',
+        created_by_id: 1,
+        created_at: '2026-09-01T10:00:00.000Z',
+        updated_at: '2026-10-10T10:00:00.000Z',
     },
     {
-        id: 'p3',
-        name: 'Ananya',
-        avatar: {
-            id: 'peer-ananya',
-            name: 'Ananya Avatar',
-            url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150',
-            extension: 'jpg',
+        id: 202,
+        name: 'Annual Savings Goal',
+        amount: 500000,
+        period: BudgetPeriod.YEARLY,
+        period_value: 1,
+        start_date: '2026-01-01',
+        end_date: '2026-12-31',
+        is_active: true,
+        audience_type: BudgetAudienceType.USER,
+        group_id: null,
+        cap_mode: BudgetCapMode.SOFT,
+        category_ids: [2, 5],
+        merchant_ids: [],
+        place_ids: [],
+        memory_ids: [],
+        members: [{user_id: 1, role: BudgetMemberRole.OWNER}],
+        current_instance: {
+            id: 302,
+            start_date: '2026-01-01',
+            end_date: '2026-12-31',
+            amount: 500000,
         },
-        amount: 450,
-        type: 'owe_you',
-    },
-];
-
-export const MOCK_BUDGETS: BudgetGoal[] = [
-    {
-        id: 'b1',
-        title: 'Home Rent',
-        statusText: 'Ends on 25/10/26 • Shared',
-        type: 'linear',
-        usedAmount: 14915,
-        totalAmount: 15000,
-        currencySymbol: '₹',
-        progressPercent: 75,
-        categories: [
-            {
-                id: 'bcat-rent',
-                name: 'Housing',
-                icon: {
-                    id: 'bcat-icon-house',
-                    name: 'House Icon',
-                    url: 'https://cdn-icons-png.flaticon.com/512/619/619153.png',
-                    extension: 'png',
-                },
-            },
-            {
-                id: 'bcat-bills',
-                name: 'Bills',
-                icon: {
-                    id: 'bcat-icon-bill',
-                    name: 'Bill Icon',
-                    url: 'https://cdn-icons-png.flaticon.com/512/1040/1040238.png',
-                    extension: 'png',
-                },
-            },
-        ],
-    },
-    {
-        id: 'b2',
-        title: 'Annual Savings Goal',
-        statusText: 'Till 28/09/27',
-        type: 'ring',
-        usedAmount: 10000,
-        totalAmount: 500000,
-        currencySymbol: '₹',
-        progressPercent: 2,
-        categories: [
-            {
-                id: 'bcat-investments',
-                name: 'Investments',
-                icon: {
-                    id: 'bcat-icon-chart',
-                    name: 'Chart Icon',
-                    url: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
-                    extension: 'png',
-                },
-            },
-            {
-                id: 'bcat-emergency',
-                name: 'Emergency',
-                icon: {
-                    id: 'bcat-icon-shield',
-                    name: 'Shield Icon',
-                    url: 'https://cdn-icons-png.flaticon.com/512/1067/1067566.png',
-                    extension: 'png',
-                },
-            },
-            {
-                id: 'bcat-gold',
-                name: 'Gold',
-                icon: {
-                    id: 'bcat-icon-gold',
-                    name: 'Gold Icon',
-                    url: 'https://cdn-icons-png.flaticon.com/512/2589/2589903.png',
-                    extension: 'png',
-                },
-            },
-            {
-                id: 'bcat-crypto',
-                name: 'Crypto',
-                icon: {
-                    id: 'bcat-icon-crypto',
-                    name: 'Crypto Icon',
-                    url: 'https://cdn-icons-png.flaticon.com/512/6001/6001368.png',
-                    extension: 'png',
-                },
-            },
-        ],
+        progress: {
+            spent: 10000,
+            remaining: 490000,
+            percent: 2,
+            ...emptyProgressMaps,
+            by_category: {'2': 6000, '5': 4000},
+            fair_share: [],
+            warnings: [],
+        },
+        created_by_id: 1,
+        created_at: '2026-01-01T10:00:00.000Z',
+        updated_at: '2026-10-01T10:00:00.000Z',
     },
 ];

@@ -1,7 +1,7 @@
 import {AppInput} from '@/src/components/common/AppInput';
 import {AppText} from '@/src/components/common/AppText';
 import {ExpenseAttachments} from "@/src/components/expense/ExpenseAttachments";
-import MultiExpenseItemSelect from "@/src/components/expense/MultiExpenseItemSelect";
+import {SelectExpenseItemBottomSheet} from "@/src/components/expense/SelectExpenseItemBottomSheet";
 import {CategoryGroupLocationSelector} from "@/src/screens/expense/CGLSelector";
 import {themeStore} from "@/src/store/themeStore";
 import {userStore} from "@/src/store/userStore";
@@ -10,7 +10,7 @@ import {Currency, CurrencyCode} from "@/src/constants/expense/currency";
 import {CurrencyBottomSheet} from "@/src/screens/onboarding/components/CurrencyBottomSheet";
 import {router} from 'expo-router';
 import React, {useEffect, useMemo, useState} from 'react';
-import {Modal, Pressable, ScrollView, View} from 'react-native';
+import {Alert, Pressable, ScrollView, View} from 'react-native';
 import {Iconify} from 'react-native-iconify';
 import {AppButtonV2} from "@/src/components/common/AppButtonV2";
 import {COLORS} from "@/src/constants/colors";
@@ -116,9 +116,9 @@ const AddExpenseScreen = () => {
                         renderLeftIcon={() => (
                             <Pressable
                                 onPress={() => setCurrencySheetOpen(true)}
-                                className="flex-row items-center mr-2 pr-2 border-r border-bg-secondary-lighter"
+                                className="flex-row items-center mr-2 pr-2 border-r border-border-input"
                             >
-                                <AppText className="text-bg-secondary text-heading-h3 font-bold">
+                                <AppText className="text-green-increase text-heading-h3 font-bold">
                                     {activeCurrencyConfig?.symbol ?? '₹'}
                                 </AppText>
                                 <Iconify
@@ -132,7 +132,7 @@ const AddExpenseScreen = () => {
                         keyboardType="numeric"
                         renderRightIcon={() => (
                             <Pressable onPress={() => handleAmountChange("0")}>
-                                <AppText variant="body-small" className="text-bg-secondary font-medium">Clear</AppText>
+                                <AppText variant="body-small" className="text-text-link font-medium">Clear</AppText>
                             </Pressable>
                         )}
                     />
@@ -186,28 +186,23 @@ const AddExpenseScreen = () => {
                 </View>
             </ScrollView>
 
-            {/* Bottom Drawers */}
-            <Modal visible={isItemSelectVisible} animationType="slide" transparent
-                   onRequestClose={() => setIsItemSelectVisible(false)}>
-                <View className="flex-1 justify-end bg-black/50">
-                    <Pressable className="absolute inset-0" onPress={() => setIsItemSelectVisible(false)}/>
-                    <View style={{height: '90%', zIndex: 1}}
-                          className={`rounded-t-[32px] overflow-hidden ${isDark ? 'bg-[#121212]' : 'bg-[#F8F9FA]'}`}>
-                        <View className="items-center pt-3 pb-1">
-                            <View className={`w-12 h-1.5 rounded-full ${isDark ? 'bg-gray-700' : 'bg-gray-300'}`}/>
-                        </View>
-                        <View className="flex-1">
-                            <MultiExpenseItemSelect
-                                onSave={(items) => {
-                                    draft.setExpenseItems(items);
-                                    setIsItemSelectVisible(false);
-                                }}
-                                onAddNew={() => console.log('Add new item')}
-                            />
-                        </View>
-                    </View>
-                </View>
-            </Modal>
+            <SelectExpenseItemBottomSheet
+                visible={isItemSelectVisible}
+                selectedItems={draft.expenseItems}
+                currencySymbol={activeCurrencyConfig?.symbol}
+                expenseTotalAmount={draft.totalAmount}
+                onClose={() => setIsItemSelectVisible(false)}
+                onSave={(items, opts) => {
+                    draft.setExpenseItems(items);
+                    if (typeof opts?.syncTotalAmount === 'number') {
+                        draft.setTotalAmount(opts.syncTotalAmount);
+                    }
+                    setIsItemSelectVisible(false);
+                }}
+                onAddNew={() => {
+                    Alert.alert('Add item', 'Create-item flow is coming soon.');
+                }}
+            />
 
             <CurrencyBottomSheet
                 isVisible={currencySheetOpen}

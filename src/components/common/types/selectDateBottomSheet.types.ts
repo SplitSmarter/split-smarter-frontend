@@ -1,11 +1,7 @@
-import { z } from 'zod';
+import {z} from 'zod';
+import {ExpenseRecurringPeriod} from '@/src/api/dto/expense/constant';
 
-export enum ExpenseRecurringPeriod {
-    DAILY = 'DAILY',
-    WEEKLY = 'WEEKLY',
-    MONTHLY = 'MONTHLY',
-    YEARLY = 'YEARLY',
-}
+export {ExpenseRecurringPeriod};
 
 export enum EndType {
     NEVER = 'NEVER',

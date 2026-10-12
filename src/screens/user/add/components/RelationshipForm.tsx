@@ -160,7 +160,7 @@ export function RelationshipForm({ isDark, defaultAvatarAssetId, onSuccess }: Re
                         />
 
                         {searchQuery.trim().length > 0 && (
-                            <View className="mt-2 rounded-2xl overflow-hidden border border-bg-secondary-lighter bg-white dark:bg-zinc-900 shadow-sm">
+                            <View className="mt-2 rounded-2xl overflow-hidden border border-border-input bg-white dark:bg-zinc-900 shadow-sm">
                                 <Pressable
                                     onPress={() => setSelectedPerson({ type: 'CUSTOM', name: searchQuery.trim() })}
                                     className="flex-row items-center p-4 border-b border-gray-100 dark:border-zinc-800 bg-bg-secondary/5"
@@ -200,7 +200,7 @@ export function RelationshipForm({ isDark, defaultAvatarAssetId, onSuccess }: Re
 
                                             <View className="ml-3 flex-1">
                                                 <AppText className="font-semibold text-text-primary">{user.name}</AppText>
-                                                <AppText variant="caption-xs" className="text-text-secondary">
+                                                <AppText variant="caption-xs" className="text-text-primary-lighter">
                                                     {hasExistingRelation
                                                         ? `Already your ${user.relation?.relationship.title || 'relation'}`
                                                         : 'Verified Network Profile'
@@ -211,7 +211,7 @@ export function RelationshipForm({ isDark, defaultAvatarAssetId, onSuccess }: Re
                                             {hasExistingRelation ? (
                                                 <View className="flex-row items-center bg-gray-200/60 dark:bg-zinc-800 px-2.5 py-1 rounded-full">
                                                     <Iconify icon="heroicons:lock-closed-solid" size={12} color={isDark ? "#A1A1AA" : "#71717A"} />
-                                                    <AppText className="text-[10px] font-bold text-text-secondary ml-1 uppercase tracking-wider">
+                                                    <AppText className="text-[10px] font-bold text-text-primary-lighter ml-1 uppercase tracking-wider">
                                                         Added
                                                     </AppText>
                                                 </View>
@@ -225,7 +225,7 @@ export function RelationshipForm({ isDark, defaultAvatarAssetId, onSuccess }: Re
                         )}
                     </View>
                 ) : (
-                    <View className="flex-row items-center p-4 rounded-2xl bg-bg-primary-lighter border border-bg-secondary-lighter justify-between">
+                    <View className="flex-row items-center p-4 rounded-2xl bg-bg-primary-lighter border border-border-input justify-between">
                         <View className="flex-row items-center flex-1">
                             <View className="w-12 h-12 rounded-full overflow-hidden bg-gray-100 dark:bg-zinc-800">
                                 <AppImageV2
@@ -236,7 +236,7 @@ export function RelationshipForm({ isDark, defaultAvatarAssetId, onSuccess }: Re
                             </View>
                             <View className="ml-3 flex-1">
                                 <AppText className="font-bold text-text-primary text-lg">{selectedPerson.name}</AppText>
-                                <AppText variant="caption-xs" className="text-text-secondary uppercase tracking-wider font-semibold">
+                                <AppText variant="caption-xs" className="text-text-primary-lighter uppercase tracking-wider font-semibold">
                                     {selectedPerson.type === 'VERIFIED' ? 'Verified App Profile' : 'Custom Local Contact'}
                                 </AppText>
                             </View>
@@ -262,7 +262,7 @@ export function RelationshipForm({ isDark, defaultAvatarAssetId, onSuccess }: Re
                             Relationship
                         </AppText>
                         <Pressable onPress={() => router.push(addRelationshipRoute)}>
-                            <AppText className="text-bg-secondary font-bold">+ Create New</AppText>
+                            <AppText className="text-text-link font-bold">+ Create New</AppText>
                         </Pressable>
                     </View>
 
@@ -279,8 +279,8 @@ export function RelationshipForm({ isDark, defaultAvatarAssetId, onSuccess }: Re
                                         style={{ width: '48%' }}
                                         className={`mb-4 p-4 rounded-3xl border-2 flex-row items-center ${
                                             isSelected
-                                                ? 'bg-bg-secondary border-bg-secondary'
-                                                : 'bg-bg-primary-lighter border-bg-secondary-lighter/20'
+                                                ? 'bg-accent-sky-bg border-accent-sky'
+                                                : 'bg-bg-primary-lighter border-border-input/20'
                                         }`}
                                     >
                                         <AppImageV2
@@ -291,12 +291,12 @@ export function RelationshipForm({ isDark, defaultAvatarAssetId, onSuccess }: Re
                                             contentFit="cover"
                                             fallbackComponent={
                                                 <View style={{ width: 32, height: 32 }} className="bg-gray-200 dark:bg-zinc-800 rounded-full items-center justify-center">
-                                                    <Iconify icon="heroicons:heart" size={16} color={isSelected ? "#FFF" : "#9CA3AF"} />
+                                                    <Iconify icon="heroicons:heart" size={16} color={isSelected ? "#0284C7" : "#9CA3AF"} />
                                                 </View>
                                             }
                                         />
                                         <AppText
-                                            className={`ml-3 font-semibold flex-1 ${isSelected ? 'text-white font-bold' : 'text-text-primary'}`}
+                                            className={`ml-3 font-semibold flex-1 ${isSelected ? 'text-accent-sky font-bold' : 'text-text-primary'}`}
                                             numberOfLines={1}
                                         >
                                             {type.title}

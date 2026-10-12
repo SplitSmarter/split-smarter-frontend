@@ -1,4 +1,5 @@
 import React, { useMemo, useEffect, useRef, useCallback, useState } from 'react';
+import { COLORS } from '@/src/constants/colors';
 import { View, Pressable, StyleSheet, Modal, ActivityIndicator, Alert } from 'react-native';
 import {
     BottomSheetModal,
@@ -155,7 +156,7 @@ export const GroupMemberDetailsBottomSheet = ({
                             {member.name}
                         </AppText>
                         <View className="mt-1.5 px-3 py-0.5 rounded-full bg-bg-secondary/10 border border-bg-secondary/20">
-                            <AppText className="text-xs font-semibold capitalize text-[#2D6A4F]">
+                            <AppText className="text-xs font-semibold capitalize text-bg-secondary">
                                 {member.role?.toLowerCase() || 'member'}
                             </AppText>
                         </View>
@@ -171,7 +172,7 @@ export const GroupMemberDetailsBottomSheet = ({
                             }}
                             className="flex-1 items-center justify-center py-4 px-2 mx-1 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 active:opacity-60"
                         >
-                            <Iconify icon="heroicons:user-circle" size={26} color="#2D6A4F" />
+                            <Iconify icon="heroicons:user-circle" size={26} color={COLORS.light.brand.primary} />
                             <AppText className="text-xs font-bold text-text-primary mt-2 text-center">Profile</AppText>
                         </Pressable>
 
@@ -180,7 +181,7 @@ export const GroupMemberDetailsBottomSheet = ({
                             onPress={() => setIsRoleModalVisible(true)}
                             className="flex-1 items-center justify-center py-4 px-2 mx-1 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 active:opacity-60"
                         >
-                            <Iconify icon="heroicons:shield-check" size={26} color="#2D6A4F" />
+                            <Iconify icon="heroicons:shield-check" size={26} color={COLORS.light.brand.primary} />
                             <AppText className="text-xs font-bold text-text-primary mt-2 text-center">Role</AppText>
                         </Pressable>
 
@@ -199,9 +200,9 @@ export const GroupMemberDetailsBottomSheet = ({
                         <View className="flex-row items-center justify-between">
                             <View className="flex-row items-center">
                                 <Iconify icon="heroicons:calendar" size={20} color={isDark ? '#A1A1AA' : '#71717A'} />
-                                <AppText className="ml-2.5 font-medium text-text-secondary">Joined Group</AppText>
+                                <AppText className="ml-2.5 font-medium text-text-primary-lighter">Joined Group</AppText>
                             </View>
-                            <AppText className="font-medium text-text-secondary text-sm">
+                            <AppText className="font-medium text-text-primary-lighter text-sm">
                                 {formattedJoinDate}
                             </AppText>
                         </View>
@@ -221,7 +222,7 @@ export const GroupMemberDetailsBottomSheet = ({
                         <AppText variant="h3" className="font-black text-foreground mb-2 text-xl">
                             Change Group Role
                         </AppText>
-                        <AppText className="text-text-secondary text-sm mb-6">
+                        <AppText className="text-text-primary-lighter text-sm mb-6">
                             Select a group responsibility level for {member.name}.
                         </AppText>
 
@@ -229,10 +230,10 @@ export const GroupMemberDetailsBottomSheet = ({
                             onPress={() => handleChangeRoleSubmit("ADMIN")}
                             className="flex-row items-center p-4 mb-3 rounded-xl bg-bg-primary border border-bg-primary-darker active:opacity-70"
                         >
-                            <Iconify icon="heroicons:key" size={20} color="#2D6A4F" />
+                            <Iconify icon="heroicons:key" size={20} color={COLORS.light.brand.primary} />
                             <View className="ml-3">
                                 <AppText className="font-bold text-foreground">Group Admin</AppText>
-                                <AppText className="text-xs text-text-secondary">Can modify parameters and add members</AppText>
+                                <AppText className="text-xs text-text-primary-lighter">Can modify parameters and add members</AppText>
                             </View>
                         </Pressable>
 
@@ -243,7 +244,7 @@ export const GroupMemberDetailsBottomSheet = ({
                             <Iconify icon="heroicons:user" size={20} color="#71717A" />
                             <View className="ml-3">
                                 <AppText className="font-bold text-foreground">Standard Member</AppText>
-                                <AppText className="text-xs text-text-secondary">Can read logs and log general splitting operations</AppText>
+                                <AppText className="text-xs text-text-primary-lighter">Can read logs and log general splitting operations</AppText>
                             </View>
                         </Pressable>
 
@@ -277,7 +278,7 @@ export const GroupMemberDetailsBottomSheet = ({
 
                         {isUserFullySettled ? (
                             <>
-                                <AppText className="text-center text-text-secondary text-sm mb-6">
+                                <AppText className="text-center text-text-primary-lighter text-sm mb-6">
                                     {member.name} is fully settled up ($0 outstanding). Are you sure you want to completely evict them from the ledger?
                                 </AppText>
                                 <View className="flex-row space-x-3">

@@ -17,42 +17,35 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
                                                         onFilterPress,
                                                     }) => {
     return (
-        <View className="flex-row justify-between items-center mb-5">
-            {/* Left: Avatar & Greeting Text */}
-            <View className="flex-row items-center">
-                <View className="w-10 h-10 rounded-full overflow-hidden border-2 border-white/30 mr-3">
+        <View className="mb-3 flex-row items-center justify-between">
+            <View className="flex-row items-center gap-3">
+                <View className="h-10 w-10 overflow-hidden rounded-full border-2 border-white/30">
                     <AppImageV2
                         id={profile.avatar.url}
                         url={profile.avatar.url}
                         contentFit="cover"
                     />
                 </View>
-                <View className="justify-center">
-                    <AppText
-                        variant="body-base"
-                        className="text-white font-bold"
-                    >
-                        Hi {profile.name} 👋
-                    </AppText>
-                </View>
+                <AppText variant="body-base" className="font-bold text-white">
+                    Hi {profile.name} 👋
+                </AppText>
             </View>
 
-            {/* Right: Filter & Notification Icons */}
-            <View className="flex-row items-center space-x-2">
-                {/* Filter Icon */}
+            <View className="flex-row items-center gap-2.5">
                 <TouchableOpacity
                     onPress={onFilterPress}
-                    className="w-10 h-10 bg-white/20 rounded-full items-center justify-center border border-white/20"
+                    accessibilityRole="button"
+                    accessibilityLabel="Select date range"
+                    className="h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/20"
                 >
-                    <Feather name="sliders" size={18} color="white"/>
+                    <Feather name="calendar" size={18} color="white" />
                 </TouchableOpacity>
 
-                {/* Notification Icon */}
                 <TouchableOpacity
                     onPress={onNotificationPress}
-                    className="w-10 h-10 bg-white/20 rounded-full items-center justify-center border border-white/20"
+                    className="h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/20"
                 >
-                    <Ionicons name="notifications-outline" size={20} color="white"/>
+                    <Ionicons name="notifications-outline" size={20} color="white" />
                 </TouchableOpacity>
             </View>
         </View>

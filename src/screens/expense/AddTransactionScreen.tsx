@@ -22,7 +22,8 @@ import {ExpenseComponentType} from "@/src/api/dto/expense/constant";
 import {COLORS} from "@/src/constants/colors";
 import {DraftValidationErrorKey} from "@/src/interfaces/expense/draft_validation";
 import {executeTransactionSubmit, validateTransactionSubmit} from "@/src/utils/expense/transactionHelpers";
-import {InlineDatePicker, TabButton, TransactionOptionsModal} from "./add-transaction/AddTransactionHelper";
+import {InlineDatePicker, TabButton} from "./add-transaction/AddTransactionHelper";
+import {TransactionOptionsBottomSheet} from "./add-transaction/components/TransactionOptionsBottomSheet";
 import {GenericValidationErrorModal} from "@/src/components/expense/errors/GenericValidationErrorModal";
 
 const AddTransactionScreen = () => {
@@ -251,10 +252,10 @@ const AddTransactionScreen = () => {
     }, [expenseDraft.expenseDate]);
 
     return (
-        <SafeAreaView className="flex-1 bg-bg-secondary" edges={['top']}>
+        <SafeAreaView className="flex-1 bg-bg-primary" edges={['top']}>
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1"
                                   keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}>
-                <View className="flex-1 bg-bg-secondary">
+                <View className="flex-1 bg-bg-primary">
 
                     {/* Activity Spinner HUD Overlay */}
                     {(isProcessing || isSubmitting) && (
@@ -271,23 +272,23 @@ const AddTransactionScreen = () => {
                         <View className="flex-row justify-between items-center px-6 pt-4 pb-2">
                             <Pressable onPress={() => router.back()} className="p-1">
                                 <Iconify icon="heroicons:chevron-left" size={28}
-                                         color={isDark ? COLORS.dark.text.contrast : COLORS.light.text.contrast}/>
+                                         color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary}/>
                             </Pressable>
-                            <AppText variant="h3" className="text-text-secondary font-bold">Add Split</AppText>
+                            <AppText variant="h3" className="text-text-primary font-bold">Add Split</AppText>
                             <View className="flex-row items-center gap-x-3">
                                 <Pressable onPress={() => setPickerVisible(true)} className="p-1 active:opacity-70">
                                     <Iconify icon="heroicons:camera" size={26}
-                                             color={isDark ? COLORS.dark.text.contrast : COLORS.light.text.contrast}/>
+                                             color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary}/>
                                 </Pressable>
                                 <Pressable onPress={() => setOptionsVisible(true)} className="p-1 active:opacity-70">
                                     <Iconify icon="heroicons:ellipsis-vertical" size={28}
-                                             color={isDark ? COLORS.dark.text.contrast : COLORS.light.text.contrast}/>
+                                             color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary}/>
                                 </Pressable>
                             </View>
                         </View>
 
                         {/* Interactive Main Sheets */}
-                        <View className="flex-1 bg-bg-secondary flex-col mt-2">
+                        <View className="flex-1 bg-bg-primary flex-col mt-2">
                             <View className="px-6 pt-2 pb-5">
                                 <View
                                     className="flex-row bg-bg-canvas p-1 rounded-full border border-bg-primary-darker shadow-sm w-full">
@@ -311,7 +312,7 @@ const AddTransactionScreen = () => {
                         {/* Fixed Bottom Layout Toolbar Footer */}
                         {/* Fixed Bottom Layout Toolbar Footer */}
                         <View
-                            className="absolute bottom-0 w-full bg-bg-primary pt-4 pb-10 px-6 rounded-t-[40px] shadow-2xl border-t border-bg-secondary-lighter">
+                            className="absolute bottom-0 w-full bg-bg-primary pt-4 pb-10 px-6 rounded-t-[40px] shadow-2xl border-t border-border-input">
                             <View className="flex-row justify-between items-center mb-6">
                                 <Pressable onPress={() => setShowDatePicker(true)}
                                            className="flex-row items-center bg-bg-canvas rounded-full px-5 py-2 active:opacity-80">
@@ -326,7 +327,7 @@ const AddTransactionScreen = () => {
                                             <View className="flex-row items-center space-x-1">
                                                 <ActivityIndicator size="small" color="#9CA3AF"/>
                                                 <AppText variant="caption-xs"
-                                                         className="text-text-secondary font-medium">Checking
+                                                         className="text-text-primary-lighter font-medium">Checking
                                                     group...</AppText>
                                             </View>
                                         ) : activeValidationContent ? (
@@ -357,10 +358,10 @@ const AddTransactionScreen = () => {
                                             </Pressable>
                                         ) : (
                                             <View
-                                                className="flex-row items-center space-x-1 bg-emerald-500/10 px-3 py-1.5 rounded-xl">
-                                                <Iconify icon="heroicons:check-circle" size={14} color="#10B981"/>
+                                                className="flex-row items-center space-x-1 bg-bg-secondary-lighter px-3 py-1.5 rounded-xl">
+                                                <Iconify icon="heroicons:check-circle" size={14} color={COLORS.light.brand.primary}/>
                                                 <AppText variant="caption-xs"
-                                                         className="text-emerald-600 dark:text-emerald-400 font-medium">Ready</AppText>
+                                                         className="text-green-increase font-medium">Ready</AppText>
                                             </View>
                                         )}
                                     </>
@@ -380,7 +381,7 @@ const AddTransactionScreen = () => {
                                         {isInitiatingPayment ? "INITIATING..." : `PAY NOW (${transferDraft.currency} ${transferDraft.amount})`}
                                     </AppButton>
                                     <AppButton
-                                        variant="outline"
+                                        variant="secondary"
                                         size="md"
                                         onPress={handleSubmitData}
                                     >
@@ -401,10 +402,8 @@ const AddTransactionScreen = () => {
                         onChange={handleDateChange}
                     />
 
-                    <TransactionOptionsModal
+                    <TransactionOptionsBottomSheet
                         visible={optionsVisible}
-                        isDark={isDark}
-                        activeColors={activeColors}
                         onClose={() => setOptionsVisible(false)}
                         onSaveDraft={() => {
                             setOptionsVisible(false);

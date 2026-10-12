@@ -68,7 +68,7 @@ export const PaidByContent = ({ payers, totalExpense, onQuickAdd, onToggleLock, 
                                 </Pressable>
                             ))}
                             <Pressable className="items-center" style={{ width: '22%' }}>
-                                <View className="bg-bg-primary-lighter h-[56px] w-[56px] rounded-full items-center justify-center border border-bg-secondary-lighter shadow-sm">
+                                <View className="bg-bg-primary-lighter h-[56px] w-[56px] rounded-full items-center justify-center border border-border-input shadow-sm">
                                     <Iconify icon="ph:user-plus" size={24} color="rgb(var(--color-text-primary))" />
                                 </View>
                                 <AppText variant="body-base" className="mt-2 text-text-primary font-medium">More</AppText>
@@ -81,7 +81,7 @@ export const PaidByContent = ({ payers, totalExpense, onQuickAdd, onToggleLock, 
             {/* Participants Table Container */}
             <View
                 style={{ marginHorizontal: HORIZ_PADDING }}
-                className="bg-bg-primary-lighter rounded-[24px] shadow-xl border border-bg-secondary-lighter p-4 overflow-hidden"
+                className="bg-bg-primary-lighter rounded-[24px] shadow-xl border border-border-input p-4 overflow-hidden"
             >
                 {/* Header Row */}
                 <View className="flex-row justify-between items-center px-2 mb-4">
@@ -109,7 +109,7 @@ export const PaidByContent = ({ payers, totalExpense, onQuickAdd, onToggleLock, 
                 </View>
 
                 {/* Total Summary Row */}
-                <View className="flex-row justify-end items-center mt-6 pt-6 border-t border-bg-secondary-lighter">
+                <View className="flex-row justify-end items-center mt-6 pt-6 border-t border-border-input">
                     <AppText variant="h3" className="text-text-primary font-medium mr-5 opacity-70">Total</AppText>
                     <AppText variant="h3" className="text-text-primary font-bold">₹{totalExpense.toFixed(2)}</AppText>
                 </View>
@@ -178,7 +178,7 @@ const SwipeableRow = ({ payer, totalExpense, onToggleLock, onDelete, onUpdateAmo
             renderRightActions={renderRightActions}
             enabled={totalPayersCount > 1} // Disable swipe if only one user
         >
-            <View className={`flex-row items-center py-4 px-2 ${!isLast ? 'border-b border-bg-secondary-lighter' : ''} bg-bg-primary-lighter ${!isEditable ? 'opacity-80' : ''}`}>
+            <View className={`flex-row items-center py-4 px-2 ${!isLast ? 'border-b border-border-input' : ''} bg-bg-primary-lighter ${!isEditable ? 'opacity-80' : ''}`}>
 
                 {/* Avatar */}
                 <View className="relative">

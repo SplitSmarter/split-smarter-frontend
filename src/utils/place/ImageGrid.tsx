@@ -85,7 +85,7 @@ export const ImageGrid = React.memo(({ photos, loading }: ImageGridProps) => {
                             size={48}
                             color={isDark ? "#AAA" : "#666"}
                         />
-                        <AppText variant="body-xs" className="mt-2 text-text-secondary">
+                        <AppText variant="body-xs" className="mt-2 text-text-primary-lighter">
                             No photos available
                         </AppText>
                     </View>

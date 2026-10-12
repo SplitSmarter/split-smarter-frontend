@@ -1,28 +1,43 @@
 import React from 'react';
-import { View, Pressable } from 'react-native';
-import { AppText } from '@/src/components/common/AppText';
+import {View, Pressable} from 'react-native';
+import {AppText} from '@/src/components/common/AppText';
+import {Weekday} from '@/src/api/dto/expense/constant';
 
 interface WeekdaySelectorProps {
-    selectedWeekdays: string[]; // ['M', 'W']
-    onToggleWeekday: (day: string) => void;
+    selectedWeekdays: Weekday[];
+    onToggleWeekday: (day: Weekday) => void;
 }
 
-const weekdayKeys = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+const WEEKDAYS: {id: Weekday; label: string}[] = [
+    {id: 'sunday', label: 'S'},
+    {id: 'monday', label: 'M'},
+    {id: 'tuesday', label: 'T'},
+    {id: 'wednesday', label: 'W'},
+    {id: 'thursday', label: 'T'},
+    {id: 'friday', label: 'F'},
+    {id: 'saturday', label: 'S'},
+];
 
-export const WeekdaySelector = ({ selectedWeekdays, onToggleWeekday }: WeekdaySelectorProps) => (
-    <View className="bg-emerald-700 rounded-[30px] p-6 mx-4 shadow-lg items-center">
-        <AppText className="text-white/80 font-medium mb-4 text-base">Select Weekday</AppText>
+export const WeekdaySelector = ({selectedWeekdays, onToggleWeekday}: WeekdaySelectorProps) => (
+    <View className="bg-bg-secondary rounded-[30px] p-6 mx-4 shadow-lg items-center">
+        <AppText className="text-text-secondary/80 font-medium mb-4 text-base">Select Weekday</AppText>
         <View className="flex-row justify-between w-full px-1">
-            {weekdayKeys.map((day, index) => {
-                const isSelected = selectedWeekdays.includes(day);
+            {WEEKDAYS.map((day) => {
+                const isSelected = selectedWeekdays.includes(day.id);
                 return (
                     <Pressable
-                        key={index}
-                        onPress={() => onToggleWeekday(day)}
-                        className={`w-9 h-9 rounded-full items-center justify-center ${isSelected ? 'bg-white' : 'bg-white/10'}`}
+                        key={day.id}
+                        onPress={() => onToggleWeekday(day.id)}
+                        className={`w-9 h-9 rounded-full items-center justify-center ${
+                            isSelected ? 'bg-white' : 'bg-white/10'
+                        }`}
                     >
-                        <AppText className={`font-bold text-sm ${isSelected ? 'text-gray-900' : 'text-white'}`}>
-                            {day}
+                        <AppText
+                            className={`font-bold text-sm ${
+                                isSelected ? 'text-text-primary' : 'text-text-secondary'
+                            }`}
+                        >
+                            {day.label}
                         </AppText>
                     </Pressable>
                 );

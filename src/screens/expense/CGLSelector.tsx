@@ -15,6 +15,8 @@ import {GroupDetails} from "@/src/api/dto/user/group";
 import {Iconify} from "react-native-iconify";
 import {GetUserPlaceByIdApi} from "@/src/api/user/place/location";
 import {useLocationStore} from "@/src/store/locationStore";
+import {DraftValidationErrorKey} from "@/src/interfaces/expense/draft_validation";
+import { COLORS } from '@/src/constants/colors';
 
 export const CategoryGroupLocationSelector = () => {
     const router = useRouter();
@@ -74,6 +76,14 @@ export const CategoryGroupLocationSelector = () => {
         hydrateGroup();
     }, [draft.groupId]);
 
+    // Re-open group picker after "Change Group" from mismatch warning
+    useEffect(() => {
+        if (!draft.requestOpenGroupPicker) return;
+        setFullGroup(null);
+        setGroupModalVisible(true);
+        draft.consumeOpenGroupPickerRequest();
+    }, [draft.requestOpenGroupPicker]);
+
     // 3. Hydrate Selection Map values to Draft Store
     useEffect(() => {
         const hydratePlaceDetails = async () => {
@@ -117,6 +127,13 @@ export const CategoryGroupLocationSelector = () => {
 
             {/* 1. Category View Slot */}
             <View className="flex-1 items-center justify-center">
+                <AppText
+                    variant="caption-xs"
+                    className="text-text-primary-lighter text-center uppercase tracking-wide mb-2 px-1"
+                    numberOfLines={1}
+                >
+                    Category
+                </AppText>
                 <Pressable onPress={() => setCategoryModalVisible(true)} className="mb-2 relative">
                     <AppImageV2
                         id={fullCategory?.id ? `cat-${fullCategory.id}` : 'cat-default'}
@@ -126,25 +143,32 @@ export const CategoryGroupLocationSelector = () => {
                         contentFit="cover"
                         fallbackComponent={
                             <View style={{width: 56, height: 56}}
-                                  className="bg-emerald-50 dark:bg-gray-800 rounded-full items-center justify-center border border-gray-200 dark:border-gray-700">
-                                <Iconify icon="heroicons:tag" size={24} color="#059669"/>
+                                  className="bg-bg-secondary-lighter dark:bg-gray-800 rounded-full items-center justify-center border border-gray-200 dark:border-gray-700">
+                                <Iconify icon="heroicons:tag" size={24} color={COLORS.light.brand.primary}/>
                             </View>
                         }
                     />
                     {catLoading && (
                         <View
                             className="absolute inset-0 items-center justify-center bg-white/60 dark:bg-black/60 rounded-full">
-                            <ActivityIndicator size="small" color="#059669"/>
+                            <ActivityIndicator size="small" color={COLORS.light.brand.primary}/>
                         </View>
                     )}
                 </Pressable>
                 <AppText variant="body-xs" className="text-text-primary text-center font-bold px-1" numberOfLines={1}>
-                    {fullCategory?.title || "Category"}
+                    {fullCategory?.title || "Select"}
                 </AppText>
             </View>
 
             {/* 2. Group View Slot */}
             <View className="flex-1 items-center justify-center">
+                <AppText
+                    variant="caption-xs"
+                    className="text-text-primary-lighter text-center uppercase tracking-wide mb-2 px-1"
+                    numberOfLines={1}
+                >
+                    Group
+                </AppText>
                 <Pressable onPress={() => setGroupModalVisible(true)} className="mb-2 relative">
                     {fullGroup?.icon?.url ? (
                         <AppImageV2
@@ -163,7 +187,7 @@ export const CategoryGroupLocationSelector = () => {
                     {groupLoading && (
                         <View
                             className="absolute inset-0 items-center justify-center bg-white/60 dark:bg-black/60 rounded-full">
-                            <ActivityIndicator size="small" color="#059669"/>
+                            <ActivityIndicator size="small" color={COLORS.light.brand.primary}/>
                         </View>
                     )}
                 </Pressable>
@@ -174,6 +198,13 @@ export const CategoryGroupLocationSelector = () => {
 
             {/* 3. Location View Slot */}
             <View className="flex-1 items-center justify-center">
+                <AppText
+                    variant="caption-xs"
+                    className="text-text-primary-lighter text-center uppercase tracking-wide mb-2 px-1"
+                    numberOfLines={1}
+                >
+                    Location
+                </AppText>
                 <Pressable onPress={() => router.push('/(authenticated)/map/select')} className="mb-2">
                     <AppImageV2
                         id={`loc-mode-${draft.expenseLocationMode || 'none'}`}
@@ -186,7 +217,7 @@ export const CategoryGroupLocationSelector = () => {
                 </Pressable>
                 <AppText
                     variant="body-xs"
-                    className={`text-center font-bold px-1 ${draft.expenseLocationMode === 'place' ? 'text-emerald-600 dark:text-emerald-400' : 'text-text-primary'}`}
+                    className={`text-center font-bold px-1 ${draft.expenseLocationMode === 'place' ? 'text-accent-sky' : 'text-text-primary'}`}
                     numberOfLines={1}
                 >
                     {locationLayout.label}
@@ -213,6 +244,7 @@ export const CategoryGroupLocationSelector = () => {
                     setFullGroup(group);
                     draft.setGroupId(group.id);
                     setGroupModalVisible(false);
+                    void draft.runIntegrityValidation(DraftValidationErrorKey.GROUP_MISMATCH);
                 }}
             />
         </View>

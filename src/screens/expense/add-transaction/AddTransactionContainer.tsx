@@ -1,12 +1,10 @@
-import React from 'react';
-import {View, ScrollView, KeyboardAvoidingView, Platform} from 'react-native';
+import React, {useEffect, useState} from 'react';
+import {View, ScrollView, KeyboardAvoidingView, Platform, Keyboard} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {COLORS} from '@/src/constants/colors';
-
 import {MediaPickerBottomSheet} from '@/src/components/common/MediaPickerBottomSheet';
 import {ExpenseScheduleModal} from '@/src/components/expense/schedule/ExpenseScheduleModal';
 import {GenericValidationErrorModal} from '@/src/components/expense/errors/GenericValidationErrorModal';
-import {TransactionOptionsModal} from './AddTransactionHelper';
+import {GroupMismatchModal} from '@/src/components/expense/GroupMismatchModal';
 
 import AddExpenseScreen from './AddExpense';
 import AddTransfer from './AddTransfer';
@@ -16,10 +14,11 @@ import {ADD_TRANSACTION_THEME} from './constants/addTransaction.constants';
 import {addTransactionStyles as styles} from './styles/addTransaction.styles';
 
 import {AddTransactionHeader} from './components/AddTransactionHeader';
-import {TransactionTabs} from './components/TransactionTabs';
 import {TransactionFooter} from './components/TransactionFooter';
 import {ProcessingOverlay} from './components/ProcessingOverlay';
+import {TransactionOptionsBottomSheet} from './components/TransactionOptionsBottomSheet';
 import {SelectDateBottomSheet} from "@/src/components/common/SelectDateBottomSheet";
+import {DraftValidationErrorKey} from '@/src/interfaces/expense/draft_validation';
 
 export const AddTransactionContainer = () => {
     const {
@@ -34,6 +33,7 @@ export const AddTransactionContainer = () => {
         isProcessing,
         isSubmitting,
         isLocalValidating,
+        isAddingMissingMembers,
         scheduleModalVisible,
         validationModalVisible,
         activeValidationContent,
@@ -54,14 +54,30 @@ export const AddTransactionContainer = () => {
     } = useAddTransaction();
 
     const themeConfig = isDark ? ADD_TRANSACTION_THEME.dark : ADD_TRANSACTION_THEME.light;
-    const activeColors = isDark ? COLORS.dark : COLORS.light;
+    const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+    useEffect(() => {
+        const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+        const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+        const showSub = Keyboard.addListener(showEvent, () => setKeyboardVisible(true));
+        const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardVisible(false));
+        return () => {
+            showSub.remove();
+            hideSub.remove();
+        };
+    }, []);
+
+    // Android: only apply behavior while keyboard is open to avoid residual bottom gap after dismiss.
+    const keyboardBehavior =
+        Platform.OS === 'ios' ? 'padding' : keyboardVisible ? 'padding' : undefined;
 
     return (
         <SafeAreaView style={styles.safeArea} className="bg-bg-primary" edges={['top']}>
             <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                behavior={keyboardBehavior}
                 style={styles.keyboardView}
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}
+                enabled={Platform.OS === 'ios' || keyboardVisible}
             >
                 <View style={styles.mainContainer} className="bg-bg-primary">
                     <ProcessingOverlay visible={isProcessing || isSubmitting} isProcessing={isProcessing}/>
@@ -69,13 +85,12 @@ export const AddTransactionContainer = () => {
                     <View style={styles.mainContainer}>
                         <AddTransactionHeader
                             iconColor={themeConfig.iconColor}
-                            onOpenPicker={() => setPickerVisible(true)}
+                            activeTab={activeTab}
+                            onTabChange={handleTabChange}
                             onOpenOptions={() => setOptionsVisible(true)}
                         />
 
                         <View className="flex-1 flex-col mt-2">
-                            <TransactionTabs activeTab={activeTab} onTabChange={handleTabChange}/>
-
                             <View
                                 style={styles.sheetCardContainer}
                                 className="bg-bg-canvas border-bg-primary-darker/40"
@@ -90,21 +105,30 @@ export const AddTransactionContainer = () => {
                                 </ScrollView>
                             </View>
                         </View>
-
-                        <TransactionFooter
-                            activeTab={activeTab}
-                            readableDate={readableDate}
-                            isValidating={expenseDraft.isValidating || isLocalValidating}
-                            activeValidationContent={activeValidationContent}
-                            transferAmount={transferDraft.amount}
-                            transferCurrency={transferDraft.currency}
-                            isInitiatingPayment={isInitiatingPayment}
-                            onOpenDatePicker={() => setShowDatePicker(true)}
-                            onOpenValidationModal={() => setValidationModalVisible(true)}
-                            onSubmit={handleSubmitData}
-                            onInitiatePayment={handleInitiatePaymentAndNavigate}
-                        />
                     </View>
+
+                    <TransactionFooter
+                        activeTab={activeTab}
+                        readableDate={readableDate}
+                        isDark={isDark}
+                        isValidating={expenseDraft.isValidating || isLocalValidating}
+                        isAddingMissingMembers={isAddingMissingMembers}
+                        submitDisabled={isSubmitting || isAddingMissingMembers}
+                        activeValidationContent={activeValidationContent}
+                        pendingGroupMemberCount={
+                            expenseDraft.shouldAddPendingMembersOnSubmit
+                                ? expenseDraft.pendingGroupMemberAdds.length
+                                : 0
+                        }
+                        transferAmount={transferDraft.amount}
+                        transferCurrency={transferDraft.currency}
+                        isInitiatingPayment={isInitiatingPayment}
+                        onOpenDatePicker={() => setShowDatePicker(true)}
+                        onOpenPicker={() => setPickerVisible(true)}
+                        onOpenValidationModal={() => setValidationModalVisible(true)}
+                        onSubmit={handleSubmitData}
+                        onInitiatePayment={handleInitiatePaymentAndNavigate}
+                    />
 
                     <SelectDateBottomSheet
                         visible={showDatePicker}
@@ -114,10 +138,8 @@ export const AddTransactionContainer = () => {
                         allowedModes={activeTab === 'transfer' ? 'single' : 'both'}
                     />
 
-                    <TransactionOptionsModal
+                    <TransactionOptionsBottomSheet
                         visible={optionsVisible}
-                        isDark={isDark}
-                        activeColors={activeColors}
                         onClose={() => setOptionsVisible(false)}
                         onSaveDraft={handleSaveDraftAlert}
                         onSchedule={() => {
@@ -127,8 +149,19 @@ export const AddTransactionContainer = () => {
                         onClear={handleClearForm}
                     />
 
+                    <GroupMismatchModal
+                        visible={
+                            validationModalVisible &&
+                            activeValidationContent?.key === DraftValidationErrorKey.GROUP_MISMATCH
+                        }
+                        onClose={() => setValidationModalVisible(false)}
+                    />
+
                     <GenericValidationErrorModal
-                        visible={validationModalVisible}
+                        visible={
+                            validationModalVisible &&
+                            activeValidationContent?.key !== DraftValidationErrorKey.GROUP_MISMATCH
+                        }
                         errorKey={activeValidationContent?.key || null}
                         errorData={activeValidationContent?.payload || null}
                         isDark={isDark}

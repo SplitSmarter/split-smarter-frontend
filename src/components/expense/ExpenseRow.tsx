@@ -26,19 +26,22 @@ export const ExpenseRow = ({
                                onPress
                            }: ExpenseRowProps) => {
     const isSettled = item.is_user_settled;
-    const baseContribution = item.user_contribution ?? 0;
+    const userShare = item.user_share ?? 0;
+    const userPaid = item.user_paid ?? 0;
+    const userNet = item.user_net ?? userPaid - userShare;
+    const isInvolved = userShare !== 0 || userPaid !== 0;
 
-    let displayContribution = baseContribution;
+    // Row accent amount = signed net (paid - share): + owed to you, - you owe
+    let displayNet = userNet;
     let displayCurrencySymbol = Currency[item.currency as CurrencyCode]?.symbol || item.currency;
 
-    if (viewType === 'custom' && baseContribution !== 0 && item.currency !== userProfileCurrencyCode) {
+    if (viewType === 'custom' && userNet !== 0 && item.currency !== userProfileCurrencyCode) {
         const exchangeRates = item.exchange_rate;
         const baseRate = exchangeRates ? (exchangeRates[item.currency as keyof typeof exchangeRates] ?? 1) : 1;
         const targetRate = exchangeRates ? (exchangeRates[userProfileCurrencyCode as keyof typeof exchangeRates] ?? 1) : 1;
 
         if (baseRate > 0 && targetRate > 0) {
-            const valueInUSD = baseContribution / baseRate;
-            displayContribution = valueInUSD * targetRate;
+            displayNet = (userNet / baseRate) * targetRate;
             displayCurrencySymbol = Currency[userProfileCurrencyCode]?.symbol || userProfileCurrencyCode;
         }
     }
@@ -70,7 +73,7 @@ export const ExpenseRow = ({
             className="flex-row items-center py-3.5 border-b border-gray-50 dark:border-zinc-900 last:border-b-0 active:opacity-70"
         >
             {/* Left Side Icon Stack */}
-            <View className="relative w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-950/30 items-center justify-center mr-4">
+            <View className="relative w-12 h-12 rounded-full bg-bg-secondary-lighter items-center justify-center mr-4">
                 {item.category?.icon?.id ? (
                     <AppImageV2
                         id={`${item.category.icon.id}`}
@@ -84,7 +87,7 @@ export const ExpenseRow = ({
                 )}
 
                 {isSettled && (
-                    <View className="absolute -bottom-1 -right-1 bg-emerald-600 rounded-full w-5 h-5 items-center justify-center border border-white dark:border-zinc-950">
+                    <View className="absolute -bottom-1 -right-1 bg-bg-secondary rounded-full w-5 h-5 items-center justify-center border border-white dark:border-zinc-950">
                         <Iconify icon="heroicons:check" size={12} color="white" />
                     </View>
                 )}
@@ -115,12 +118,12 @@ export const ExpenseRow = ({
                         )}
                     </View>
 
-                    {baseContribution !== 0 ? (
+                    {isInvolved ? (
                         <AppText
                             variant="body-small"
-                            className={`font-bold text-right ${baseContribution > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}
+                            className={`font-bold text-right ${displayNet >= 0 ? 'text-green-increase' : 'text-red-decrease'}`}
                         >
-                            {baseContribution > 0 ? '+' : ''}{displayCurrencySymbol}{displayContribution.toFixed(2)}
+                            {displayNet > 0 ? '+' : ''}{displayCurrencySymbol}{displayNet.toFixed(2)}
                         </AppText>
                     ) : (
                         <AppText variant="body-small" className="text-gray-400 dark:text-zinc-500 text-right font-medium">

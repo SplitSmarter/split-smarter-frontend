@@ -202,7 +202,7 @@ export const DurationSelectionBottomSheet = ({
                             onValueChange={setIsAllDay}
                             trackColor={{
                                 false: isDark ? '#374151' : '#E2E8F0',
-                                true: '#10B981',
+                                true: isDark ? '#32966E' : '#2B8761',
                             }}
                             thumbColor="#FFFFFF"
                         />
@@ -345,10 +345,11 @@ export const DurationSelectionBottomSheet = ({
                     />
                 )}
 
-                {/* Action Deck */}
+                {/* Action Deck — StyleSheet elevation/opacity; avoid NativeWind shadow/active in sheets */}
                 <View className="flex-row items-center gap-3 mt-4">
                     <Pressable
-                        className="flex-1 items-center justify-center py-3.5 rounded-2xl border bg-bg-primary-lighter border-border-input active:opacity-80"
+                        className="flex-1 items-center justify-center py-3.5 rounded-2xl border bg-bg-primary-lighter border-border-input"
+                        style={({pressed}) => (pressed ? {opacity: 0.8} : undefined)}
                         onPress={onClose}
                     >
                         <AppText className="text-15 font-semibold text-text-primary-lighter">
@@ -357,7 +358,15 @@ export const DurationSelectionBottomSheet = ({
                     </Pressable>
 
                     <Pressable
-                        className="flex-[2] flex-row items-center justify-center gap-1.5 py-3.5 rounded-2xl bg-bg-secondary shadow-md elevation-4 active:opacity-90"
+                        className="flex-[2] flex-row items-center justify-center gap-1.5 py-3.5 rounded-2xl bg-bg-secondary"
+                        style={({pressed}) => ({
+                            elevation: 4,
+                            shadowColor: '#000',
+                            shadowOffset: {width: 0, height: 2},
+                            shadowOpacity: 0.2,
+                            shadowRadius: 4,
+                            opacity: pressed ? 0.9 : 1,
+                        })}
                         onPress={handleSave}
                     >
                         <AppText className="text-white text-15 font-bold">

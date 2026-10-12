@@ -25,7 +25,7 @@ const ModeTabBar = memo(({ splitMode, isDark, onChangeMode }: ModeTabBarProps) =
         >
             {tabs.map(tab => {
                 const isActive = splitMode === tab.mode;
-                const activeColor = isActive ? '#10B981' : '#9CA3AF';
+                const activeColor = isActive ? (isDark ? '#38BDF8' : '#0284C7') : '#9CA3AF';
 
                 return (
                     <Pressable
@@ -47,7 +47,7 @@ const ModeTabBar = memo(({ splitMode, isDark, onChangeMode }: ModeTabBarProps) =
                         )}
 
                         {isActive && (
-                            <View className="absolute bottom-0 left-4 right-4 h-[3px] bg-emerald-500 rounded-t-full" />
+                            <View className="absolute bottom-0 left-4 right-4 h-[3px] bg-accent-sky rounded-t-full" />
                         )}
                     </Pressable>
                 );

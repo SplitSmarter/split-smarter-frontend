@@ -8,6 +8,7 @@ import { AppButton } from "@/src/components/common/AppButton";
 import { GetGroupCategoriesApi, CreateGroupCategoryApi } from "@/src/api/group/categories";
 import { systemStore } from "@/src/store/systemStore";
 import {GroupCategoryDetails} from "@/src/api/dto/user/addGroupCategoryRequest";
+import { COLORS } from '@/src/constants/colors';
 
 enum PickerView { LIST, ADD }
 
@@ -98,7 +99,7 @@ export const CategoryPicker = ({ onSelect, selectedId, onBack }: any) => {
                 <View className="mt-auto mb-8 pt-8 gap-y-3">
                     <AppButton
                         variant="primary"
-                        className="bg-emerald-700 h-14 rounded-2xl shadow-md"
+                        className="h-14 rounded-2xl shadow-md"
                         onPress={handleCreateCategory}
                         loading={submitting}
                     >
@@ -128,13 +129,13 @@ export const CategoryPicker = ({ onSelect, selectedId, onBack }: any) => {
             />
             <View className="bg-zinc-50 dark:bg-zinc-900 rounded-[32px] p-6 min-h-[300px]">
                 <AppText variant="h4" className="font-bold mb-6 text-text-primary">All Categories</AppText>
-                {loading ? <ActivityIndicator color="#059669" size="large" className="my-10" /> : (
+                {loading ? <ActivityIndicator color={COLORS.light.brand.primary} size="large" className="my-10" /> : (
                     <View className="flex-row flex-wrap">
                         {filtered.map((cat) => (
                             <Pressable
                                 key={cat.id}
                                 onPress={() => onSelect(cat)}
-                                className={`w-1/4 items-center mb-6 p-1 rounded-2xl ${selectedId === cat.id ? 'bg-emerald-100 dark:bg-emerald-900/30' : ''}`}
+                                className={`w-1/4 items-center mb-6 p-1 rounded-2xl ${selectedId === cat.id ? 'bg-accent-sky-bg' : ''}`}
                             >
                                 <View className="w-14 h-14 mb-2">
                                     <AppImage url={cat.icon.url} size="full" />
@@ -150,7 +151,7 @@ export const CategoryPicker = ({ onSelect, selectedId, onBack }: any) => {
             <View className="mt-8 mb-4 items-center gap-y-4">
                 <AppButton
                     variant="primary"
-                    className="bg-emerald-700 h-14 w-full rounded-2xl"
+                    className="h-14 w-full rounded-2xl"
                     renderIcon={(c) => <Iconify icon="heroicons:squares-plus" size={20} color={c} />}
                     onPress={() => setView(PickerView.ADD)}
                 >

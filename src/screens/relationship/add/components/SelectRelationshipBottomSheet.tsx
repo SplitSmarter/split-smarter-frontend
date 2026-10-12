@@ -131,7 +131,7 @@ export const SelectRelationshipBottomSheet = ({
 
                     {loading ? (
                         <View className="flex-1 justify-center">
-                            <ActivityIndicator size="large" color="#2D6A4F" />
+                            <ActivityIndicator size="large" color={COLORS.light.brand.primary} />
                         </View>
                     ) : (
                         <BottomSheetScrollView
@@ -139,7 +139,7 @@ export const SelectRelationshipBottomSheet = ({
                             contentContainerStyle={{ paddingBottom: 40 }}
                         >
                             {filteredRelations.length > 0 ? (
-                                <View className="bg-bg-primary-lighter rounded-3xl p-4 border border-bg-secondary-lighter">
+                                <View className="bg-bg-primary-lighter rounded-3xl p-4 border border-border-input">
                                     <AppText variant="body-base" className="font-bold mb-4 text-text-primary">
                                         Connections
                                     </AppText>
@@ -154,7 +154,7 @@ export const SelectRelationshipBottomSheet = ({
                                                         bottomSheetModalRef.current?.dismiss();
                                                     }}
                                                     className={`flex-row items-center p-3 rounded-2xl ${
-                                                        isSelected ? 'bg-bg-secondary/10 border border-bg-secondary/30' : 'bg-white dark:bg-zinc-900 border border-transparent'
+                                                        isSelected ? 'bg-accent-sky-bg border border-accent-sky' : 'bg-white dark:bg-zinc-900 border border-transparent'
                                                     }`}
                                                 >
                                                     <AppImage
@@ -167,7 +167,7 @@ export const SelectRelationshipBottomSheet = ({
                                                         <AppText className="font-semibold text-text-primary">
                                                             {item.with_user.name}
                                                         </AppText>
-                                                        <AppText variant="caption-xs" className="text-text-secondary opacity-60 uppercase tracking-wider">
+                                                        <AppText variant="caption-xs" className="text-text-primary-lighter opacity-60 uppercase tracking-wider">
                                                             {item.with_user.user_type || 'Contact'}
                                                         </AppText>
                                                     </View>
@@ -184,7 +184,7 @@ export const SelectRelationshipBottomSheet = ({
                             ) : (
                                 <View className="items-center py-10">
                                     <Iconify icon="heroicons:face-frown" size={40} color={COLORS.icon_secondary_light} />
-                                    <AppText className="text-text-secondary mt-2">No matching relations found</AppText>
+                                    <AppText className="text-text-primary-lighter mt-2">No matching relations found</AppText>
                                 </View>
                             )}
 
