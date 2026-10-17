@@ -1,108 +1,136 @@
-import React from 'react';
-import {View, Pressable} from 'react-native';
+import React, {useCallback} from 'react';
+import {ActivityIndicator, ScrollView, View} from 'react-native';
 import {useLocalSearchParams, useRouter} from 'expo-router';
-import {Iconify} from 'react-native-iconify';
 import {AppText} from '@/src/components/common/AppText';
 import {ScreenWrapper} from '@/src/components/common/ScreenWrapper';
+import {ROUTES} from '@/src/constants/routes';
+import {COLORS, PLATINUM_HEADER} from '@/src/constants/colors';
 import {themeStore} from '@/src/store/themeStore';
-import {COLORS} from '@/src/constants/colors';
+import {ExpenseDetailsBody} from '@/src/screens/expense/details/components/ExpenseDetailsBody';
+import {ExpenseHeroCard} from '@/src/screens/expense/details/components/ExpenseHeroCard';
+import {useExpenseDetails} from '@/src/screens/expense/details/hooks/useExpenseDetails';
 
 /**
- * Placeholder expense details screen.
+ * Full enriched expense details — platinum hero + primary canvas sections.
  * Route: /(authenticated)/expense/details?id={expenseId}
- * Later: fetch full expense by id and replace this shell.
  */
 export const ExpenseDetailsScreen: React.FC = () => {
     const router = useRouter();
-    const params = useLocalSearchParams<{id?: string}>();
-    const expenseId = params.id ? String(params.id) : undefined;
+    const params = useLocalSearchParams<{id?: string; dummy?: string}>();
+    const expenseId = params.id ? Number(params.id) : null;
+    const useDummy = params.dummy === '1' || params.dummy === 'true';
     const isDark = themeStore((s) => s.theme === 'dark');
     const colors = isDark ? COLORS.dark : COLORS.light;
+    const heroStatusBar = isDark ? PLATINUM_HEADER.dark : PLATINUM_HEADER.light;
+
+    const {
+        expense,
+        loading,
+        error,
+        itemTitles,
+        refresh,
+        settlements,
+        paymentLinks,
+        position,
+        isViewerPayer,
+        viewerId,
+    } = useExpenseDetails(
+        expenseId != null && !Number.isNaN(expenseId) ? expenseId : null,
+        {resolveItemTitles: !useDummy, useDummy},
+    );
+
+    const handlePlace = useCallback(() => {
+        const place = expense?.place;
+        if (!place?.provider || place.provider_id == null) return;
+        router.push(ROUTES.mapPlace(String(place.provider), String(place.provider_id)));
+    }, [expense?.place, router]);
+
+    const handleGroup = useCallback(() => {
+        const groupId = expense?.group?.id;
+        if (groupId == null) return;
+        router.push(ROUTES.groupDetails(groupId));
+    }, [expense?.group?.id, router]);
+
+    const handleLinkPayment = useCallback(() => {
+        router.push('/(authenticated)/payment/user/transfer');
+    }, [router]);
+
+    const invalidId = expenseId == null || Number.isNaN(expenseId);
 
     return (
         <ScreenWrapper
-            backgroundColor={isDark ? colors.bg.canvas : colors.bg.primary}
-            statusBarStyle={isDark ? 'light-content' : 'dark-content'}
+            backgroundColor={heroStatusBar}
+            statusBarStyle="light-content"
             withPadding={false}
+            className="relative flex-1"
         >
-            <View
-                className="flex-row items-center justify-between border-b px-4 pb-3 pt-2"
-                style={{borderBottomColor: colors.status.border}}
+            <ScrollView
+                className="flex-1"
+                style={{backgroundColor: colors.bg.primary}}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{paddingBottom: 48}}
             >
-                <Pressable
-                    onPress={() => router.back()}
-                    hitSlop={12}
-                    className="h-10 w-10 items-center justify-center rounded-full"
-                    style={{backgroundColor: colors.bg.overlay}}
-                >
-                    <Iconify
-                        icon="heroicons:chevron-left"
-                        size={22}
-                        color={colors.icon.primary}
-                    />
-                </Pressable>
-                <AppText
-                    className="text-[17px] font-bold"
-                    style={{color: colors.text.primary}}
-                >
-                    Expense details
-                </AppText>
-                <View className="w-10" />
-            </View>
-
-            <View className="flex-1 items-center justify-center px-8">
-                <View
-                    className="mb-4 h-16 w-16 items-center justify-center rounded-full"
-                    style={{backgroundColor: colors.bg.overlay}}
-                >
-                    <Iconify
-                        icon="heroicons:document-text"
-                        size={28}
-                        color={colors.icon.lighter}
-                    />
-                </View>
-                <AppText
-                    className="text-center text-base font-bold"
-                    style={{color: colors.text.primary}}
-                >
-                    Details coming soon
-                </AppText>
-                <AppText
-                    className="mt-2 text-center text-sm"
-                    style={{color: colors.text.lighter}}
-                >
-                    We’ll load the full expense here using its id.
-                </AppText>
-                {expenseId ? (
-                    <View
-                        className="mt-5 rounded-2xl border px-4 py-3"
-                        style={{
-                            backgroundColor: colors.bg.overlay,
-                            borderColor: colors.status.border,
-                        }}
-                    >
+                {invalidId ? (
+                    <View className="px-5 pt-10">
                         <AppText
-                            className="text-center text-[11px] font-semibold uppercase tracking-wider"
-                            style={{color: colors.text.lighter}}
+                            variant="body-base"
+                            className="text-center text-red-decrease"
                         >
-                            Expense id
-                        </AppText>
-                        <AppText
-                            className="mt-1 text-center text-sm font-bold"
-                            style={{color: colors.text.primary}}
-                        >
-                            {expenseId}
+                            Missing expense id in route
                         </AppText>
                     </View>
+                ) : !expense && loading ? (
+                    <View className="items-center py-20">
+                        <ActivityIndicator color={colors.accent.sky} />
+                        <AppText
+                            variant="body-small"
+                            className="mt-3 text-text-primary-lighter"
+                        >
+                            Loading expense…
+                        </AppText>
+                    </View>
+                ) : expense ? (
+                    <>
+                        <ExpenseHeroCard
+                            variant="hero"
+                            expense={expense}
+                            position={position}
+                            expenseIdLabel={`#EXP-${expenseId}`}
+                            loading={loading}
+                            onBack={() => router.back()}
+                            onRefresh={() => void refresh()}
+                        />
+
+                        <View className="mt-5 px-5">
+                            <ExpenseDetailsBody
+                                mode="full"
+                                expense={expense}
+                                loading={loading}
+                                error={error}
+                                itemTitles={itemTitles}
+                                settlements={settlements}
+                                paymentLinks={paymentLinks}
+                                position={position}
+                                isViewerPayer={isViewerPayer}
+                                viewerId={viewerId}
+                                hideHero
+                                onLinkPayment={isViewerPayer ? handleLinkPayment : undefined}
+                                onPlacePress={expense.place ? handlePlace : undefined}
+                                onGroupPress={expense.group ? handleGroup : undefined}
+                            />
+                        </View>
+                    </>
                 ) : (
-                    <AppText
-                        className="mt-4 text-center text-xs"
-                        style={{color: colors.status.error}}
-                    >
-                        Missing expense id in route
-                    </AppText>
+                    <View className="px-5 pt-10">
+                        <AppText
+                            variant="body-base"
+                            className="text-center text-text-primary"
+                        >
+                            {error ?? 'Expense not found'}
+                        </AppText>
+                    </View>
                 )}
-            </View>
+            </ScrollView>
         </ScreenWrapper>
     );
 };

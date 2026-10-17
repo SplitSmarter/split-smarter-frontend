@@ -4,7 +4,9 @@ import { Iconify } from 'react-native-iconify';
 import { AppText } from '@/src/components/common/AppText';
 import { AppButton } from '@/src/components/common/AppButton';
 import { AppImageV2 } from '@/src/components/common/AppImageV2';
+import { EntityFallbackIcon } from '@/src/components/common/EntityFallbackIcon';
 import { DraftValidationErrorKey, ValidationErrorPayloads } from "@/src/interfaces/expense/draft_validation";
+import { COLORS } from '@/src/constants/colors';
 
 interface GenericValidationErrorModalProps {
     visible: boolean;
@@ -23,12 +25,14 @@ export const GenericValidationErrorModal: React.FC<GenericValidationErrorModalPr
                                                                                         }) => {
     if (!visible || !errorKey || !errorData) return null;
 
+    const colors = isDark ? COLORS.dark : COLORS.light;
+
     return (
         <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
             <View className="flex-1 justify-center items-center bg-black/60 px-6">
                 <Pressable className="absolute inset-0" onPress={onClose} />
 
-                <View className={`w-full max-h-[75%] rounded-[32px] p-6 shadow-2xl border ${isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-100'}`}>
+                <View className="w-full max-h-[75%] rounded-[32px] p-6 shadow-2xl border bg-bg-canvas border-border-input">
 
                     {/* Header Status Matrix */}
                     <View className="items-center mb-4">
@@ -37,19 +41,20 @@ export const GenericValidationErrorModal: React.FC<GenericValidationErrorModalPr
                                 <Iconify
                                     icon="heroicons:exclamation-triangle"
                                     size={32}
-                                    color="#D97706"
+                                    color={colors.status.warning}
                                 />
                             ) : (
                                 <Iconify
                                     icon="heroicons:exclamation-circle"
                                     size={32}
-                                    color="#EF4444"
+                                    color={colors.status.error}
                                 />
                             )}
                         </View>
                         <AppText variant="h3" className="font-bold text-text-primary text-center">
                             {errorKey === DraftValidationErrorKey.TITLE_REQUIRED && "Title Required"}
                             {errorKey === DraftValidationErrorKey.AMOUNT_INVALID && "Invalid Amount"}
+                            {errorKey === DraftValidationErrorKey.ALLOCATION_MISMATCH && "Allocation Mismatch"}
                             {errorKey === DraftValidationErrorKey.GROUP_MISMATCH && "Group Mismatch Detected"}
                         </AppText>
                     </View>
@@ -62,20 +67,22 @@ export const GenericValidationErrorModal: React.FC<GenericValidationErrorModalPr
 
                         {/* Special Custom Payload Renderer for Group Mismatch */}
                         {errorKey === DraftValidationErrorKey.GROUP_MISMATCH && 'data' in errorData && (
-                            <View className={`rounded-2xl p-4 border ${isDark ? 'bg-zinc-950 border-zinc-800' : 'bg-gray-50 border-gray-100'}`}>
+                            <View className="rounded-2xl p-4 border bg-bg-primary-lighter border-border-input">
                                 <AppText variant="caption-xs" className="font-bold uppercase tracking-wider text-text-primary-lighter mb-3">
                                     Missing Users from Group: {errorData.data?.group?.title}
                                 </AppText>
                                 <View className="gap-y-2">
                                     {errorData.data?.missingUsers?.map((user) => (
                                         <View key={user.id} className="flex-row items-center space-x-3 py-1">
-                                            {user.avatar?.url ? (
-                                                <AppImageV2 id={`missing-user-${user.id}`} url={user.avatar.url} style={{ width: 24, height: 24 }} className="rounded-full" />
-                                            ) : (
-                                                <View style={{ width: 24, height: 24 }} className="bg-gray-300 dark:bg-zinc-700 rounded-full items-center justify-center">
-                                                    <Iconify icon="heroicons:user-solid" size={12} color="#999" />
-                                                </View>
-                                            )}
+                                            <AppImageV2
+                                                id={`missing-user-${user.id}`}
+                                                url={user.avatar?.url}
+                                                style={{ width: 24, height: 24 }}
+                                                className="rounded-full"
+                                                fallbackComponent={
+                                                    <EntityFallbackIcon kind="user" size={12} color={colors.icon.lighter} />
+                                                }
+                                            />
                                             <AppText variant="body-small" className="text-text-primary font-medium ml-2">{user.name}</AppText>
                                         </View>
                                     ))}

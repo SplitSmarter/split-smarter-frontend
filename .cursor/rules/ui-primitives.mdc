@@ -35,7 +35,7 @@ Do **not** add `index.ts` barrels that re-export “latest” as the default `Ap
 - **Do not:** bottom sheets, modals, nested content already inside tab/stack chrome.
 - `withPadding` default `true`; `false` for full-bleed.
 - `backgroundColor` (camelCase) fills SafeAreaView **including the phone status-bar strip**. `className` does not.
-- Defaults follow theme canvas; green headers must pass `COLORS.*.brand.primary` + `statusBarStyle="light-content"`.
+- Defaults follow theme canvas; metallic slate heroes pass a dark slate stop + `statusBarStyle="light-content"` (not `COLORS.*.brand.primary` in dark — that is the light CTA fill).
 - Never write `backgroundcolor` — prop is ignored → white notification row.
 
 ## Do
@@ -58,9 +58,9 @@ Do **not** add `index.ts` barrels that re-export “latest” as the default `Ap
   {children}
 </ScreenWrapper>
 
-// Green header — status bar matches brand chrome
+// Metallic slate hero — status bar matches dark chrome
 <ScreenWrapper
-  backgroundColor={isDark ? COLORS.dark.brand.primary : COLORS.light.brand.primary}
+  backgroundColor={isDark ? '#0F172A' : '#1E293B'}
   statusBarStyle="light-content"
   withPadding={false}
 >

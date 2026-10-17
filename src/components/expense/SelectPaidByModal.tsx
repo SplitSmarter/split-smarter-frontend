@@ -6,11 +6,13 @@ import { Iconify } from 'react-native-iconify';
 import { AppText } from '@/src/components/common/AppText';
 import { AppButton } from '@/src/components/common/AppButton';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { COLORS } from '@/src/constants/colors';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export const SelectPaidByModal = ({ visible, setPayers, onClose, payers, totalExpense, onQuickAdd }: any) => {
     const isDark = themeStore((state) => state.theme === 'dark');
+    const colors = isDark ? COLORS.dark : COLORS.light;
 
     const balanceAmounts = (currentPayers: any[]) => {
         const lockedPayers = currentPayers.filter(p => p.isLocked);
@@ -120,7 +122,7 @@ export const SelectPaidByModal = ({ visible, setPayers, onClose, payers, totalEx
                             {/* Header */}
                             <View className="px-6 py-4 flex-row items-center border-b border-dashed border-border-input/40">
                                 <Pressable onPress={onClose} className="p-1">
-                                    <Iconify icon="heroicons:chevron-left" size={24} color="rgb(var(--color-text-primary))" />
+                                    <Iconify icon="heroicons:chevron-left" size={24} color={colors.icon.primary} />
                                 </Pressable>
                                 <AppText variant="h3" className="flex-1 text-center font-bold text-text-primary mr-8">
                                     People who paid

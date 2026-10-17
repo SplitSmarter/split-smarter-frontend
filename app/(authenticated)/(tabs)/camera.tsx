@@ -1,21 +1,41 @@
-import React, {useState, useCallback, useRef} from "react";
-import {View, StyleSheet, Text, TouchableOpacity, ActivityIndicator, Alert} from "react-native";
-import {useRouter, useFocusEffect} from "expo-router";
-import {InitiateTransactionApi, GetTransactionStatusApi} from "@/src/api/user_payment/transaction";
-import {RelationWithUserType} from "@/src/api/dto/constants";
-import {authStore} from "@/src/store/authStore";
+import React, {useState} from "react";
+import {View, Alert} from "react-native";
+import {useRouter} from "expo-router";
+import * as Linking from "expo-linking";
 import {AppButton} from "@/src/components/common/AppButton";
 import ThemeToggle from "@/src/components/common/themeToggle";
 import {SelectDateBottomSheet} from "@/src/components/common/SelectDateBottomSheet";
 import {DurationSelectionBottomSheet} from "@/src/components/common/DurationSelectionBottomSheet";
+import {ROUTES} from "@/src/constants/routes";
+import {
+    SAMPLE_PLACE_LINKS,
+    buildPlaceDeepLinkUrl,
+} from "@/src/screens/spatial-map/utils/placeDeepLink";
 
 export default function CameraScreen() {
-    const {user, logout} = authStore();
     const router = useRouter();
 
     // Sheet visibility state
     const [isScheduleOpen, setIsScheduleOpen] = useState(false);
     const [isDurationOpen, setIsDurationOpen] = useState(false);
+
+    const openSamplePlaceViaRouter = () => {
+        router.push(ROUTES.mapPlace(SAMPLE_PLACE_LINKS.google.provider, SAMPLE_PLACE_LINKS.google.id));
+    };
+
+    const openSamplePlaceViaDeepLink = async () => {
+        const url = buildPlaceDeepLinkUrl(SAMPLE_PLACE_LINKS.custom);
+        try {
+            const canOpen = await Linking.canOpenURL(url);
+            if (!canOpen) {
+                Alert.alert("Cannot open link", url);
+                return;
+            }
+            await Linking.openURL(url);
+        } catch (e) {
+            Alert.alert("Deep link failed", String(e));
+        }
+    };
 
     return (
         <View className="flex-1 p-4 gap-y-3">
@@ -61,6 +81,26 @@ export default function CameraScreen() {
                 hasShadow={true}
             >
                 Select Duration
+            </AppButton>
+
+            <AppButton
+                onPress={openSamplePlaceViaRouter}
+                variant="primary"
+                size="sm"
+                className="w-full"
+                hasShadow={true}
+            >
+                Open Google place on map
+            </AppButton>
+
+            <AppButton
+                onPress={openSamplePlaceViaDeepLink}
+                variant="secondary"
+                size="sm"
+                className="w-full"
+                hasShadow={true}
+            >
+                Open custom place (deep link)
             </AppButton>
 
             <ThemeToggle/>

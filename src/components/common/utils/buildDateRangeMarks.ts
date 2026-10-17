@@ -1,5 +1,6 @@
 import {eachDayOfInterval, format, isBefore, parseISO} from 'date-fns';
 import type {DateRangeDayMarking} from '@/src/components/common/components/DateRangeDay';
+import { COLORS } from '@/src/constants/colors';
 
 export type DateRangeMarkColors = {
     range: string;
@@ -18,10 +19,10 @@ export function buildDateRangeMarks(
     colors?: DateRangeMarkColors
 ): Record<string, DateRangeDayMarking> {
     const palette: DateRangeMarkColors = colors ?? {
-        range: '#E07A2F',
-        rangeMiddle: '#FDEAD7',
-        textOnRange: '#FFFFFF',
-        textOnMiddle: '#9A3412',
+        range: COLORS.light.accent.sky,
+        rangeMiddle: COLORS.light.accent.skyBg,
+        textOnRange: COLORS.light.text.contrast,
+        textOnMiddle: COLORS.light.text.primary,
     };
 
     if (!startDate) {

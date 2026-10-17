@@ -52,7 +52,6 @@ export const addTransactionStyles = StyleSheet.create({
         borderTopRightRadius: 36,
         paddingHorizontal: 24,
         paddingTop: 24,
-        borderTopWidth: 1,
     },
     scrollContent: {
         paddingBottom: 28,

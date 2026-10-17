@@ -30,8 +30,8 @@ export const LanguageBottomSheet = React.memo(({ isVisible, onClose }: LanguageB
 
     // 2. Logic
     const isDark = theme === 'dark';
-    const iconColor = isDark ? COLORS.icon_primary_dark : COLORS.icon_primary_light;
-    const brandGreen = isDark ? COLORS.icon_secondary_dark: COLORS.icon_secondary_light;
+    const colors = isDark ? COLORS.dark : COLORS.light;
+    const iconColor = colors.icon.primary;
     const snapPoints = useMemo(() => ['70%'], []);
 
     // 3. Side Effects
@@ -91,11 +91,11 @@ export const LanguageBottomSheet = React.memo(({ isVisible, onClose }: LanguageB
                 </View>
 
                 {isSelected && (
-                    <Iconify icon="heroicons:check-circle-20-solid" size={20} color={brandGreen} />
+                    <Iconify icon="heroicons:check-circle-20-solid" size={20} color={colors.accent.sky} />
                 )}
             </Pressable>
         );
-    }, [handleLanguageSelect, language, t]);
+    }, [handleLanguageSelect, language, t, colors.accent.sky]);
 
     return (
         <BottomSheetModal
@@ -105,8 +105,8 @@ export const LanguageBottomSheet = React.memo(({ isVisible, onClose }: LanguageB
             onDismiss={onClose}
             backdropComponent={renderBackdrop}
             enablePanDownToClose={true}
-            backgroundStyle={{ backgroundColor: isDark ? '#121212' : '#FFFFFF' }}
-            handleIndicatorStyle={{ backgroundColor: isDark ? '#333' : '#E5E5E5', width: 40 }}
+            backgroundStyle={{ backgroundColor: colors.bg.overlay }}
+            handleIndicatorStyle={{ backgroundColor: colors.icon.lighter, width: 40 }}
         >
             <View className="flex-1 px-6 pt-2 pb-10">
                 <View className="relative items-center mb-6">
@@ -118,8 +118,11 @@ export const LanguageBottomSheet = React.memo(({ isVisible, onClose }: LanguageB
                         <Iconify icon="heroicons:x-mark" size={20} color={iconColor} />
                     </Pressable>
 
-                    <View className="w-16 h-16 bg-bg-secondary/10 rounded-full items-center justify-center mb-4">
-                        <Iconify icon="heroicons:language" size={32} color={brandGreen} />
+                    <View
+                        className="mb-4 h-16 w-16 items-center justify-center rounded-full"
+                        style={{backgroundColor: colors.accent.skyBg}}
+                    >
+                        <Iconify icon="heroicons:language" size={32} color={colors.accent.sky} />
                     </View>
                     <AppText variant="h3">{t('common.language.select')}</AppText>
                 </View>

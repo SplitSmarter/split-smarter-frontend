@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
+import React, { useCallback, useMemo, useEffect, useImperativeHandle } from 'react';
 import { View, Pressable } from 'react-native';
 import {
     BottomSheetModal,
@@ -23,11 +23,11 @@ export const AppBottomSheet = React.forwardRef<BottomSheetModal, AppBottomSheetP
 
     const internalRef = React.useRef<BottomSheetModal>(null);
 
-    // Sync the external ref with internal ref
     useImperativeHandle(ref, () => internalRef.current as BottomSheetModal);
 
     const theme = themeStore((state) => state.theme);
     const isDark = theme === 'dark';
+    const colors = isDark ? COLORS.dark : COLORS.light;
 
     const snapPoints = useMemo(() => customSnapPoints || ['50%', '75%'], [customSnapPoints]);
 
@@ -50,8 +50,6 @@ export const AppBottomSheet = React.forwardRef<BottomSheetModal, AppBottomSheetP
         []
     );
 
-    const iconColor = isDark ? COLORS.icon_primary_dark : COLORS.icon_primary_light;
-
     return (
         <BottomSheetModal
             ref={internalRef}
@@ -61,14 +59,18 @@ export const AppBottomSheet = React.forwardRef<BottomSheetModal, AppBottomSheetP
             onChange={handleSheetChanges}
             backdropComponent={renderBackdrop}
             enablePanDownToClose={true}
-            backgroundStyle={{ backgroundColor: isDark ? '#121212' : '#FFFFFF' }}
-            handleIndicatorStyle={{ backgroundColor: isDark ? '#333' : '#E5E5E5', width: 40 }}
+            backgroundStyle={{ backgroundColor: colors.bg.overlay, borderRadius: 40 }}
+            handleIndicatorStyle={{ backgroundColor: colors.icon.lighter, width: 40 }}
         >
             <BottomSheetView style={{ flex: 1 }} className="px-6 pb-8">
                 {showCloseButton && (
-                    <View className="flex-row justify-end items-center mb-2">
-                        <Pressable onPress={onClose} className="p-1 bg-bg-primary-darker/10 rounded-full">
-                            <Iconify icon="heroicons:x-mark" size={20} color={iconColor} />
+                    <View className="mb-2 flex-row items-center justify-end">
+                        <Pressable
+                            onPress={onClose}
+                            className="rounded-full p-1"
+                            style={{ backgroundColor: colors.bg.darker }}
+                        >
+                            <Iconify icon="heroicons:x-mark" size={20} color={colors.icon.primary} />
                         </Pressable>
                     </View>
                 )}
@@ -78,4 +80,4 @@ export const AppBottomSheet = React.forwardRef<BottomSheetModal, AppBottomSheetP
     );
 });
 
-AppBottomSheet.displayName = 'AppBottomSheet';
+AppBottomSheet.displayName = "AppBottomSheet";

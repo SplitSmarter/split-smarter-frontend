@@ -1,158 +1,325 @@
 import React from 'react';
-import {View, Text, TouchableOpacity, ScrollView, StyleSheet} from 'react-native';
+import {
+    View,
+    Pressable,
+    ActivityIndicator,
+    FlatList,
+} from 'react-native';
 import {Iconify} from 'react-native-iconify';
-import {ScopeMode} from '../types/spatialMap.types';
-import {MemoryBasicDetails} from '@/src/api/dto/user/memory';
+import {AppInput} from '@/src/components/common/AppInput';
+import {AppText} from '@/src/components/common/AppText';
+import {AppImageV2} from '@/src/components/common/AppImageV2';
+import {EntityFallbackIcon} from '@/src/components/common/EntityFallbackIcon';
+import type {LocationDetails} from '@/src/api/dto/user/place';
+import {calculateDistance} from '@/src/utils/place/distance';
+import {DisplayView, MapDateRange} from '../types/spatialMap.types';
+import {themeStore} from '@/src/store/themeStore';
+import {COLORS} from '@/src/constants/colors';
+import {DisplayViewFab} from './DisplayViewFab';
+import {TrailTimeLegend} from './TrailTimeLegend';
 
 interface MapHeaderProps {
     insetsTop: number;
-    scopeMode: ScopeMode;
-    onSelectScopeMode: (scope: ScopeMode) => void;
-    memories?: MemoryBasicDetails[] | Record<string, MemoryBasicDetails>;
-    selectedMemoryId: string | null;
-    onSelectMemory: (memoryId: string) => void;
-    visibleTotal: number;
-    onOpenLayerMenu: () => void;
+    searchQuery: string;
+    isSearching: boolean;
+    searchResults: LocationDetails[];
+    location: {latitude: number; longitude: number} | null;
+    onSearchTextChange: (text: string) => void;
+    onClearSearch: () => void;
+    onSelectResult: (item: LocationDetails) => void;
+    defaultImage: string;
+    dateRange: MapDateRange;
+    onOpenDateRange: () => void;
+    viewportTotal: number;
+    viewportPlaceCount: number;
+    selectedMemoryTitle?: string | null;
+    /** Tap the memory chip to re-center on that trip’s places. */
+    onPressMemoryChip?: () => void;
+    displayView: DisplayView;
+    onSelectDisplayView: (view: DisplayView) => void;
+    onOpenMemories: () => void;
     onInteraction?: () => void;
+}
+
+function formatRangeLabel(dateRange: MapDateRange): string {
+    if (!dateRange) return 'All time';
+    const fmt = (iso: string) => {
+        const [y, m, d] = iso.split('-').map(Number);
+        return new Date(y, m - 1, d).toLocaleDateString('en-IN', {
+            day: 'numeric',
+            month: 'short',
+        });
+    };
+    return `${fmt(dateRange.startDate)} – ${fmt(dateRange.endDate)}`;
 }
 
 export function MapHeader({
     insetsTop,
-    scopeMode,
-    onSelectScopeMode,
-    memories = [],
-    selectedMemoryId,
-    onSelectMemory,
-    visibleTotal,
-    onOpenLayerMenu,
+    searchQuery,
+    isSearching,
+    searchResults,
+    location,
+    onSearchTextChange,
+    onClearSearch,
+    onSelectResult,
+    defaultImage,
+    dateRange,
+    onOpenDateRange,
+    viewportTotal,
+    viewportPlaceCount,
+    selectedMemoryTitle,
+    onPressMemoryChip,
+    displayView,
+    onSelectDisplayView,
+    onOpenMemories,
     onInteraction,
 }: MapHeaderProps) {
-    const memoryList: MemoryBasicDetails[] = Array.isArray(memories)
-        ? memories
-        : Object.values(memories);
+    const isDark = themeStore((state) => state.theme === 'dark');
+    const colors = isDark ? COLORS.dark : COLORS.light;
+    const iconPrimary = isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary;
 
     return (
         <View
             style={{paddingTop: insetsTop + 8}}
-            className="absolute top-0 left-0 right-0 z-10 px-4 bg-background/90 border-b border-border"
+            className="absolute top-0 left-0 right-0 z-10 px-4"
+            pointerEvents="box-none"
         >
-            {/* SCOPE SELECTOR + SPENT + LAYERS */}
-            <View className="flex-row items-center justify-between mb-2">
-                <View className="flex-row bg-muted p-1 rounded-xl">
-                    <TouchableOpacity
-                        activeOpacity={0.7}
-                        onPress={() => {
-                            onInteraction?.();
-                            onSelectScopeMode('general');
-                        }}
-                        className={`px-3 py-1.5 rounded-lg ${
-                            scopeMode === 'general' ? 'bg-card' : 'bg-transparent'
-                        }`}
-                        style={scopeMode === 'general' ? styles.activeShadow : undefined}
-                    >
-                        <Text
-                            className={`text-xs font-semibold ${
-                                scopeMode === 'general' ? 'text-foreground' : 'text-muted-foreground'
-                            }`}
-                        >
-                            General
-                        </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        activeOpacity={0.7}
-                        onPress={() => {
-                            onInteraction?.();
-                            onSelectScopeMode('trip');
-                        }}
-                        className={`px-3 py-1.5 rounded-lg ${
-                            scopeMode === 'trip' ? 'bg-card' : 'bg-transparent'
-                        }`}
-                        style={scopeMode === 'trip' ? styles.activeShadow : undefined}
-                    >
-                        <Text
-                            className={`text-xs font-semibold ${
-                                scopeMode === 'trip' ? 'text-foreground' : 'text-muted-foreground'
-                            }`}
-                        >
-                            Memories
-                        </Text>
-                    </TouchableOpacity>
-                </View>
-
+            <View className="rounded-3xl border border-border-input bg-bg-canvas/95 px-3 pb-3 pt-2.5 shadow-sm shadow-black/10">
                 <View className="flex-row items-center gap-2">
-                    <View className="items-end">
-                        <Text className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
-                            Spent
-                        </Text>
-                        <Text className="text-sm font-bold text-foreground">
-                            ₹{visibleTotal.toLocaleString()}
-                        </Text>
+                    <View className="min-w-0 flex-1">
+                        <AppInput
+                            placeholder="Search locations..."
+                            value={searchQuery}
+                            onChangeText={(text) => {
+                                onInteraction?.();
+                                onSearchTextChange(text);
+                            }}
+                            renderLeftIcon={(color) => (
+                                <Iconify
+                                    icon="heroicons:magnifying-glass"
+                                    size={20}
+                                    color={color}
+                                />
+                            )}
+                            renderRightIcon={(color) => {
+                                if (isSearching) {
+                                    return (
+                                        <ActivityIndicator
+                                            size="small"
+                                            color={colors.accent.sky}
+                                        />
+                                    );
+                                }
+                                if (searchQuery.length > 0) {
+                                    return (
+                                        <Pressable
+                                            onPress={() => {
+                                                onInteraction?.();
+                                                onClearSearch();
+                                            }}
+                                        >
+                                            <Iconify
+                                                icon="heroicons:x-mark"
+                                                size={20}
+                                                color={color}
+                                            />
+                                        </Pressable>
+                                    );
+                                }
+                                return null;
+                            }}
+                        />
                     </View>
 
-                    <TouchableOpacity
-                        activeOpacity={0.7}
+                    <Pressable
                         onPress={() => {
                             onInteraction?.();
-                            onOpenLayerMenu();
+                            onOpenDateRange();
                         }}
                         accessibilityRole="button"
-                        accessibilityLabel="Open map preferences"
-                        className="p-2 bg-secondary rounded-xl border border-border"
+                        accessibilityLabel="Select date range"
+                        className="h-12 min-w-[72px] items-center justify-center rounded-2xl border border-border-input bg-bg-primary px-2.5 active:opacity-75"
                     >
-                        <Iconify icon="heroicons:cog-6-tooth" size={16} color="#6B7280" />
-                    </TouchableOpacity>
+                        <Iconify
+                            icon="heroicons:calendar-days"
+                            size={18}
+                            color={iconPrimary}
+                        />
+                        <AppText
+                            variant="caption-xs"
+                            className="mt-0.5 text-center font-semibold text-text-primary-lighter"
+                            numberOfLines={1}
+                        >
+                            {formatRangeLabel(dateRange)}
+                        </AppText>
+                    </Pressable>
                 </View>
+
+                <View className="mt-2.5 flex-row items-center justify-between px-0.5">
+                    <View className="min-w-0 flex-1 flex-row items-baseline gap-x-2">
+                        <AppText
+                            variant="body-base"
+                            className="font-bold text-text-primary"
+                        >
+                            ₹{viewportTotal.toLocaleString('en-IN')}
+                        </AppText>
+                        <AppText
+                            variant="caption-xs"
+                            className="font-medium text-text-primary-lighter"
+                        >
+                            in view
+                        </AppText>
+                        <AppText
+                            variant="caption-xs"
+                            className="text-text-primary-lighter"
+                        >
+                            ·
+                        </AppText>
+                        <AppText
+                            variant="caption-xs"
+                            className="font-medium text-text-primary-lighter"
+                        >
+                            {viewportPlaceCount}{' '}
+                            {viewportPlaceCount === 1 ? 'place' : 'places'}
+                        </AppText>
+                    </View>
+                    {selectedMemoryTitle ? (
+                        <Pressable
+                            onPress={() => {
+                                onInteraction?.();
+                                onPressMemoryChip?.();
+                            }}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Show ${selectedMemoryTitle} on map`}
+                            className="ml-2 max-w-[40%] rounded-full bg-accent-sky-bg px-2.5 py-1 active:opacity-80"
+                        >
+                            <AppText
+                                variant="caption-xs"
+                                className="font-semibold text-accent-sky"
+                                numberOfLines={1}
+                            >
+                                {selectedMemoryTitle}
+                            </AppText>
+                        </Pressable>
+                    ) : null}
+                </View>
+
             </View>
 
-            {/* MEMORY SELECTION HORIZONTAL BAR */}
-            {scopeMode === 'trip' && (
-                <View className="mb-2.5 py-1">
-                    <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
+            <View className="mt-2">
+                <DisplayViewFab
+                    displayView={displayView}
+                    onSelectDisplayView={(view) => {
+                        onInteraction?.();
+                        onSelectDisplayView(view);
+                    }}
+                    onOpenMemories={() => {
+                        onInteraction?.();
+                        onOpenMemories();
+                    }}
+                    leading={
+                        displayView === 'trail' ? <TrailTimeLegend /> : null
+                    }
+                />
+            </View>
+
+            {searchResults.length > 0 ? (
+                <View className="mt-2 max-h-[340px] overflow-hidden rounded-[24px] border border-border-input bg-bg-primary-lighter shadow-lg shadow-black/15 elevation-8 dark:bg-bg-canvas">
+                    <FlatList
+                        data={searchResults}
+                        keyExtractor={(item, index) =>
+                            item.provider_id?.toString() || index.toString()
+                        }
                         keyboardShouldPersistTaps="handled"
-                    >
-                        {memoryList.map((memory) => {
-                            const memoryIdStr = String(memory.id);
-                            const isSelected = selectedMemoryId === memoryIdStr;
+                        contentContainerStyle={{paddingVertical: 4}}
+                        renderItem={({item}) => {
+                            const distanceData = location
+                                ? calculateDistance(
+                                      location.latitude,
+                                      location.longitude,
+                                      item.geo.latitude,
+                                      item.geo.longitude
+                                  )
+                                : null;
+
+                            const imageUrl =
+                                item.photos && item.photos.length > 0
+                                    ? item.photos[0].url
+                                    : defaultImage;
+
+                            const imageId =
+                                item.photos && item.photos.length > 0
+                                    ? String(item.photos[0].id)
+                                    : `fallback_${item.provider_id || item.name.replace(/\s+/g, '')}`;
+
                             return (
-                                <TouchableOpacity
-                                    key={`memory-selector-${memory.id}`}
-                                    activeOpacity={0.7}
+                                <Pressable
                                     onPress={() => {
                                         onInteraction?.();
-                                        onSelectMemory(memoryIdStr);
+                                        onSelectResult(item);
                                     }}
-                                    className={`mr-2 px-3 py-1.5 rounded-full border ${
-                                        isSelected
-                                            ? 'bg-primary border-primary'
-                                            : 'bg-card border-border'
-                                    }`}
+                                    className="border-b border-black/[0.06] px-4 py-3 active:bg-bg-primary-darker dark:border-white/[0.06] dark:active:bg-bg-primary-darker"
                                 >
-                                    <Text
-                                        className={`text-xs font-medium ${
-                                            isSelected ? 'text-primary-foreground' : 'text-foreground'
-                                        }`}
-                                    >
-                                        {memory.title}
-                                    </Text>
-                                </TouchableOpacity>
+                                    <View className="w-full flex-row items-center justify-between">
+                                        <View className="h-[56px] w-[56px] overflow-hidden rounded-[16px] bg-bg-primary-darker">
+                                            <AppImageV2
+                                                id={imageId}
+                                                url={imageUrl}
+                                                style={{width: '100%', height: '100%'}}
+                                                contentFit="cover"
+                                                fallbackComponent={
+                                                    <EntityFallbackIcon
+                                                        kind="place"
+                                                        size={24}
+                                                        color={colors.icon.lighter}
+                                                    />
+                                                }
+                                            />
+                                        </View>
+
+                                        <View className="min-w-0 flex-1 justify-center px-3">
+                                            <AppText
+                                                variant="body-base"
+                                                numberOfLines={1}
+                                                className="mb-0.5 font-semibold tracking-tight text-text-primary"
+                                            >
+                                                {item.name}
+                                            </AppText>
+                                            {item.address ? (
+                                                <AppText
+                                                    variant="caption-xs"
+                                                    numberOfLines={1}
+                                                    className="text-text-primary/70 dark:text-text-primary/60"
+                                                >
+                                                    {item.address}
+                                                </AppText>
+                                            ) : null}
+                                        </View>
+
+                                        <View className="min-w-[50px] items-center justify-center pl-1">
+                                            <Iconify
+                                                icon="heroicons:map-pin-solid"
+                                                size={22}
+                                                color={colors.status.error}
+                                            />
+                                            {distanceData ? (
+                                                <AppText
+                                                    variant="caption-xs"
+                                                    className="mt-0.5 text-center font-medium text-text-primary"
+                                                    numberOfLines={1}
+                                                >
+                                                    {distanceData.value}{' '}
+                                                    {distanceData.unit}
+                                                </AppText>
+                                            ) : null}
+                                        </View>
+                                    </View>
+                                </Pressable>
                             );
-                        })}
-                    </ScrollView>
+                        }}
+                    />
                 </View>
-            )}
+            ) : null}
         </View>
     );
 }
-
-const styles = StyleSheet.create({
-    activeShadow: {
-        shadowColor: '#000',
-        shadowOffset: {width: 0, height: 1},
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 2,
-    },
-});

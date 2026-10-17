@@ -1,9 +1,9 @@
-import React from "react";
-import DashboardScreen from "@/src/screens/dashboard";
+import React from 'react';
+import LedgerMonthPlayground from '@/src/screens/dev/ledger-month';
 
-/** Profile / settings tab — product dashboard surface. */
+/** Settings tab temporarily hosts the ledger calendar playground. */
 const Settings = () => {
-    return <DashboardScreen />;
+    return <LedgerMonthPlayground />;
 };
 
 export default Settings;

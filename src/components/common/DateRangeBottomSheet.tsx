@@ -287,7 +287,7 @@ export const DateRangeBottomSheet: React.FC<DateRangeBottomSheetProps> = ({
                                 calendarBackground: palette.cardBg,
                                 textSectionTitleColor: palette.textLighter,
                                 selectedDayBackgroundColor: palette.range,
-                                selectedDayTextColor: '#FFFFFF',
+                                selectedDayTextColor: palette.ctaLabel,
                                 todayTextColor: palette.todayText,
                                 todayBackgroundColor: 'transparent',
                                 dayTextColor: palette.textPrimary,

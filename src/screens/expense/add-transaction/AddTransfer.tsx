@@ -14,6 +14,9 @@ import {useTranslation} from 'react-i18next';
 import {Pressable, View} from 'react-native';
 import {Iconify} from 'react-native-iconify';
 import {PaymentCategorySelector} from "@/src/components/user/transfer/PaymentCategorySelector";
+import {ScheduleDateChip} from './components/ScheduleDateChip';
+import {useAddTransactionActions} from './context/AddTransactionActionsContext';
+import {useRegisterOverlayDismiss} from '@/src/hooks/useBackDismissStack';
 
 const QUICK_AMOUNTS = [100, 200, 500, 1000];
 
@@ -21,17 +24,28 @@ const AddTransfer = () => {
     const {t} = useTranslation();
     const {theme} = themeStore();
     const isDark = theme === 'dark';
+    const colors = isDark ? COLORS.dark : COLORS.light;
 
     const draft = useTransferDraftStore();
     const currentUser = userStore((state) => state.user);
+    const {openDatePicker} = useAddTransactionActions();
 
     const [bottomSheetOpen, setBottomSheetOpen] = useState(false);
     const [currencySheetOpen, setCurrencySheetOpen] = useState(false);
     const [activeSelectionTarget, setActiveSelectionTarget] = useState<'sender' | 'recipient' | null>(null);
 
+    useRegisterOverlayDismiss(bottomSheetOpen, () => setBottomSheetOpen(false));
+    useRegisterOverlayDismiss(currencySheetOpen, () => setCurrencySheetOpen(false));
+
     const amountString = useMemo(() => {
         return draft.amount === 0 ? "" : draft.amount.toString();
     }, [draft.amount]);
+
+    const amountDateLabel = useMemo(() => {
+        const d = new Date(draft.transferDate);
+        if (Number.isNaN(d.getTime())) return 'Pick date';
+        return d.toLocaleDateString('en-US', {weekday: 'short', day: 'numeric', month: 'short'});
+    }, [draft.transferDate]);
 
     useEffect(() => {
         if (!draft.sender && currentUser) {
@@ -243,9 +257,9 @@ const AddTransfer = () => {
                     <Pressable onPress={() => openSelectorFor('sender')}
                                className="flex-1 items-center active:opacity-75">
                         <View
-                            className="w-12 h-12 rounded-full bg-bg-secondary-lighter items-center justify-center mb-2 border border-bg-secondary/20">
+                            className="w-12 h-12 rounded-full bg-bg-primary-lighter items-center justify-center mb-2 border border-border-input">
                             <Iconify icon="heroicons:user-minus" size={22}
-                                     color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary}/>
+                                     color={colors.icon.primary}/>
                         </View>
                         <AppText variant="caption-xs"
                                  className="text-text-primary opacity-60 font-semibold uppercase tracking-wider">{t('transfer.from', 'Sender')}</AppText>
@@ -258,18 +272,26 @@ const AddTransfer = () => {
                     <View className="px-2 items-center justify-center">
                         <Pressable
                             onPress={handleSwapParticipants}
-                            className="bg-bg-primary p-2.5 rounded-full border border-border-input shadow-sm active:bg-gray-100 dark:active:bg-zinc-800"
+                            className="rounded-full border p-2.5 shadow-sm active:opacity-80"
+                            style={{
+                                backgroundColor: colors.bg.primary,
+                                borderColor: colors.status.border,
+                            }}
                         >
                             <Iconify icon="heroicons:arrows-right-left" size={18}
-                                     color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary}/>
+                                     color={colors.icon.primary}/>
                         </Pressable>
                     </View>
 
                     <Pressable onPress={() => openSelectorFor('recipient')}
                                className="flex-1 items-center active:opacity-75">
                         <View
-                            className="w-12 h-12 rounded-full bg-blue-500/10 items-center justify-center mb-2 border border-blue-500/20">
-                            <Iconify icon="heroicons:user-plus" size={22} color="#3B82F6"/>
+                            className="mb-2 h-12 w-12 items-center justify-center rounded-full border bg-accent-sky-bg border-accent-sky/40">
+                            <Iconify
+                                icon="heroicons:user-plus"
+                                size={22}
+                                color={colors.accent.sky}
+                            />
                         </View>
                         <AppText variant="caption-xs"
                                  className="text-text-primary opacity-60 font-semibold uppercase tracking-wider">{t('transfer.to', 'Recipient')}</AppText>
@@ -281,34 +303,45 @@ const AddTransfer = () => {
                 </View>
 
                 {/* 2. Amount Input Field Box */}
-                <View>
-                    <AppInput
-                        label={t('transfer.amount_label', 'Amount')}
-                        value={amountString}
-                        onChangeText={handleAmountChange}
-                        placeholder="0.00"
-                        placeholderTextColor="rgb(var(--color-text-primary-placeholder))"
-                        keyboardType="numeric"
-                        renderLeftIcon={() => (
-                            <Pressable
-                                onPress={() => setCurrencySheetOpen(true)}
-                                className="flex-row items-center mr-2 pr-2 border-r border-border-input"
-                            >
-                                <AppText className="text-green-increase text-heading-h3 font-bold">
-                                    {activeCurrencyConfig?.symbol ?? '₹'}
-                                </AppText>
-                                <Iconify icon="heroicons:chevron-down" size={14}
-                                         color={isDark ? COLORS.dark.brand.primary : COLORS.light.brand.primary}
-                                         className="ml-1"/>
-                            </Pressable>
-                        )}
-                        renderRightIcon={() => (
-                            <Pressable onPress={() => draft.setAmount(0)}>
-                                <AppText variant="body-small"
-                                         className="text-green-increase font-medium">Clear</AppText>
-                            </Pressable>
-                        )}
-                    />
+                <View className="gap-y-2">
+                    <AppText variant="body-base" className="font-semibold text-text-primary">
+                        {t('transfer.amount_label', 'Amount')}
+                    </AppText>
+                    <View className="flex-row items-center gap-x-2">
+                        <View className="flex-1 min-w-0">
+                            <AppInput
+                                value={amountString}
+                                onChangeText={handleAmountChange}
+                                placeholder="0.00"
+                                placeholderTextColor={colors.text.placeholder}
+                                keyboardType="numeric"
+                                renderLeftIcon={() => (
+                                    <Pressable
+                                        onPress={() => setCurrencySheetOpen(true)}
+                                        className="flex-row items-center mr-2 pr-2 border-r border-border-input"
+                                    >
+                                        <AppText className="text-green-increase text-heading-h3 font-bold">
+                                            {activeCurrencyConfig?.symbol ?? '₹'}
+                                        </AppText>
+                                        <Iconify icon="heroicons:chevron-down" size={14}
+                                                 color={colors.icon.primary}
+                                                 className="ml-1"/>
+                                    </Pressable>
+                                )}
+                                renderRightIcon={() => (
+                                    <Pressable onPress={() => draft.setAmount(0)}>
+                                        <AppText variant="body-small"
+                                                 className="text-green-increase font-medium">Clear</AppText>
+                                    </Pressable>
+                                )}
+                            />
+                        </View>
+                        <ScheduleDateChip
+                            label={amountDateLabel}
+                            mode="once"
+                            onPress={openDatePicker}
+                        />
+                    </View>
                 </View>
 
                 {/* 3. Quick-Select Amount Pill Chips Matrix */}
@@ -326,7 +359,7 @@ const AddTransfer = () => {
                                 }`}
                             >
                                 <AppText variant="body-small"
-                                         className={`font-semibold ${isSelected ? 'text-green-increase' : 'text-text-primary-lighter'}`}>
+                                         className={`font-semibold ${isSelected ? 'text-accent-sky' : 'text-text-primary-lighter'}`}>
                                     +{activeCurrencyConfig?.symbol ?? ''}{amt}
                                 </AppText>
                             </Pressable>
@@ -342,14 +375,14 @@ const AddTransfer = () => {
                     <AppInput
                         label={t('transfer.name_label', 'Transfer Name')}
                         placeholder={t('transfer.name_placeholder', 'Enter transfer name')}
-                        placeholderTextColor="rgb(var(--color-text-primary-placeholder))"
+                        placeholderTextColor={colors.text.placeholder}
                         value={draft.name}
                         onChangeText={(text) => draft.setName(text)}
                         maxLength={100}
                         renderLeftIcon={() => (
                             <View className="mt-0.5 mr-1">
                                 <Iconify icon="heroicons:tag" size={20}
-                                         color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary}/>
+                                         color={colors.icon.primary}/>
                             </View>
                         )}
                     />

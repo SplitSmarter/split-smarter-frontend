@@ -20,6 +20,7 @@ export const GroupShareModal: React.FC<GroupShareModalProps> = ({
                                                                     groupId,
                                                                     isDark
                                                                 }) => {
+    const colors = isDark ? COLORS.dark : COLORS.light;
     const shareInviteLink = `https://expensetracker.app/join/group/${groupId || 'invite'}`;
 
     const handleCopyInviteLink = () => {
@@ -45,17 +46,17 @@ export const GroupShareModal: React.FC<GroupShareModalProps> = ({
             onRequestClose={onClose}
         >
             <View className="flex-1 justify-center items-center bg-black/60 px-6">
-                <View className="bg-background w-full rounded-[36px] p-6 border border-zinc-200 dark:border-zinc-800 items-center relative">
+                <View className="bg-background w-full rounded-[36px] p-6 border border-border-input items-center relative">
 
                     {/* Modal Close Anchor */}
                     <Pressable
                         onPress={onClose}
-                        className="absolute top-4 right-4 p-2 bg-zinc-100 dark:bg-zinc-900 rounded-full active:opacity-60"
+                        className="absolute top-4 right-4 p-2 bg-bg-primary-darker rounded-full active:opacity-60"
                     >
-                        <Iconify icon="heroicons:x-mark" size={20} color={isDark ? "#FFF" : "#000"} />
+                        <Iconify icon="heroicons:x-mark" size={20} color={colors.icon.primary} />
                     </Pressable>
 
-                    <Iconify icon="heroicons:qr-code" size={36} color={COLORS.light.brand.primary} className="mb-1" />
+                    <Iconify icon="heroicons:qr-code" size={36} color={colors.icon.primary} className="mb-1" />
                     <AppText variant="h3" className="font-black text-foreground text-center text-xl mb-1">
                         Group Invitation
                     </AppText>
@@ -64,18 +65,18 @@ export const GroupShareModal: React.FC<GroupShareModalProps> = ({
                     </AppText>
 
                     {/* HIGH-FIDELITY QR CANVAS PLACEHOLDER ZONE */}
-                    <View className="p-4 bg-white rounded-3xl mb-6 shadow-sm border border-zinc-100 items-center justify-center w-48 h-48">
-                        <View className="w-full h-full items-center justify-center border-4 border-dashed border-zinc-300 rounded-2xl relative">
-                            <Iconify icon="heroicons:qr-code" size={110} color="#18181B" />
-                            <View className="absolute p-1 bg-white rounded-xl">
-                                <Iconify icon="heroicons:user-group-solid" size={24} color={COLORS.light.brand.primary} />
+                    <View className="p-4 bg-bg-canvas rounded-3xl mb-6 shadow-sm border border-border-input items-center justify-center w-48 h-48">
+                        <View className="w-full h-full items-center justify-center border-4 border-dashed border-border-input rounded-2xl relative">
+                            <Iconify icon="heroicons:qr-code" size={110} color={colors.text.primary} />
+                            <View className="absolute p-1 bg-bg-canvas rounded-xl">
+                                <Iconify icon="heroicons:user-group-solid" size={24} color={colors.icon.primary} />
                             </View>
                         </View>
                     </View>
 
                     {/* INTERACTIVE LINK EXPANSION ROW WITH ACTION HUBS */}
                     <View className="w-full flex-row items-center p-3 rounded-2xl bg-bg-primary-lighter border border-bg-primary-darker mb-6">
-                        <Iconify icon="heroicons:link" size={18} color="#71717A" className="shrink-0 ml-1" />
+                        <Iconify icon="heroicons:link" size={18} color={colors.icon.lighter} className="shrink-0 ml-1" />
                         <AppText numberOfLines={1} className="text-xs text-text-primary font-medium mx-3 flex-1">
                             {shareInviteLink}
                         </AppText>
@@ -84,17 +85,17 @@ export const GroupShareModal: React.FC<GroupShareModalProps> = ({
                             {/* Native Messaging App Forwarder */}
                             <Pressable
                                 onPress={handleNativeShare}
-                                className="p-2 rounded-xl bg-bg-secondary/10 border border-bg-secondary/20 active:opacity-60"
+                                className="p-2 rounded-xl bg-accent-sky-bg border border-accent-sky/30 active:opacity-60"
                             >
-                                <Iconify icon="heroicons:chat-bubble-left-right" size={16} color={COLORS.light.brand.primary} />
+                                <Iconify icon="heroicons:chat-bubble-left-right" size={16} color={colors.accent.sky} />
                             </Pressable>
 
                             {/* Direct Clipboard Copier */}
                             <Pressable
                                 onPress={handleCopyInviteLink}
-                                className="p-2 rounded-xl bg-bg-secondary/10 border border-bg-secondary/20 active:opacity-60"
+                                className="p-2 rounded-xl bg-accent-sky-bg border border-accent-sky/30 active:opacity-60"
                             >
-                                <Iconify icon="heroicons:document-duplicate" size={16} color={COLORS.light.brand.primary} />
+                                <Iconify icon="heroicons:document-duplicate" size={16} color={colors.accent.sky} />
                             </Pressable>
                         </View>
                     </View>
@@ -102,10 +103,10 @@ export const GroupShareModal: React.FC<GroupShareModalProps> = ({
                     {/* Global Modal Exit Button */}
                     <AppButtonV2
                         onPress={onClose}
-                        variant={'primary'}
-                        className="w-full py-3.5 items-center justify-center rounded-xl bg-zinc-200 dark:bg-zinc-800 active:opacity-80"
+                        variant="primary"
+                        className="w-full py-3.5 rounded-xl"
                     >
-                        <AppText className="font-bold text-foreground text-sm">Close</AppText>
+                        Close
                     </AppButtonV2>
                 </View>
             </View>

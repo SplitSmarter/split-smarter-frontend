@@ -196,7 +196,9 @@ export interface PlacePeersAnalytics {
 }
 
 export interface PlaceAnalyticsBundle {
-    place_id: number;
+    /** Combined place IDs (multi-place bundle). Single-place may still set place_id. */
+    place_ids: number[];
+    place_id?: number | null;
     start_date: string; // YYYY-MM-DD
     end_date: string; // YYYY-MM-DD
     summary?: PlaceSummaryAnalytics | null;
@@ -247,4 +249,10 @@ export interface PlaceAnalyticsQueryParams {
 export interface PlaceAnalyticsBundleQueryParams extends PlaceAnalyticsQueryParams {
     /** One or more sections to include in the bundle */
     include: PlaceAnalyticsSection[];
+}
+
+/** Multi-place bundle query (place_ids passed separately or inline). */
+export interface MultiPlaceAnalyticsBundleQueryParams
+    extends PlaceAnalyticsBundleQueryParams {
+    place_ids?: number[];
 }

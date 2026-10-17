@@ -3,10 +3,12 @@ import { View, Pressable } from 'react-native';
 import { Iconify } from "react-native-iconify";
 import { AppText } from '@/src/components/common/AppText';
 import { AppImageV2 } from '@/src/components/common/AppImageV2';
+import { EntityFallbackIcon } from '@/src/components/common/EntityFallbackIcon';
 import { ExpenseDetailsBasicResponse } from "@/src/api/dto/expense/expense";
 import { RelationWithUserType } from "@/src/api/dto/constants";
 import { getPayerContextText } from "@/src/utils/expense/payers";
 import { Currency, CurrencyCode } from '@/src/constants/expense/currency';
+import { COLORS } from '@/src/constants/colors';
 
 interface ExpenseRowProps {
     item: ExpenseDetailsBasicResponse;
@@ -25,6 +27,7 @@ export const ExpenseRow = ({
                                isDark,
                                onPress
                            }: ExpenseRowProps) => {
+    const colors = isDark ? COLORS.dark : COLORS.light;
     const isSettled = item.is_user_settled;
     const userShare = item.user_share ?? 0;
     const userPaid = item.user_paid ?? 0;
@@ -70,25 +73,23 @@ export const ExpenseRow = ({
         <Pressable
             onPress={() => onPress?.(item)}
             disabled={!onPress}
-            className="flex-row items-center py-3.5 border-b border-gray-50 dark:border-zinc-900 last:border-b-0 active:opacity-70"
+            className="flex-row items-center py-3.5 border-b border-border-input last:border-b-0 active:opacity-70"
         >
             {/* Left Side Icon Stack */}
-            <View className="relative w-12 h-12 rounded-full bg-bg-secondary-lighter items-center justify-center mr-4">
-                {item.category?.icon?.id ? (
-                    <AppImageV2
-                        id={`${item.category.icon.id}`}
-                        url={item.category.icon.url}
-                        style={{ width: 24, height: 24 }}
-                        contentFit="contain"
-                        fallbackComponent={<Iconify icon="heroicons:receipt-percent" size={22} color={isDark ? "#32966E" : "#2B8761"} />}
-                    />
-                ) : (
-                    <Iconify icon="heroicons:receipt-percent" size={22} color={isDark ? "#32966E" : "#2B8761"} />
-                )}
+            <View className="relative w-12 h-12 rounded-full bg-bg-primary-lighter items-center justify-center mr-4 border border-border-input">
+                <AppImageV2
+                    id={`${item.category?.icon?.id ?? item.id}`}
+                    url={item.category?.icon?.url}
+                    style={{ width: 24, height: 24 }}
+                    contentFit="contain"
+                    fallbackComponent={
+                        <EntityFallbackIcon kind="expense" size={22} color={colors.icon.primary} />
+                    }
+                />
 
                 {isSettled && (
-                    <View className="absolute -bottom-1 -right-1 bg-bg-secondary rounded-full w-5 h-5 items-center justify-center border border-white dark:border-zinc-950">
-                        <Iconify icon="heroicons:check" size={12} color="white" />
+                    <View className="absolute -bottom-1 -right-1 bg-bg-secondary rounded-full w-5 h-5 items-center justify-center border border-bg-primary-lighter">
+                        <Iconify icon="heroicons:check" size={12} color={colors.text.contrast} />
                     </View>
                 )}
             </View>
@@ -97,10 +98,10 @@ export const ExpenseRow = ({
             <View className="flex-1 justify-center">
                 {/* Row 1 */}
                 <View className="flex-row items-center justify-between">
-                    <AppText variant="body-base" className="font-semibold text-gray-900 dark:text-zinc-100 flex-1 mr-2" numberOfLines={1}>
+                    <AppText variant="body-base" className="font-semibold text-text-primary flex-1 mr-2" numberOfLines={1}>
                         {item.name}
                     </AppText>
-                    <AppText variant="body-small" className="text-gray-400 dark:text-zinc-500 font-medium">
+                    <AppText variant="body-small" className="text-text-primary-lighter font-medium">
                         {formattedRowDate}
                     </AppText>
                 </View>
@@ -108,12 +109,12 @@ export const ExpenseRow = ({
                 {/* Row 2 */}
                 <View className="flex-row items-center justify-between mt-0.5">
                     <View className="flex-row items-center flex-1 mr-2">
-                        <AppText variant="body-small" className="text-gray-500 dark:text-zinc-400" numberOfLines={1}>
+                        <AppText variant="body-small" className="text-text-primary-lighter" numberOfLines={1}>
                             {payerContext}
                         </AppText>
                         {item.has_attachment && (
                             <View className="ml-1.5 justify-center">
-                                <Iconify icon="heroicons:paper-clip" size={12} color={isDark ? "#A1A1AA" : "#646464"} />
+                                <Iconify icon="heroicons:paper-clip" size={12} color={colors.icon.lighter} />
                             </View>
                         )}
                     </View>
@@ -126,7 +127,7 @@ export const ExpenseRow = ({
                             {displayNet > 0 ? '+' : ''}{displayCurrencySymbol}{displayNet.toFixed(2)}
                         </AppText>
                     ) : (
-                        <AppText variant="body-small" className="text-gray-400 dark:text-zinc-500 text-right font-medium">
+                        <AppText variant="body-small" className="text-text-primary-lighter text-right font-medium">
                             Not involved
                         </AppText>
                     )}
@@ -136,14 +137,14 @@ export const ExpenseRow = ({
                 <View className="flex-row items-center justify-between mt-0.5">
                     <View className="flex-1 mr-2">
                         {item.place?.name ? (
-                            <AppText variant="body-small" className="text-gray-400 dark:text-zinc-500" numberOfLines={1}>
+                            <AppText variant="body-small" className="text-text-primary-lighter" numberOfLines={1}>
                                 📍 {item.place.name}
                             </AppText>
                         ) : (
                             <View className="h-4" />
                         )}
                     </View>
-                    <AppText variant="body-small" className="text-gray-400 dark:text-zinc-500 font-medium text-right">
+                    <AppText variant="body-small" className="text-text-primary-lighter font-medium text-right">
                         {getCurrencySymbol(item.currency)}{item.total_amount.toFixed(2)}
                     </AppText>
                 </View>

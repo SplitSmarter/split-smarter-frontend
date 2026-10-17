@@ -1,11 +1,12 @@
 import React, {useState, useEffect} from 'react';
 import {View, Pressable, ActivityIndicator} from 'react-native';
-import {useRouter} from 'expo-router';
 import {AppText} from '@/src/components/common/AppText';
 import {AppImageV2} from '@/src/components/common/AppImageV2';
+import {EntityFallbackIcon} from '@/src/components/common/EntityFallbackIcon';
 import {images} from "@/src/constants/images";
 import {SelectExpenseCategoryBottomSheet} from "@/src/components/expense/SelectExpenseCategoryBottomSheet";
 import {SelectGroupBottomSheet} from "@/src/components/user/SelectGroupBottomSheet";
+import {SelectSavedPlaceBottomSheet} from "@/src/components/user/SelectSavedPlaceBottomSheet";
 import {systemStore} from "@/src/store/systemStore";
 import {useExpenseDraftStore} from "@/src/store/draft/expenseDraftStore";
 import {GetExpenseCategoryByIdApi} from "@/src/api/expense/categories";
@@ -17,15 +18,23 @@ import {GetUserPlaceByIdApi} from "@/src/api/user/place/location";
 import {useLocationStore} from "@/src/store/locationStore";
 import {DraftValidationErrorKey} from "@/src/interfaces/expense/draft_validation";
 import { COLORS } from '@/src/constants/colors';
+import { themeStore } from '@/src/store/themeStore';
+import {useRegisterOverlayDismiss} from '@/src/hooks/useBackDismissStack';
 
 export const CategoryGroupLocationSelector = () => {
-    const router = useRouter();
     const {defaults} = systemStore();
     const draft = useExpenseDraftStore();
+    const isDark = themeStore((state) => state.theme === 'dark');
+    const colors = isDark ? COLORS.dark : COLORS.light;
 
     // Modal Visibility States
     const [categoryModalVisible, setCategoryModalVisible] = useState(false);
     const [groupModalVisible, setGroupModalVisible] = useState(false);
+    const [placeModalVisible, setPlaceModalVisible] = useState(false);
+
+    useRegisterOverlayDismiss(categoryModalVisible, () => setCategoryModalVisible(false));
+    useRegisterOverlayDismiss(groupModalVisible, () => setGroupModalVisible(false));
+    useRegisterOverlayDismiss(placeModalVisible, () => setPlaceModalVisible(false));
 
     // Hydrated Entity Payload State
     const [fullCategory, setFullCategory] = useState<ExpenseCategoryResponse | null>(null);
@@ -142,16 +151,15 @@ export const CategoryGroupLocationSelector = () => {
                         className="rounded-full"
                         contentFit="cover"
                         fallbackComponent={
-                            <View style={{width: 56, height: 56}}
-                                  className="bg-bg-secondary-lighter dark:bg-gray-800 rounded-full items-center justify-center border border-gray-200 dark:border-gray-700">
-                                <Iconify icon="heroicons:tag" size={24} color={COLORS.light.brand.primary}/>
-                            </View>
+                            <EntityFallbackIcon kind="expenseCategory" size={24} color={colors.icon.primary}/>
                         }
                     />
                     {catLoading && (
                         <View
-                            className="absolute inset-0 items-center justify-center bg-white/60 dark:bg-black/60 rounded-full">
-                            <ActivityIndicator size="small" color={COLORS.light.brand.primary}/>
+                            className="absolute inset-0 items-center justify-center rounded-full"
+                            style={{backgroundColor: isDark ? 'rgba(7,9,14,0.6)' : 'rgba(255,255,255,0.6)'}}
+                        >
+                            <ActivityIndicator size="small" color={colors.icon.primary}/>
                         </View>
                     )}
                 </Pressable>
@@ -170,24 +178,32 @@ export const CategoryGroupLocationSelector = () => {
                     Group
                 </AppText>
                 <Pressable onPress={() => setGroupModalVisible(true)} className="mb-2 relative">
-                    {fullGroup?.icon?.url ? (
-                        <AppImageV2
-                            id={`group-${fullGroup.id}`}
-                            url={fullGroup.icon.url}
-                            style={{width: 56, height: 56}}
-                            className="rounded-full"
-                            contentFit="cover"
-                        />
-                    ) : (
-                        <View style={{width: 56, height: 56}}
-                              className="rounded-full bg-gray-50 dark:bg-gray-900 items-center justify-center border border-dashed border-gray-300 dark:border-gray-700">
-                            <Iconify icon="heroicons:users" size={24} color="#9CA3AF"/>
-                        </View>
-                    )}
+                    <AppImageV2
+                        id={`group-${fullGroup?.id ?? 'none'}`}
+                        url={fullGroup?.icon?.url}
+                        style={{width: 56, height: 56}}
+                        className="rounded-full"
+                        contentFit="cover"
+                        fallbackComponent={
+                            <View
+                                style={{
+                                    width: 56,
+                                    height: 56,
+                                    backgroundColor: colors.bg.darker,
+                                    borderColor: colors.status.border,
+                                }}
+                                className="items-center justify-center rounded-full border border-dashed"
+                            >
+                                <EntityFallbackIcon kind="group" size={24} color={colors.icon.lighter}/>
+                            </View>
+                        }
+                    />
                     {groupLoading && (
                         <View
-                            className="absolute inset-0 items-center justify-center bg-white/60 dark:bg-black/60 rounded-full">
-                            <ActivityIndicator size="small" color={COLORS.light.brand.primary}/>
+                            className="absolute inset-0 items-center justify-center rounded-full"
+                            style={{backgroundColor: isDark ? 'rgba(7,9,14,0.6)' : 'rgba(255,255,255,0.6)'}}
+                        >
+                            <ActivityIndicator size="small" color={colors.icon.primary}/>
                         </View>
                     )}
                 </Pressable>
@@ -205,7 +221,7 @@ export const CategoryGroupLocationSelector = () => {
                 >
                     Location
                 </AppText>
-                <Pressable onPress={() => router.push('/(authenticated)/map/select')} className="mb-2">
+                <Pressable onPress={() => setPlaceModalVisible(true)} className="mb-2">
                     <AppImageV2
                         id={`loc-mode-${draft.expenseLocationMode || 'none'}`}
                         url={null}
@@ -245,6 +261,25 @@ export const CategoryGroupLocationSelector = () => {
                     draft.setGroupId(group.id);
                     setGroupModalVisible(false);
                     void draft.runIntegrityValidation(DraftValidationErrorKey.GROUP_MISMATCH);
+                }}
+            />
+
+            <SelectSavedPlaceBottomSheet
+                visible={placeModalVisible}
+                selectedId={
+                    draft.expenseLocationMode === 'place' && draft.expenseLocation?.id
+                        ? Number(draft.expenseLocation.id)
+                        : undefined
+                }
+                onClose={() => setPlaceModalVisible(false)}
+                onSelect={(place) => {
+                    if (place.id == null) return;
+                    draft.setExpenseLocation({
+                        id: String(place.id),
+                        name: place.name,
+                    });
+                    draft.setExpenseLocationMode('place');
+                    setPlaceModalVisible(false);
                 }}
             />
         </View>

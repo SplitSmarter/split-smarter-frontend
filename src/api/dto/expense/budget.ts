@@ -16,7 +16,10 @@ export interface AddBudgetRuleRequest {
     audience_type?: BudgetAudienceType;
     group_id?: number | null;
     cap_mode?: BudgetCapMode;
+    /** When true, scope id lists must be empty — budget matches all expenses. */
+    applies_to_all?: boolean;
     period?: BudgetPeriod | null;
+    /** Multiplier for period (e.g. 1 = every month). Required by API when period is set. */
     period_value?: number | null;
     start_date?: string | null; // YYYY-MM-DD
     end_date?: string | null; // YYYY-MM-DD
@@ -35,6 +38,7 @@ export interface UpdateBudgetRuleRequest {
     name?: string | null;
     amount?: number | null;
     cap_mode?: BudgetCapMode | null;
+    applies_to_all?: boolean | null;
     update_instances?: boolean | null;
     category_ids?: number[] | null;
     merchant_ids?: number[] | null;
@@ -98,6 +102,7 @@ export interface BudgetRuleListItem {
     audience_type: BudgetAudienceType;
     group_id: number | null;
     cap_mode: BudgetCapMode;
+    applies_to_all?: boolean;
 }
 
 export interface BudgetRuleDetails extends BudgetRuleListItem {

@@ -44,16 +44,6 @@ export interface AddTransferResponse {
     currency: Currency;
 }
 
-export interface AddSettlementLinkRequest {
-    transfer_id: number;
-    expense_id: number;
-    amount: number;
-}
-
-export interface AddSettlementLinkResponse {
-    id: number;
-}
-
 /** Matches backend TransferDetailsBasicResponse */
 export interface TransferDetailsBasicResponse {
     id: number;

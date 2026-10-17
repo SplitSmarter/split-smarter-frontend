@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { COLORS } from '@/src/constants/colors';
+import { COLORS, PLATINUM_HEADER } from '@/src/constants/colors';
 import {
     View,
     ScrollView,
@@ -15,8 +15,9 @@ import {
 import { Iconify } from 'react-native-iconify';
 import { AppText } from "@/src/components/common/AppText";
 import { AppImageV2 } from "@/src/components/common/AppImageV2";
+import { EntityFallbackIcon } from "@/src/components/common/EntityFallbackIcon";
 import { GroupDetails, GroupMemberDetails } from "@/src/api/dto/user/group";
-import { GroupJoinMethod } from "@/src/api/dto/constants";
+import { GroupJoinMethod, RelationWithUserType } from "@/src/api/dto/constants";
 import { HiddenUserTarget, SelectSinglePeopleBottomSheet } from "@/src/components/user/SelectSinglePeopleBottomSheet";
 import { JoinGroupApi } from "@/src/api/group/membership";
 import { GroupMemberDetailsBottomSheet } from "./GroupMemberDetailsBottomSheet";
@@ -27,6 +28,7 @@ import {GroupShareModal} from "./GroupShareModal";
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const TOP_IMAGE_HEIGHT = SCREEN_HEIGHT * 0.25;
 const STATUS_BAR_PADDING = Platform.OS === 'ios' ? 50 : (StatusBar.currentHeight || 16);
+const GROUP_MEMBER_USER_TYPES = [RelationWithUserType.USER];
 
 interface GroupInfoViewProps {
     onBackPress: () => void;
@@ -45,6 +47,7 @@ export const GroupInfoView: React.FC<GroupInfoViewProps> = ({
                                                             }) => {
     const theme = themeStore((state) => state.theme);
     const isDark = theme === 'dark';
+    const headerIconColor = COLORS.light.text.contrast;
     const headerHeight = Platform.OS === 'ios' ? 95 : 75;
 
     // Bottomsheet & Loading States
@@ -123,14 +126,14 @@ export const GroupInfoView: React.FC<GroupInfoViewProps> = ({
                     onPress={onBackPress}
                     className="w-10 h-10 items-center justify-center bg-black/40 rounded-full active:opacity-70"
                 >
-                    <Iconify icon="heroicons:arrow-left" size={24} color="#FFFFFF" />
+                    <Iconify icon="heroicons:arrow-left" size={24} color={headerIconColor} />
                 </Pressable>
 
                 <Pressable
                     onPress={() => setIsShareModalVisible(true)}
                     className="w-10 h-10 items-center justify-center bg-black/40 rounded-full active:opacity-70"
                 >
-                    <Iconify icon="heroicons:share-20-solid" size={24} color="#FFFFFF" />
+                    <Iconify icon="heroicons:share-20-solid" size={24} color={headerIconColor} />
                 </Pressable>
             </View>
 
@@ -147,7 +150,7 @@ export const GroupInfoView: React.FC<GroupInfoViewProps> = ({
                         contentFit="cover"
                     />
                 ) : (
-                    <View style={{ backgroundColor: COLORS.light.brand.primary, width: '100%', height: '100%' }} />
+                    <View style={{ backgroundColor: PLATINUM_HEADER.dark, width: '100%', height: '100%' }} />
                 )}
             </View>
 
@@ -170,25 +173,22 @@ export const GroupInfoView: React.FC<GroupInfoViewProps> = ({
                             width: 80,
                             height: 80,
                             elevation: 8,
-                            shadowColor: '#000',
+                            shadowColor: COLORS.light.brand.primary,
                             shadowOffset: { width: 0, height: 10 },
                             shadowOpacity: 0.35,
                             shadowRadius: 15
                         }}
                         className="absolute self-center rounded-full bg-background z-50 overflow-hidden items-center justify-center"
                     >
-                        {avatarUrl ? (
-                            <AppImageV2
-                                id="group_avatar_floating"
-                                url={avatarUrl}
-                                style={{ width: '100%', height: '100%', borderRadius: 9999 }}
-                                contentFit="cover"
-                            />
-                        ) : (
-                            <View className="w-full h-full items-center justify-center bg-zinc-800 rounded-full">
-                                <Iconify icon="heroicons:user-group-solid" size={40} color="#FFFFFF" />
-                            </View>
-                        )}
+                        <AppImageV2
+                            id="group_avatar_floating"
+                            url={avatarUrl}
+                            style={{ width: '100%', height: '100%', borderRadius: 9999 }}
+                            contentFit="cover"
+                            fallbackComponent={
+                                <EntityFallbackIcon kind="group" size={40} color={headerIconColor} />
+                            }
+                        />
                     </View>
 
                     {/* GROUP META: NAME & ADD MEMBERS SECTION */}
@@ -198,14 +198,14 @@ export const GroupInfoView: React.FC<GroupInfoViewProps> = ({
                         </AppText>
 
                         {isAddingUser ? (
-                            <ActivityIndicator size="small" color={COLORS.light.brand.primary} className="py-1" />
+                            <ActivityIndicator size="small" color={COLORS.light.icon.primary} className="py-1" />
                         ) : (
                             <Pressable
                                 onPress={() => setIsAddUserBottomSheetVisible(true)}
                                 className="flex-row items-center py-1 active:opacity-60"
                             >
-                                <Iconify icon="heroicons:user-plus" size={16} color={COLORS.light.brand.primary} />
-                                <AppText className="text-bg-secondary font-semibold ml-1.5 text-sm">
+                                <Iconify icon="heroicons:user-plus" size={16} color={COLORS.light.icon.primary} />
+                                <AppText className="text-text-link font-semibold ml-1.5 text-sm">
                                     Add Members
                                 </AppText>
                             </Pressable>
@@ -234,18 +234,15 @@ export const GroupInfoView: React.FC<GroupInfoViewProps> = ({
                                 >
                                     <View className="flex-row items-center flex-1 pr-4">
                                         <View className="p-0.5 rounded-full w-10 h-10 overflow-hidden items-center justify-center border border-text-primary-placeholder">
-                                            {membership.avatar?.url ? (
-                                                <AppImageV2
-                                                    id={`${membership.avatar.id}`}
-                                                    url={membership.avatar.url}
-                                                    style={{ width: '100%', height: '100%', borderRadius: 9999 }}
-                                                    contentFit="cover"
-                                                />
-                                            ) : (
-                                                <View className="w-full h-full items-center justify-center bg-zinc-700 rounded-full">
-                                                    <Iconify icon="heroicons:user" size={18} color="#FFFFFF" />
-                                                </View>
-                                            )}
+                                            <AppImageV2
+                                                id={`${membership.avatar?.id ?? membership.id}`}
+                                                url={membership.avatar?.url}
+                                                style={{ width: '100%', height: '100%', borderRadius: 9999 }}
+                                                contentFit="cover"
+                                                fallbackComponent={
+                                                    <EntityFallbackIcon kind="user" size={18} color={headerIconColor} />
+                                                }
+                                            />
                                         </View>
                                         <AppText numberOfLines={1} className="text-foreground font-medium ml-4 text-base flex-1">
                                             {membership?.name || 'Unknown User'}
@@ -281,6 +278,7 @@ export const GroupInfoView: React.FC<GroupInfoViewProps> = ({
             <SelectSinglePeopleBottomSheet
                 visible={isAddUserBottomSheetVisible}
                 hideUsers={hiddenUsersList}
+                allowedUserTypes={GROUP_MEMBER_USER_TYPES}
                 onClose={() => setIsAddUserBottomSheetVisible(false)}
                 onSelect={handleSelectPerson}
             />

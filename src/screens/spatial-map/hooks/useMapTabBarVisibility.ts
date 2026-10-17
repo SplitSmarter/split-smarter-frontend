@@ -1,13 +1,15 @@
 import {useCallback, useEffect, useRef} from 'react';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import {
-    FLOATING_TAB_BAR_STYLE,
+    getFloatingTabBarStyle,
     HIDDEN_TAB_BAR_STYLE,
 } from '@/src/constants/floatingTabBar';
+import {themeStore} from '@/src/store/themeStore';
 import {TAB_BAR_IDLE_MS} from '../constants/mapConstants';
 
 export function useMapTabBarVisibility() {
     const navigation = useNavigation();
+    const isDark = themeStore((s) => s.theme === 'dark');
     const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const overlayOpenRef = useRef(false);
 
@@ -20,8 +22,8 @@ export function useMapTabBarVisibility() {
 
     const showTabBar = useCallback(() => {
         if (overlayOpenRef.current) return;
-        navigation.setOptions({tabBarStyle: FLOATING_TAB_BAR_STYLE});
-    }, [navigation]);
+        navigation.setOptions({tabBarStyle: getFloatingTabBarStyle(isDark)});
+    }, [navigation, isDark]);
 
     const hideTabBar = useCallback(() => {
         navigation.setOptions({tabBarStyle: HIDDEN_TAB_BAR_STYLE});
@@ -57,9 +59,9 @@ export function useMapTabBarVisibility() {
             return () => {
                 clearIdleTimer();
                 overlayOpenRef.current = false;
-                navigation.setOptions({tabBarStyle: FLOATING_TAB_BAR_STYLE});
+                navigation.setOptions({tabBarStyle: getFloatingTabBarStyle(isDark)});
             };
-        }, [clearIdleTimer, navigation, showTabBar])
+        }, [clearIdleTimer, navigation, showTabBar, isDark])
     );
 
     useEffect(() => () => clearIdleTimer(), [clearIdleTimer]);

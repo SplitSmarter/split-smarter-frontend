@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
-import { Feather, Octicons } from '@expo/vector-icons';
-import { themeStore } from '@/src/store/themeStore';
-import { COLORS } from '@/src/constants/colors';
+import {View, Pressable} from 'react-native';
+import {Iconify} from 'react-native-iconify';
+import {AppText} from '@/src/components/common/AppText';
+import {themeStore} from '@/src/store/themeStore';
+import {COLORS} from '@/src/constants/colors';
 
 interface ActionButtonsProps {
     onDepositPress?: () => void;
@@ -11,49 +12,51 @@ interface ActionButtonsProps {
 }
 
 export const ActionButtons: React.FC<ActionButtonsProps> = ({
-                                                                onDepositPress,
-                                                                onSwitchPress,
-                                                                onWithdrawPress,
-                                                            }) => {
+    onDepositPress,
+    onSwitchPress,
+    onWithdrawPress,
+}) => {
     const isDark = themeStore((state) => state.theme === 'dark');
     const colors = isDark ? COLORS.dark : COLORS.light;
 
-    const pillStyle = {
-        backgroundColor: colors.bg.lighter,
-        borderColor: colors.status.border,
+    const ctaStyle = {
+        backgroundColor: colors.brand.primary,
+        borderColor: isDark ? 'rgba(15, 23, 42, 0.12)' : 'rgba(255, 255, 255, 0.25)',
     };
+    const labelColor = colors.text.contrast;
 
     return (
-        <View className="flex-row items-center justify-between px-5 -mt-5 mb-6 z-10">
-            <TouchableOpacity
+        <View className="z-10 mb-6 -mt-5 flex-row items-center justify-between px-5">
+            <Pressable
                 onPress={onDepositPress}
-                style={pillStyle}
-                className="flex-1 flex-row items-center justify-center py-3.5 px-3 rounded-2xl shadow-xl mr-2 border"
+                style={ctaStyle}
+                className="mr-2 flex-1 flex-row items-center justify-center rounded-2xl border px-3 py-3.5 shadow-xl active:opacity-90"
             >
-                <Feather name="arrow-up-right" size={18} color={colors.icon.darker} />
-                <Text style={{ color: colors.text.primary }} className="font-semibold ml-2">
+                <Iconify icon="heroicons:arrow-up-right" size={18} color={labelColor} />
+                <AppText variant="body-small" className="ml-2 font-bold" style={{color: labelColor}}>
                     Transfer
-                </Text>
-            </TouchableOpacity>
+                </AppText>
+            </Pressable>
 
-            <TouchableOpacity
+            <Pressable
                 onPress={onSwitchPress}
-                style={pillStyle}
-                className="w-12 h-12 rounded-2xl items-center justify-center shadow-xl mr-2 border"
+                accessibilityLabel="Convert"
+                style={ctaStyle}
+                className="mr-2 h-12 w-12 items-center justify-center rounded-2xl border shadow-xl active:opacity-90"
             >
-                <Octicons name="arrow-switch" size={18} color={colors.icon.darker} />
-            </TouchableOpacity>
+                <Iconify icon="octicon:arrow-switch-16" size={18} color={labelColor} />
+            </Pressable>
 
-            <TouchableOpacity
+            <Pressable
                 onPress={onWithdrawPress}
-                style={pillStyle}
-                className="flex-1 flex-row items-center justify-center py-3.5 px-3 rounded-2xl shadow-xl border"
+                style={ctaStyle}
+                className="flex-1 flex-row items-center justify-center rounded-2xl border px-3 py-3.5 shadow-xl active:opacity-90"
             >
-                <Feather name="arrow-down-left" size={18} color={colors.icon.darker} />
-                <Text style={{ color: colors.text.primary }} className="font-semibold ml-2">
+                <Iconify icon="heroicons:arrow-down-left" size={18} color={labelColor} />
+                <AppText variant="body-small" className="ml-2 font-bold" style={{color: labelColor}}>
                     Settle
-                </Text>
-            </TouchableOpacity>
+                </AppText>
+            </Pressable>
         </View>
     );
 };

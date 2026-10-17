@@ -1,4 +1,5 @@
 import {StyleSheet} from "react-native";
+import {COLORS} from "@/src/constants/colors";
 import {BRAND_COLORS, ThemeColors} from "../constants/theme";
 
 export const createStyles = (colors: ThemeColors) =>
@@ -101,7 +102,7 @@ export const createStyles = (colors: ThemeColors) =>
             backgroundColor: "rgba(250, 82, 82, 0.12)",
         },
         cancelBtnText: {
-            color: "#FA5252",
+            color: COLORS.light.status.error,
             fontSize: 13,
             fontWeight: "700",
         },
@@ -135,7 +136,7 @@ export const createStyles = (colors: ThemeColors) =>
         avatarText: {
             fontSize: 26,
             fontWeight: "800",
-            color: "#FFFFFF",
+            color: COLORS.light.text.contrast,
         },
         recipientNameText: {
             fontSize: 21,
@@ -264,7 +265,7 @@ export const createStyles = (colors: ThemeColors) =>
             justifyContent: "center",
         },
         payBtnText: {
-            color: "#FFFFFF",
+            color: COLORS.light.text.contrast,
             fontSize: 16,
             fontWeight: "700",
             letterSpacing: 0.5,

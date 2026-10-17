@@ -8,10 +8,12 @@ import {
 import { Swipeable } from 'react-native-gesture-handler';
 import { Iconify } from "react-native-iconify";
 import { AppImageV2 } from "@/src/components/common/AppImageV2";
+import { EntityFallbackIcon } from "@/src/components/common/EntityFallbackIcon";
 import { AppText } from '@/src/components/common/AppText';
 import { useAlert } from "@/src/context/alertContext";
 import { SplitMode, UserItem, ToggleUserPayload } from "@/src/components/expense/MultiUserSelect";
 import { RelationWithUserType } from "@/src/api/dto/constants";
+import { COLORS } from '@/src/constants/colors';
 
 interface ParticipantRowProps {
     item: UserItem;
@@ -42,6 +44,7 @@ const ParticipantRow = memo(({
                                  onAdjustShares,
                                  onUpdateAmount
                              }: ParticipantRowProps) => {
+    const colors = isDark ? COLORS.dark : COLORS.light;
     const { showAlert } = useAlert();
     const [localAmount, setLocalAmount] = useState('');
     const [localPercent, setLocalPercent] = useState('');
@@ -104,9 +107,10 @@ const ParticipantRow = memo(({
                 name: item.name,
                 avatarUrl: item.avatarUrl
             })}
-            className="bg-red-500 w-20 justify-center items-center rounded-r-2xl mb-2"
+            className="w-20 justify-center items-center rounded-r-2xl mb-2"
+            style={{ backgroundColor: colors.status.error }}
         >
-            <Iconify icon="heroicons:trash" size={24} color="white" />
+            <Iconify icon="heroicons:trash" size={24} color={colors.text.contrast} />
         </Pressable>
     );
 
@@ -115,14 +119,13 @@ const ParticipantRow = memo(({
         return (
             <Pressable
                 onPress={() => onToggleLock(compositeKey)}
-                className="bg-amber-500 w-20 justify-center items-center rounded-l-2xl mb-2"
+                className="w-20 justify-center items-center rounded-l-2xl mb-2"
+                style={{ backgroundColor: colors.status.warning }}
             >
                 {item.isLocked ? (
-                    <Iconify icon="heroicons:lock-open-solid" size={30}
-                             color={item.isLocked ? "rgb(var(--color-golden))" : "rgb(var(--color-text-secondary))"}/>
+                    <Iconify icon="heroicons:lock-open-solid" size={30} color={colors.text.contrast} />
                 ) : (
-                    <Iconify icon="heroicons:lock-closed-solid" size={30}
-                             color={item.isLocked ? "rgb(var(--color-golden))" : "rgb(var(--color-text-secondary))"}/>
+                    <Iconify icon="heroicons:lock-closed-solid" size={30} color={colors.text.contrast} />
                 )}
             </Pressable>
         );
@@ -135,18 +138,32 @@ const ParticipantRow = memo(({
             renderLeftActions={renderLeftSwipeAction}
             containerStyle={styles.swipeableContainer}
         >
-            <View className={`flex-row items-center p-4 rounded-2xl mb-2 ${isDark ? 'bg-gray-900' : 'bg-white shadow-sm'}`}>
+            <View
+                className="flex-row items-center p-4 rounded-2xl mb-2 shadow-sm"
+                style={{ backgroundColor: colors.bg.lighter }}
+            >
                 <View className="relative">
-                    <AppImageV2 id={item.id} url={item.avatarUrl} style={{ width: 44, height: 44 }} className="rounded-full" />
+                    <AppImageV2
+                        id={item.id}
+                        url={item.avatarUrl}
+                        style={{ width: 44, height: 44 }}
+                        className="rounded-full"
+                        fallbackComponent={
+                            <EntityFallbackIcon kind="user" size={22} color={colors.icon.lighter} />
+                        }
+                    />
                     {isFieldLocked && (
-                        <View className="absolute -top-1 -right-1 bg-amber-500 p-0.5 rounded-full border border-white dark:border-gray-900">
-                            <Iconify icon="heroicons:lock-closed-solid" size={10} color="white" />
+                        <View
+                            className="absolute -top-1 -right-1 p-0.5 rounded-full border border-bg-primary-lighter"
+                            style={{ backgroundColor: colors.status.warning }}
+                        >
+                            <Iconify icon="heroicons:lock-closed-solid" size={10} color={colors.text.contrast} />
                         </View>
                     )}
                 </View>
 
                 <View className="flex-1 ml-3 justify-center">
-                    <AppText className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                    <AppText className="font-semibold text-text-primary">
                         {item.name}
                     </AppText>
                 </View>
@@ -162,10 +179,11 @@ const ParticipantRow = memo(({
 
                 {splitMode === 'amount' && (
                     <View
-                        className={`flex-row items-center border rounded-xl px-2 h-10 ${
-                            isDark ? 'border-gray-800 bg-gray-950' : 'border-gray-200 bg-gray-50'
-                        }`}
-                        style={isFieldLocked ? styles.disabledOpacity : null}
+                        className="flex-row items-center border border-border-input rounded-xl px-2 h-10"
+                        style={[
+                            isFieldLocked ? styles.disabledOpacity : null,
+                            { backgroundColor: colors.bg.darker },
+                        ]}
                     >
                         <AppText className="opacity-40 mr-1 font-medium">₹</AppText>
                         <TextInput
@@ -175,17 +193,18 @@ const ParticipantRow = memo(({
                             keyboardType="numeric"
                             returnKeyType="done"
                             editable={!isFieldLocked} // Blocks typing entirely
-                            style={[styles.input, { color: isDark ? '#fff' : '#000' }]}
+                            style={[styles.input, { color: colors.text.primary }]}
                         />
                     </View>
                 )}
 
                 {splitMode === 'percentage' && (
                     <View
-                        className={`flex-row items-center border rounded-xl px-2 h-10 ${
-                            isDark ? 'border-gray-800 bg-gray-950' : 'border-gray-200 bg-gray-50'
-                        }`}
-                        style={isFieldLocked ? styles.disabledOpacity : null}
+                        className="flex-row items-center border border-border-input rounded-xl px-2 h-10"
+                        style={[
+                            isFieldLocked ? styles.disabledOpacity : null,
+                            { backgroundColor: colors.bg.darker },
+                        ]}
                     >
                         <TextInput
                             value={localPercent}
@@ -194,7 +213,7 @@ const ParticipantRow = memo(({
                             keyboardType="numeric"
                             returnKeyType="done"
                             editable={!isFieldLocked} // Blocks typing entirely
-                            style={[styles.input, { color: isDark ? '#fff' : '#000', textAlign: 'right' }]}
+                            style={[styles.input, { color: colors.text.primary, textAlign: 'right' }]}
                         />
                         <AppText className="opacity-40 ml-1 font-medium">%</AppText>
                     </View>
@@ -204,18 +223,20 @@ const ParticipantRow = memo(({
                     <View className="flex-row items-center gap-x-2">
                         <Pressable
                             onPress={() => onAdjustShares(compositeKey, 'decrement')}
-                            className={`p-2 rounded-lg active:scale-95 ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}
+                            className="p-2 rounded-lg active:scale-95"
+                            style={{ backgroundColor: colors.bg.darker }}
                         >
-                            <Iconify icon="heroicons:minus-solid" size={14} color={isDark ? '#FFF' : '#333'} />
+                            <Iconify icon="heroicons:minus-solid" size={14} color={colors.icon.primary} />
                         </Pressable>
                         <AppText className="font-bold min-w-[20px] text-center">
                             {item.shares ?? 1}
                         </AppText>
                         <Pressable
                             onPress={() => onAdjustShares(compositeKey, 'increment')}
-                            className={`p-2 rounded-lg active:scale-95 ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}
+                            className="p-2 rounded-lg active:scale-95"
+                            style={{ backgroundColor: colors.bg.darker }}
                         >
-                            <Iconify icon="heroicons:plus-solid" size={14} color={isDark ? '#FFF' : '#333'} />
+                            <Iconify icon="heroicons:plus-solid" size={14} color={colors.icon.primary} />
                         </Pressable>
                     </View>
                 )}

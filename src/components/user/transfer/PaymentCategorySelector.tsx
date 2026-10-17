@@ -1,18 +1,27 @@
 import React, {useState, useEffect} from 'react';
 import { COLORS } from '@/src/constants/colors';
-import {View, ScrollView, ActivityIndicator, Pressable} from 'react-native';
-import {Iconify} from 'react-native-iconify';
+import {View, ScrollView, Pressable} from 'react-native';
+import { themeStore } from '@/src/store/themeStore';
 import {useTranslation} from 'react-i18next';
 import {AppText} from '@/src/components/common/AppText';
 import {AppImage} from '@/src/components/common/AppImage';
+import {EntityFallbackIcon} from '@/src/components/common/EntityFallbackIcon';
+import {Shimmer} from '@/src/components/common/shimmer';
 import {GetConsumerPaymentCategorySummariesApi} from '@/src/api/user_payment/categories';
 import {ConsumerPaymentCategorySummaryResponse} from '@/src/api/dto/user_payments/categories';
 import {useTransferDraftStore} from '@/src/store/draft/transferDraftStore';
 
+/** Matches loaded chips: w-20 + py-3 + sm icon (32) + mb-2 + caption */
+const CATEGORY_CHIP_HEIGHT = 78;
+const CATEGORY_CHIP_RADIUS = 16;
+const SHIMMER_CHIP_COUNT = 4;
+
 export const PaymentCategorySelector: React.FC = () => {
     const {t} = useTranslation();
+    const isDark = themeStore((state) => state.theme === 'dark');
+    const colors = isDark ? COLORS.dark : COLORS.light;
     const [categories, setCategories] = useState<ConsumerPaymentCategorySummaryResponse[]>([]);
-    const [loadingCategories, setLoadingCategories] = useState(false);
+    const [loadingCategories, setLoadingCategories] = useState(true);
 
     // Consume store values and actions directly
     const selectedCategoryId = useTransferDraftStore((state) => state.paymentCategoryId);
@@ -55,17 +64,21 @@ export const PaymentCategorySelector: React.FC = () => {
                 {t('transfer.category_label', 'Payment Category')}
             </AppText>
 
-            {loadingCategories ? (
-                <View className="py-4 items-center justify-center">
-                    <ActivityIndicator size="small" color={COLORS.light.brand.primary}/>
-                </View>
-            ) : (
-                <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{paddingVertical: 2, gap: 10}}
-                >
-                    {categories.map((cat) => {
+            <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{paddingVertical: 2, gap: 10}}
+            >
+                {loadingCategories
+                    ? Array.from({length: SHIMMER_CHIP_COUNT}, (_, i) => (
+                        <Shimmer
+                            key={`category-shimmer-${i}`}
+                            height={CATEGORY_CHIP_HEIGHT}
+                            borderRadius={CATEGORY_CHIP_RADIUS}
+                            className="w-20"
+                        />
+                    ))
+                    : categories.map((cat) => {
                         const isSelected = selectedCategoryId !== null && String(selectedCategoryId) === String(cat.id);
                         return (
                             <Pressable
@@ -78,14 +91,18 @@ export const PaymentCategorySelector: React.FC = () => {
                                 }`}
                             >
                                 <View className="mb-2 items-center justify-center">
-                                    {cat.icon?.url ? (
-                                        <AppImage url={cat.icon.url} size="sm" variant="rounded"/>
-                                    ) : (
-                                        <View
-                                            className="w-10 h-10 rounded-full bg-indigo-500/10 items-center justify-center">
-                                            <Iconify icon="heroicons:tag" size={18} color="#6366F1"/>
-                                        </View>
-                                    )}
+                                    <AppImage
+                                        url={cat.icon?.url}
+                                        size="sm"
+                                        variant="rounded"
+                                        fallbackIcon={
+                                            <EntityFallbackIcon
+                                                kind="paymentCategory"
+                                                size={18}
+                                                color={colors.accent.orbIndigo}
+                                            />
+                                        }
+                                    />
                                 </View>
                                 <AppText
                                     variant="caption-xs"
@@ -97,8 +114,7 @@ export const PaymentCategorySelector: React.FC = () => {
                             </Pressable>
                         );
                     })}
-                </ScrollView>
-            )}
+            </ScrollView>
         </View>
     );
 };

@@ -4,6 +4,7 @@ import {Iconify} from 'react-native-iconify';
 import {AppText} from '@/src/components/common/AppText';
 import {AppButton} from '@/src/components/common/AppButton';
 import {AppImageV2} from '@/src/components/common/AppImageV2';
+import {EntityFallbackIcon} from '@/src/components/common/EntityFallbackIcon';
 import {useExpenseDraftStore} from '@/src/store/draft/expenseDraftStore';
 import {DraftValidationErrorKey} from '@/src/interfaces/expense/draft_validation';
 import {COLORS} from '@/src/constants/colors';
@@ -16,7 +17,8 @@ interface GroupMismatchModalProps {
 
 export const GroupMismatchModal: React.FC<GroupMismatchModalProps> = ({visible, onClose}) => {
     const isDark = themeStore((s) => s.theme) === 'dark';
-    const iconMuted = isDark ? COLORS.dark.icon.lighter : COLORS.light.icon.lighter;
+    const colors = isDark ? COLORS.dark : COLORS.light;
+    const iconMuted = colors.icon.lighter;
 
     const mismatchError = useExpenseDraftStore(
         (s) => s.validationErrors[DraftValidationErrorKey.GROUP_MISMATCH],
@@ -80,7 +82,7 @@ export const GroupMismatchModal: React.FC<GroupMismatchModalProps> = ({visible, 
                 <View className="w-full max-h-[80%] bg-bg-canvas rounded-[32px] p-6 border border-border-input">
                     <View className="flex-row justify-between items-center mb-4">
                         <View className="flex-row items-center gap-x-2">
-                            <Iconify icon="heroicons:exclamation-triangle" size={24} color="#D97706"/>
+                            <Iconify icon="heroicons:exclamation-triangle" size={24} color={colors.status.warning}/>
                             <AppText variant="h3" className="text-text-primary font-bold">
                                 Group Mismatch
                             </AppText>
@@ -100,7 +102,10 @@ export const GroupMismatchModal: React.FC<GroupMismatchModalProps> = ({visible, 
                             id={`mismatch-group-${group.id}`}
                             url={group.icon?.url}
                             style={{width: 36, height: 36}}
-                            className="rounded-full bg-gray-200"
+                            className="rounded-full bg-bg-primary-darker"
+                            fallbackComponent={
+                                <EntityFallbackIcon kind="group" size={20} color={iconMuted} />
+                            }
                         />
                         <View className="ml-3 flex-1">
                             <AppText variant="body-small" className="text-text-primary font-bold">
@@ -128,7 +133,10 @@ export const GroupMismatchModal: React.FC<GroupMismatchModalProps> = ({visible, 
                                         id={`mismatch-user-${user.id}`}
                                         url={user.avatar?.url}
                                         style={{width: 32, height: 32}}
-                                        className="rounded-full bg-gray-200"
+                                        className="rounded-full bg-bg-primary-darker"
+                                        fallbackComponent={
+                                            <EntityFallbackIcon kind="user" size={16} color={iconMuted} />
+                                        }
                                     />
                                     <View className="ml-3">
                                         <AppText

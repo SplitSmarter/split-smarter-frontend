@@ -63,6 +63,8 @@ export interface ListExpensesQueryParams {
     group_id?: number[];
     category_id?: number[];
     place_id?: number[];
+    /** Repeatable — filters expenses linked to these memories. */
+    memory_id?: number[];
     offset?: number;
     limit?: number;
 }
@@ -84,6 +86,7 @@ export const listUserExpensesApi = async (params: ListExpensesQueryParams = {}) 
                     group_id: params.group_id,
                     category_id: params.category_id,
                     place_id: params.place_id,
+                    memory_id: params.memory_id,
                     offset: params.offset ?? 0,
                     limit: params.limit ?? 20
                 },

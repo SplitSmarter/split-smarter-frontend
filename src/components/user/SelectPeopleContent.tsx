@@ -7,6 +7,7 @@ import {
 } from '@gorhom/bottom-sheet';
 import {Iconify} from 'react-native-iconify';
 import {AppText} from "@/src/components/common/AppText";
+import {COLORS} from '@/src/constants/colors';
 import {themeStore} from '@/src/store/themeStore';
 import {RelationWithUserType} from "@/src/api/dto/constants";
 import {HiddenUserTarget, SelectPeopleTab} from './SelectPeopleTab';
@@ -42,6 +43,7 @@ export const SelectEntityBottomSheet = ({
                                         }: SelectEntityBottomSheetProps) => {
     const theme = themeStore((state) => state.theme);
     const isDark = theme === 'dark';
+    const colors = isDark ? COLORS.dark : COLORS.light;
 
     const bottomSheetModalRef = useRef<BottomSheetModal>(null);
     const [activeTab, setActiveTab] = useState<EntityTabType>(initialTab);
@@ -79,23 +81,23 @@ export const SelectEntityBottomSheet = ({
             keyboardBehavior="interactive"
             keyboardBlurBehavior="restore"
             backgroundStyle={{
-                backgroundColor: isDark ? '#121212' : '#F8F8F8',
+                backgroundColor: colors.bg.overlay,
                 borderRadius: 40,
             }}
             handleIndicatorStyle={{
-                backgroundColor: isDark ? '#3F3F46' : '#D4D4D8',
+                backgroundColor: colors.icon.lighter,
                 width: 48,
                 height: 6,
             }}
         >
             <BottomSheetView className="flex-1 px-4">
                 {/* Header Back Button & Title */}
-                <View className="flex-row items-center justify-between pb-3 border-b border-gray-500/10">
+                <View className="flex-row items-center justify-between pb-3 border-b border-border-input">
                     <Pressable
                         onPress={onClose}
                         style={({pressed}) => [{opacity: pressed ? 0.6 : 1}, styles.iconButton]}
                     >
-                        <Iconify icon="heroicons:chevron-left" size={24} color={isDark ? "#FFF" : "#000"}/>
+                        <Iconify icon="heroicons:chevron-left" size={24} color={colors.icon.primary}/>
                     </Pressable>
                     <AppText variant="h4" className="font-bold text-text-primary text-center">
                         Select Entity
@@ -104,13 +106,15 @@ export const SelectEntityBottomSheet = ({
                 </View>
 
                 {/* Switcher Segmented Control */}
-                <View className="flex-row my-3 p-1 bg-gray-200 dark:bg-zinc-800 rounded-2xl">
+                <View className="flex-row my-3 p-1 rounded-2xl" style={{ backgroundColor: colors.bg.darker }}>
                     <Pressable
                         onPress={() => setActiveTab('people')}
                         style={({pressed}) => [
                             {opacity: pressed ? 0.8 : 1},
                             styles.tabButton,
-                            activeTab === 'people' ? (isDark ? styles.activeTabDark : styles.activeTabLight) : styles.inactiveTab
+                            activeTab === 'people'
+                                ? { backgroundColor: colors.bg.lighter }
+                                : styles.inactiveTab
                         ]}
                     >
                         <AppText
@@ -123,7 +127,9 @@ export const SelectEntityBottomSheet = ({
                         style={({pressed}) => [
                             {opacity: pressed ? 0.8 : 1},
                             styles.tabButton,
-                            activeTab === 'merchant' ? (isDark ? styles.activeTabDark : styles.activeTabLight) : styles.inactiveTab
+                            activeTab === 'merchant'
+                                ? { backgroundColor: colors.bg.lighter }
+                                : styles.inactiveTab
                         ]}
                     >
                         <AppText
@@ -164,8 +170,6 @@ const styles = StyleSheet.create({
     iconButton: {padding: 8, borderRadius: 20},
     tabButton: {flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 12},
     inactiveTab: {backgroundColor: 'transparent'},
-    activeTabLight: {backgroundColor: '#FFFFFF'},
-    activeTabDark: {backgroundColor: '#18181B'}
 });
 
 SelectEntityBottomSheet.displayName = 'SelectEntityBottomSheet';

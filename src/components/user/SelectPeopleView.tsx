@@ -5,8 +5,10 @@ import {Iconify} from 'react-native-iconify';
 import {AppInput} from "@/src/components/common/AppInput";
 import {AppText} from "@/src/components/common/AppText";
 import {AppImage} from "@/src/components/common/AppImage";
+import {EntityFallbackIcon} from "@/src/components/common/EntityFallbackIcon";
 import {AppButton} from "@/src/components/common/AppButton";
 import {COLORS} from "@/src/constants/colors";
+import {themeStore} from '@/src/store/themeStore';
 import {RelationDetails} from "@/src/api/dto/user/relation";
 import {GetRelationsApi} from "@/src/api/relations/relation";
 import {SearchUsersApi} from "@/src/api/user/user";
@@ -23,6 +25,8 @@ export const SelectPeopleView = ({
                                      onSelectionConfirmed,
                                      onCancel
                                  }: SelectPeopleViewProps) => {
+    const isDark = themeStore((state) => state.theme === 'dark');
+    const colors = isDark ? COLORS.dark : COLORS.light;
     const [search, setSearch] = useState('');
     const [localSelectedIds, setLocalSelectedIds] = useState<number[]>(initialSelectedIds);
     const [relations, setRelations] = useState<RelationDetails[]>([]);
@@ -89,12 +93,20 @@ export const SelectPeopleView = ({
                             return (
                                 <View key={`selected-${id}`} className="mr-4 items-center">
                                     <View className="relative">
-                                        <AppImage url={user.avatar?.url} size="md" variant="circular"/>
+                                        <AppImage
+                                            url={user.avatar?.url}
+                                            size="md"
+                                            variant="circular"
+                                            fallbackIcon={
+                                                <EntityFallbackIcon kind="user" size={22} color={colors.icon.lighter}/>
+                                            }
+                                        />
                                         <Pressable
                                             onPress={() => toggleUser(id)}
-                                            className="absolute -top-1 -right-1 bg-red-500 rounded-full border-2 border-bg-primary"
+                                            className="absolute -top-1 -right-1 rounded-full border-2 border-bg-primary"
+                                            style={{ backgroundColor: colors.status.error }}
                                         >
-                                            <Iconify icon="heroicons:x-mark" size={12} color="white"/>
+                                            <Iconify icon="heroicons:x-mark" size={12} color={colors.text.contrast}/>
                                         </Pressable>
                                     </View>
                                     <AppText variant="caption-xs" className="mt-1 font-medium text-text-primary">
@@ -113,7 +125,7 @@ export const SelectPeopleView = ({
                 onChangeText={setSearch}
                 renderLeftIcon={(c) => <Iconify icon="heroicons:magnifying-glass" size={20} color={c}/>}
                 renderRightIcon={() => isSearchingGlobal ?
-                    <ActivityIndicator size="small" color={COLORS.icon_primary_darker_light}/> : null}
+                    <ActivityIndicator size="small" color={colors.icon.primary}/> : null}
             />
 
             <BottomSheetScrollView className="mt-4" showsVerticalScrollIndicator={false}>
@@ -136,7 +148,7 @@ export const SelectPeopleView = ({
                 ) : !isSearching && !loadingRelations && (
                     /* Initial Empty State (No friends at all) */
                     <View className="items-center py-10">
-                        <Iconify icon="heroicons:user-plus" size={40} color={COLORS.icon_primary_light}/>
+                        <Iconify icon="heroicons:user-plus" size={40} color={colors.icon.primary}/>
                         <AppText className="text-text-primary-lighter mt-2">You haven&#39;t added any friends yet.</AppText>
                     </View>
                 )}
@@ -163,7 +175,7 @@ export const SelectPeopleView = ({
                 {/* --- Search Empty State --- */}
                 {isSearching && !isSearchingGlobal && filteredRelations.length === 0 && globalResults.length === 0 && (
                     <View className="items-center py-10">
-                        <Iconify icon="heroicons:face-frown" size={40} color={COLORS.icon_primary_light}/>
+                        <Iconify icon="heroicons:face-frown" size={40} color={colors.icon.primary}/>
                         <AppText className="text-text-primary-lighter mt-2">No results for &#34;{search}&#34;</AppText>
                     </View>
                 )}
@@ -185,20 +197,33 @@ export const SelectPeopleView = ({
 };
 
 // Extracted for cleaner code
-const UserListItem = ({user, isSelected, onPress, subtext}: any) => (
+const UserListItem = ({user, isSelected, onPress, subtext}: any) => {
+    const isDark = themeStore((state) => state.theme === 'dark');
+    const colors = isDark ? COLORS.dark : COLORS.light;
+
+    return (
     <Pressable
         onPress={onPress}
-        className={`flex-row items-center p-3 rounded-2xl mb-2 ${isSelected ? 'bg-accent-sky-bg border border-accent-sky' : 'bg-white dark:bg-zinc-900 border border-transparent'}`}
+        className={`flex-row items-center p-3 rounded-2xl mb-2 border ${isSelected ? 'bg-accent-sky-bg border-accent-sky' : 'border-transparent'}`}
+        style={isSelected ? undefined : { backgroundColor: colors.bg.lighter }}
     >
-        <AppImage url={user.avatar?.url} size="sm" variant="circular"/>
+        <AppImage
+            url={user.avatar?.url}
+            size="sm"
+            variant="circular"
+            fallbackIcon={
+                <EntityFallbackIcon kind="user" size={18} color={colors.icon.lighter}/>
+            }
+        />
         <View className="flex-1 ml-3">
             <AppText className="font-semibold text-text-primary">{user.name}</AppText>
             <AppText variant="caption-xs" className="text-text-primary-lighter opacity-60">{subtext}</AppText>
         </View>
         {isSelected ? (
-            <Iconify icon="heroicons:check-circle-solid" size={24} color="#0284C7"/>
+            <Iconify icon="heroicons:check-circle-solid" size={24} color={colors.accent.sky}/>
         ) : (
-            <Iconify icon="heroicons:check-circle" size={24} color={COLORS.icon_primary_light}/>
+            <Iconify icon="heroicons:check-circle" size={24} color={colors.icon.primary}/>
         )}
     </Pressable>
-);
+    );
+};

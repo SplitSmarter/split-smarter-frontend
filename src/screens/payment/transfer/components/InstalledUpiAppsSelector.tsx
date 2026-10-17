@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { GlassCard } from "./GlassCard";
 import { UPIInstalledApp } from "@/src/utils/upiNativeModule";
-import { BRAND_COLORS, ThemeColors } from "../constants/theme";
+import { ThemeColors } from "../constants/theme";
 import { createStyles } from "../styles/UserPaymentTransferScreen.styles";
 
 interface InstalledUpiAppsSelectorProps {
@@ -51,7 +51,7 @@ export const InstalledUpiAppsSelector: React.FC<InstalledUpiAppsSelectorProps> =
                                     <Ionicons
                                         name={isSelected ? "checkmark-circle" : "ellipse-outline"}
                                         size={22}
-                                        color={isSelected ? BRAND_COLORS.primaryGreen : colors.unselectedIcon}
+                                        color={isSelected ? colors.glassBorderSelected : colors.unselectedIcon}
                                     />
                                 </View>
                                 {app.icon ? (

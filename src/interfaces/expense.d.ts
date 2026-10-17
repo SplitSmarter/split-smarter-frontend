@@ -76,6 +76,7 @@ export interface ItemComponent {
     unit_price?: number | null;
     currency: Currency;
     shared_between?: ExpenseSharersDto[] | null;
+    paid_between?: ExpenseSharersDto[] | null;
 }
 
 export interface ItemsBaseComponentDto {

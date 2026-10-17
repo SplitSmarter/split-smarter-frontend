@@ -25,9 +25,9 @@ export const PeriodSelector = ({ selectedPeriod, onPeriodChange }: PeriodSelecto
                         <Pressable
                             key={item.key}
                             onPress={() => onPeriodChange(item.key)}
-                            className={`px-6 py-2.5 rounded-2xl shadow-sm ${isActive ? 'bg-accent-sky' : 'bg-gray-100'}`}
+                            className={`px-6 py-2.5 rounded-2xl shadow-sm ${isActive ? 'bg-accent-sky' : 'bg-bg-primary-darker'}`}
                         >
-                            <AppText className={`font-semibold ${isActive ? 'text-white' : 'text-gray-600'}`}>
+                            <AppText className={`font-semibold ${isActive ? 'text-white' : 'text-text-primary-lighter'}`}>
                                 {item.label}
                             </AppText>
                         </Pressable>

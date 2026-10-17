@@ -50,7 +50,7 @@ export class CustomErrorBoundary extends Component<Props, State> {
             return (
                 <SafeAreaView className="flex-1 bg-bg-canvas justify-center items-center px-6">
                     <View className="bg-red-50 dark:bg-red-900/10 p-6 rounded-full mb-6">
-                        <Iconify icon="heroicons:exclamation-triangle" size={48} color={COLORS.color_red_decrease} />
+                        <Iconify icon="heroicons:exclamation-triangle" size={48} color={COLORS.light.status.error} />
                     </View>
 
                     <AppText variant="h2" className="text-center mb-2">Oops! Something went wrong</AppText>

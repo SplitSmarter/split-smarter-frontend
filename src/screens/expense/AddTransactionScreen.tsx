@@ -251,11 +251,17 @@ const AddTransactionScreen = () => {
         return d.toLocaleDateString('en-US', {weekday: 'short', day: 'numeric', month: 'short'});
     }, [expenseDraft.expenseDate]);
 
+    const canvasBg = {backgroundColor: activeColors.bg.primary};
+
     return (
-        <SafeAreaView className="flex-1 bg-bg-primary" edges={['top']}>
-            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1"
-                                  keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}>
-                <View className="flex-1 bg-bg-primary">
+        <SafeAreaView className="flex-1" style={canvasBg} edges={['top']}>
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                className="flex-1"
+                style={canvasBg}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}
+            >
+                <View className="flex-1" style={canvasBg}>
 
                     {/* Activity Spinner HUD Overlay */}
                     {(isProcessing || isSubmitting) && (
@@ -288,10 +294,15 @@ const AddTransactionScreen = () => {
                         </View>
 
                         {/* Interactive Main Sheets */}
-                        <View className="flex-1 bg-bg-primary flex-col mt-2">
-                            <View className="px-6 pt-2 pb-5">
+                        <View className="mt-2 flex-1 flex-col" style={canvasBg}>
+                            <View className="px-6 pb-5 pt-2">
                                 <View
-                                    className="flex-row bg-bg-canvas p-1 rounded-full border border-bg-primary-darker shadow-sm w-full">
+                                    className="w-full flex-row rounded-full border p-1 shadow-sm"
+                                    style={{
+                                        backgroundColor: activeColors.bg.lighter,
+                                        borderColor: activeColors.status.border,
+                                    }}
+                                >
                                     <TabButton label="Expense" isActive={activeTab === 'expense'}
                                                onPress={() => handleTabChange('expense')}/>
                                     <TabButton label="Transfer" isActive={activeTab === 'transfer'}
@@ -300,23 +311,44 @@ const AddTransactionScreen = () => {
                             </View>
 
                             <View
-                                className="flex-1 bg-bg-canvas rounded-t-[32px] px-6 pt-6 border-t border-bg-primary-darker/40">
-                                <ScrollView className="flex-1" showsVerticalScrollIndicator={false}
-                                            keyboardShouldPersistTaps="handled"
-                                            contentContainerStyle={{paddingBottom: 180}}>
+                                className="flex-1 rounded-t-[32px] border-t px-6 pt-6"
+                                style={{
+                                    backgroundColor: activeColors.bg.primary,
+                                    borderTopColor: isDark
+                                        ? 'rgba(255,255,255,0.08)'
+                                        : activeColors.status.border,
+                                }}
+                            >
+                                <ScrollView
+                                    className="flex-1"
+                                    style={canvasBg}
+                                    showsVerticalScrollIndicator={false}
+                                    keyboardShouldPersistTaps="handled"
+                                    contentContainerStyle={{paddingBottom: 180}}
+                                >
                                     {activeTab === 'expense' ? <AddExpenseScreen/> : <AddTransfer/>}
                                 </ScrollView>
                             </View>
                         </View>
 
                         {/* Fixed Bottom Layout Toolbar Footer */}
-                        {/* Fixed Bottom Layout Toolbar Footer */}
                         <View
-                            className="absolute bottom-0 w-full bg-bg-primary pt-4 pb-10 px-6 rounded-t-[40px] shadow-2xl border-t border-border-input">
-                            <View className="flex-row justify-between items-center mb-6">
-                                <Pressable onPress={() => setShowDatePicker(true)}
-                                           className="flex-row items-center bg-bg-canvas rounded-full px-5 py-2 active:opacity-80">
-                                    <Iconify icon="heroicons:calendar" size={18} color={COLORS.color_red_decrease}/>
+                            className="absolute bottom-0 w-full rounded-t-[40px] border-t px-6 pb-10 pt-4 shadow-2xl"
+                            style={{
+                                backgroundColor: activeColors.bg.primary,
+                                borderTopColor: activeColors.status.border,
+                            }}
+                        >
+                            <View className="mb-6 flex-row items-center justify-between">
+                                <Pressable
+                                    onPress={() => setShowDatePicker(true)}
+                                    className="flex-row items-center rounded-full border px-5 py-2 active:opacity-80"
+                                    style={{
+                                        backgroundColor: activeColors.bg.lighter,
+                                        borderColor: activeColors.status.border,
+                                    }}
+                                >
+                                    <Iconify icon="heroicons:calendar" size={18} color={activeColors.status.decrease}/>
                                     <AppText variant="body-base"
                                              className="ml-2 text-text-primary font-bold">{readableDate}</AppText>
                                 </Pressable>
@@ -325,7 +357,7 @@ const AddTransactionScreen = () => {
                                     <>
                                         {(expenseDraft.isValidating || isLocalValidating) ? (
                                             <View className="flex-row items-center space-x-1">
-                                                <ActivityIndicator size="small" color="#9CA3AF"/>
+                                                <ActivityIndicator size="small" color={activeColors.icon.lighter}/>
                                                 <AppText variant="caption-xs"
                                                          className="text-text-primary-lighter font-medium">Checking
                                                     group...</AppText>
@@ -333,62 +365,67 @@ const AddTransactionScreen = () => {
                                         ) : activeValidationContent ? (
                                             <Pressable
                                                 onPress={() => setValidationModalVisible(true)}
-                                                className={`flex-row items-center space-x-1 px-3 py-1.5 rounded-xl max-w-[55%] active:opacity-70 ${
-                                                    activeValidationContent.type === 'ERROR' ? 'bg-red-500/10 dark:bg-red-500/20' : 'bg-amber-500/10 dark:bg-amber-500/20'
-                                                }`}
+                                                className="max-w-[55%] flex-row items-center space-x-1 rounded-xl px-3 py-1.5 active:opacity-70"
+                                                style={{
+                                                    backgroundColor:
+                                                        activeValidationContent.type === 'ERROR'
+                                                            ? `${activeColors.status.error}22`
+                                                            : `${activeColors.status.warning}22`,
+                                                }}
                                             >
                                                 {activeValidationContent.type === 'ERROR' ? (
                                                     <Iconify
                                                         icon="heroicons:exclamation-circle"
                                                         size={14}
-                                                        color="#EF4444"
+                                                        color={activeColors.status.error}
                                                     />
                                                 ) : (
                                                     <Iconify
                                                         icon="heroicons:exclamation-triangle"
                                                         size={14}
-                                                        color="#D97706"
+                                                        color={activeColors.status.warning}
                                                     />
                                                 )}
-                                                <AppText variant="caption-xs" className={`font-semibold mr-1 flex-1 ${
-                                                    activeValidationContent.type === 'ERROR' ? 'text-red-600 dark:text-red-400' : 'text-amber-700 dark:text-amber-400'
-                                                }`} numberOfLines={1}>
+                                                <AppText
+                                                    variant="caption-xs"
+                                                    className="mr-1 flex-1 font-semibold"
+                                                    style={{
+                                                        color:
+                                                            activeValidationContent.type === 'ERROR'
+                                                                ? activeColors.status.error
+                                                                : activeColors.status.warning,
+                                                    }}
+                                                    numberOfLines={1}
+                                                >
                                                     {activeValidationContent.payload?.message}
                                                 </AppText>
                                             </Pressable>
                                         ) : (
                                             <View
-                                                className="flex-row items-center space-x-1 bg-bg-secondary-lighter px-3 py-1.5 rounded-xl">
-                                                <Iconify icon="heroicons:check-circle" size={14} color={COLORS.light.brand.primary}/>
-                                                <AppText variant="caption-xs"
-                                                         className="text-green-increase font-medium">Ready</AppText>
+                                                className="flex-row items-center space-x-1 rounded-xl px-3 py-1.5"
+                                                style={{backgroundColor: activeColors.brand.lighter}}
+                                            >
+                                                <Iconify
+                                                    icon="heroicons:check-circle"
+                                                    size={14}
+                                                    color={activeColors.icon.brand}
+                                                />
+                                                <AppText
+                                                    variant="caption-xs"
+                                                    className="font-medium"
+                                                    style={{color: activeColors.status.success}}
+                                                >
+                                                    Ready
+                                                </AppText>
                                             </View>
                                         )}
                                     </>
                                 )}
                             </View>
 
-                            {activeTab === 'expense' ? (
-                                <AppButton variant="primary" size="lg" onPress={handleSubmitData}>SUBMIT</AppButton>
-                            ) : (
-                                <View className="space-y-3">
-                                    <AppButton
-                                        variant="primary"
-                                        size="lg"
-                                        onPress={handleInitiatePaymentAndNavigate}
-                                        disabled={isInitiatingPayment}
-                                    >
-                                        {isInitiatingPayment ? "INITIATING..." : `PAY NOW (${transferDraft.currency} ${transferDraft.amount})`}
-                                    </AppButton>
-                                    <AppButton
-                                        variant="secondary"
-                                        size="md"
-                                        onPress={handleSubmitData}
-                                    >
-                                        RECORD ONLY (NO PAYMENT)
-                                    </AppButton>
-                                </View>
-                            )}
+                            <AppButton variant="primary" size="md" onPress={handleSubmitData}>
+                                SUBMIT
+                            </AppButton>
                         </View>
                     </View>
 

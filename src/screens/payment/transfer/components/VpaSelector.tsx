@@ -48,7 +48,7 @@ export const VpaSelector: React.FC<VpaSelectorProps> = ({
                                 <Ionicons
                                     name={isSelected ? "checkmark-circle" : "ellipse-outline"}
                                     size={22}
-                                    color={isSelected ? BRAND_COLORS.primaryGreen : colors.unselectedIcon}
+                                    color={isSelected ? colors.glassBorderSelected : colors.unselectedIcon}
                                 />
                             </View>
                             <View style={{flex: 1, justifyContent: "center"}}>

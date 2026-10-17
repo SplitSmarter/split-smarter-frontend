@@ -14,6 +14,11 @@ import {BatchAddGroupMembershipsApi} from "@/src/api/group/membership";
 import {BatchMembershipResultStatus} from "@/src/api/dto/user/group/batchAddMembership";
 import {SelectUser} from "@/src/api/dto/constants";
 import {getMissingGroupMembers, UniqueUserIdentity} from "@/src/utils/expense/validation/group_members";
+import {
+    allocationWithinTolerance,
+    sumParticipantAmounts,
+} from "@/src/utils/expense/expenseCalculations";
+import { getDefaultExpenseItemDraft } from "@/src/utils/expense/defaultExpenseItem";
 
 export type AddMissingMembersResult = {
     ok: boolean;
@@ -25,6 +30,9 @@ export type AddMissingMembersResult = {
 };
 
 export type ExpenseLocationType = 'current' | 'place' | 'none';
+
+/** How Paid By / Split Between amounts are edited — remembered across screen revisits */
+export type DraftSplitMode = 'equal' | 'amount' | 'percentage' | 'shares';
 
 export interface User {
     id: string;
@@ -51,7 +59,10 @@ export interface ExpenseItem {
     cost: number;
     quantity: number;
     iconUrl?: string | null;
+    /** Who owes on this line (split). Empty = everyone in split. */
     sharedBetween: ExpenseItemSharer[];
+    /** Who funded this line (paid by). Empty = everyone in paid by. */
+    paidBetween: ExpenseItemSharer[];
 }
 
 export interface ExpenseLocation {
@@ -70,6 +81,10 @@ export interface ExpenseDraftState {
     groupId: number | undefined;
     payers: PayerUser[];
     splitParticipants: PayerUser[];
+    /** Last calculation mode used on Paid By */
+    paidBySplitMode: DraftSplitMode;
+    /** Last calculation mode used on Split Between */
+    splitBetweenSplitMode: DraftSplitMode;
     expenseDate: string;
     expenseLocationMode: ExpenseLocationType;
     expenseLocation: ExpenseLocation | undefined;
@@ -107,6 +122,8 @@ export interface ExpenseDraftState {
     setGroupId: (id: number | undefined) => void;
     setPayers: (payers: PayerUser[]) => void;
     setSplitParticipants: (participants: PayerUser[]) => void;
+    setPaidBySplitMode: (mode: DraftSplitMode) => void;
+    setSplitBetweenSplitMode: (mode: DraftSplitMode) => void;
     setExpenseDate: (date: string) => void;
     setExpenseLocationMode: (mode: ExpenseLocationType) => void;
     setExpenseLocation: (location: ExpenseLocation | undefined) => void;
@@ -156,10 +173,15 @@ export const useExpenseDraftStore = create<ExpenseDraftState>((set, get) => ({
     groupId: undefined,
     payers: getInitialUserContext(),
     splitParticipants: getInitialUserContext(),
+    paidBySplitMode: 'equal',
+    splitBetweenSplitMode: 'equal',
     expenseDate: new Date().toISOString(),
     expenseLocationMode: 'none',
     expenseLocation: undefined,
-    expenseItems: [],
+    expenseItems: (() => {
+        const item = getDefaultExpenseItemDraft(0);
+        return item ? [item] : [];
+    })(),
     isRecurring: false,
     recurringDetails: null,
     localAttachmentUris: [],
@@ -193,6 +215,8 @@ export const useExpenseDraftStore = create<ExpenseDraftState>((set, get) => ({
     }),
     setPayers: (payers) => set({payers}),
     setSplitParticipants: (splitParticipants) => set({splitParticipants}),
+    setPaidBySplitMode: (paidBySplitMode) => set({paidBySplitMode}),
+    setSplitBetweenSplitMode: (splitBetweenSplitMode) => set({splitBetweenSplitMode}),
     setExpenseDate: (expenseDate) => set({expenseDate}),
     setExpenseLocationMode: (expenseLocationMode) => set({expenseLocationMode}),
     setExpenseLocation: (location) => set({expenseLocation: location}),
@@ -464,6 +488,38 @@ export const useExpenseDraftStore = create<ExpenseDraftState>((set, get) => ({
             }
         }
 
+        // --- 2b. ALLOCATION SUM CHECK (Paid By / Split vs total) ---
+        if (targetKeys.includes(DraftValidationErrorKey.ALLOCATION_MISMATCH)) {
+            const paidSum = sumParticipantAmounts(state.payers);
+            const splitSum = sumParticipantAmounts(state.splitParticipants);
+            const total = state.totalAmount;
+            const paidOk =
+                state.payers.length === 0 || allocationWithinTolerance(paidSum, total);
+            const splitOk =
+                state.splitParticipants.length === 0 ||
+                allocationWithinTolerance(splitSum, total);
+
+            if (!paidOk || !splitOk) {
+                const side =
+                    !paidOk && !splitOk ? 'both' : !paidOk ? 'paidBy' : 'split';
+                const parts: string[] = [];
+                if (!paidOk) {
+                    parts.push(
+                        `Paid By sums to ${paidSum.toFixed(2)} but expense total is ${total.toFixed(2)}`
+                    );
+                }
+                if (!splitOk) {
+                    parts.push(
+                        `Split Between sums to ${splitSum.toFixed(2)} but expense total is ${total.toFixed(2)}`
+                    );
+                }
+                nextErrors[DraftValidationErrorKey.ALLOCATION_MISMATCH] = {
+                    message: `${parts.join('. ')}. Open Paid By / Split Between or update Amount to fix.`,
+                    side,
+                };
+            }
+        }
+
         // --- 3. GROUP MISMATCH VALIDATOR ENGINE (ASYNCHRONOUS) ---
         let pendingGroupMemberAdds = state.pendingGroupMemberAdds;
         let shouldAddPendingMembersOnSubmit = state.shouldAddPendingMembersOnSubmit;
@@ -557,33 +613,38 @@ export const useExpenseDraftStore = create<ExpenseDraftState>((set, get) => ({
         });
     },
 
-    resetDraft: () => set({
-        expenseType: ExpenseComponentType.ITEM,
-        title: '',
-        description: '',
-        totalAmount: 0,
-        currency: (userStore.getState().user?.currency as CurrencyCode) || 'INR',
-        categoryId: undefined,
-        defaultCategoryId: undefined,
-        groupId: undefined,
-        payers: getInitialUserContext(), // 👈 RESET: Safe reversion back to your profile state index
-        splitParticipants: getInitialUserContext(),
-        expenseDate: new Date().toISOString(),
-        expenseLocationMode: 'none',
-        expenseLocation: undefined,
-        expenseItems: [],
-        isRecurring: false,
-        recurringDetails: null,
-        localAttachmentUris: [],
-        validationErrors: {},
-        isValidating: false,
-        pendingGroupMemberAdds: [],
-        shouldAddPendingMembersOnSubmit: false,
-        requestOpenGroupPicker: false,
-        isFetchingGroupAddPermission: false,
-        isAddingMissingMembers: false,
-        groupAddPermissionDeniedReason: null,
-        canAddMissingMembers: null,
-        lastGroupAddPartialMessage: null,
-    }),
+    resetDraft: () => {
+        const defaultItem = getDefaultExpenseItemDraft(0);
+        set({
+            expenseType: ExpenseComponentType.ITEM,
+            title: '',
+            description: '',
+            totalAmount: 0,
+            currency: (userStore.getState().user?.currency as CurrencyCode) || 'INR',
+            categoryId: undefined,
+            defaultCategoryId: undefined,
+            groupId: undefined,
+            payers: getInitialUserContext(), // 👈 RESET: Safe reversion back to your profile state index
+            splitParticipants: getInitialUserContext(),
+            paidBySplitMode: 'equal',
+            splitBetweenSplitMode: 'equal',
+            expenseDate: new Date().toISOString(),
+            expenseLocationMode: 'none',
+            expenseLocation: undefined,
+            expenseItems: defaultItem ? [defaultItem] : [],
+            isRecurring: false,
+            recurringDetails: null,
+            localAttachmentUris: [],
+            validationErrors: {},
+            isValidating: false,
+            pendingGroupMemberAdds: [],
+            shouldAddPendingMembersOnSubmit: false,
+            requestOpenGroupPicker: false,
+            isFetchingGroupAddPermission: false,
+            isAddingMissingMembers: false,
+            groupAddPermissionDeniedReason: null,
+            canAddMissingMembers: null,
+            lastGroupAddPartialMessage: null,
+        });
+    },
 }));

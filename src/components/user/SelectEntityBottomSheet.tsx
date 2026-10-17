@@ -80,20 +80,24 @@ export const SelectEntityBottomSheet = ({
             keyboardBehavior="interactive"
             keyboardBlurBehavior="restore"
             backgroundStyle={{
-                backgroundColor: isDark ? '#121212' : '#F8F8F8',
+                backgroundColor: isDark ? COLORS.dark.bg.overlay : COLORS.light.bg.overlay,
                 borderRadius: 40,
             }}
             handleIndicatorStyle={{
-                backgroundColor: isDark ? '#3F3F46' : '#D4D4D8',
+                backgroundColor: isDark ? COLORS.dark.icon.lighter : COLORS.light.icon.lighter,
                 width: 48,
                 height: 6,
             }}
         >
             <BottomSheetView className="flex-1 px-4">
                 {/* Header with Close and Title */}
-                <View className="flex-row items-center justify-between pb-3 border-b border-gray-500/10">
+                <View className="flex-row items-center justify-between pb-3 border-b border-border-input">
                     <Pressable onPress={onClose} className="p-2 rounded-full active:opacity-60">
-                        <Iconify icon="heroicons:chevron-left" size={24} color={isDark ? "#FFF" : "#000"} />
+                        <Iconify
+                            icon="heroicons:chevron-left"
+                            size={24}
+                            color={isDark ? COLORS.dark.text.primary : COLORS.light.text.primary}
+                        />
                     </Pressable>
                     <AppText variant="h4" className="font-bold text-text-primary text-center">
                         Select Entity
@@ -102,12 +106,12 @@ export const SelectEntityBottomSheet = ({
                 </View>
 
                 {/* Switcher Segmented Control */}
-                <View className="flex-row my-3 p-1 bg-gray-200 dark:bg-zinc-800 rounded-2xl">
+                <View className="flex-row my-3 p-1 bg-bg-primary-darker rounded-2xl">
                     <Pressable
                         onPress={() => setActiveTab('people')}
                         className={`flex-1 py-2.5 items-center rounded-xl ${
                             activeTab === 'people'
-                                ? 'bg-white dark:bg-zinc-900'
+                                ? 'bg-bg-canvas'
                                 : 'bg-transparent'
                         }`}
                     >
@@ -119,7 +123,7 @@ export const SelectEntityBottomSheet = ({
                         onPress={() => setActiveTab('merchant')}
                         className={`flex-1 py-2.5 items-center rounded-xl ${
                             activeTab === 'merchant'
-                                ? 'bg-white dark:bg-zinc-900'
+                                ? 'bg-bg-canvas'
                                 : 'bg-transparent'
                         }`}
                     >

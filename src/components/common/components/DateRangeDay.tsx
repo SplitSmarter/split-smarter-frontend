@@ -1,6 +1,8 @@
 import React, {useCallback, useMemo} from 'react';
 import {Pressable, StyleSheet, Text, View} from 'react-native';
 import type {DateData} from 'react-native-calendars';
+import { themeStore } from '@/src/store/themeStore';
+import { COLORS } from '@/src/constants/colors';
 
 const CELL_H = 40;
 const ENDPOINT = 34;
@@ -41,6 +43,9 @@ export const DateRangeDay: React.FC<DateRangeDayProps> = React.memo(({
     children,
     theme,
 }) => {
+    const isDark = themeStore((state) => state.theme === 'dark');
+    const colors = isDark ? COLORS.dark : COLORS.light;
+
     const isDisabled = state === 'disabled' || marking?.disabled;
     const isToday = state === 'today';
     const isStart = Boolean(marking?.startingDay);
@@ -55,10 +60,10 @@ export const DateRangeDay: React.FC<DateRangeDayProps> = React.memo(({
 
     const textColor = useMemo(() => {
         if (marking?.textColor) return marking.textColor;
-        if (isDisabled) return theme?.textDisabledColor ?? '#A1A1AA';
-        if (isToday) return theme?.todayTextColor ?? theme?.dayTextColor ?? '#2B2B2B';
-        return theme?.dayTextColor ?? '#2B2B2B';
-    }, [marking?.textColor, isDisabled, isToday, theme]);
+        if (isDisabled) return theme?.textDisabledColor ?? colors.text.placeholder;
+        if (isToday) return theme?.todayTextColor ?? theme?.dayTextColor ?? colors.text.primary;
+        return theme?.dayTextColor ?? colors.text.primary;
+    }, [marking?.textColor, isDisabled, isToday, theme, colors]);
 
     const handlePress = useCallback(() => {
         if (!isDisabled) onPress?.(date);
@@ -113,7 +118,7 @@ export const DateRangeDay: React.FC<DateRangeDayProps> = React.memo(({
                         pointerEvents="none"
                         style={[
                             styles.todayRing,
-                            {borderColor: theme?.todayRingColor ?? '#E07A2F'},
+                            {borderColor: theme?.todayRingColor ?? colors.accent.sky},
                         ]}
                     />
                 )}

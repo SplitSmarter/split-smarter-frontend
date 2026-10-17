@@ -4,6 +4,8 @@ import { Iconify } from "react-native-iconify";
 import { AppText } from '@/src/components/common/AppText';
 import { Currency, CurrencyCode } from '@/src/constants/expense/currency';
 import { TransferDetailsBasicResponse } from '@/src/api/dto/expense/transfer';
+import { themeStore } from '@/src/store/themeStore';
+import { COLORS } from '@/src/constants/colors';
 
 interface TransferRowProps {
     item: TransferDetailsBasicResponse;
@@ -12,6 +14,8 @@ interface TransferRowProps {
 }
 
 export const TransferRow = ({ item, userId, onPress }: TransferRowProps) => {
+    const isDark = themeStore((state) => state.theme === 'dark');
+    const colors = isDark ? COLORS.dark : COLORS.light;
     const isSettled = item.is_settled;
 
     const senderName = item.from_user?.id === userId ? "You" : (item.from_user?.name || "Someone");
@@ -31,14 +35,14 @@ export const TransferRow = ({ item, userId, onPress }: TransferRowProps) => {
         <Pressable
             onPress={() => onPress?.(item)}
             disabled={!onPress}
-            className="flex-row items-center py-3.5 border-b border-gray-50 dark:border-zinc-900 last:border-b-0 active:opacity-70"
+            className="flex-row items-center py-3.5 border-b border-border-input last:border-b-0 active:opacity-70"
         >
             {/* Left Side Icon Stack */}
             <View className="relative w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-950/40 items-center justify-center mr-4">
-                <Iconify icon="heroicons:arrows-right-left" size={22} color="#2563EB" />
+                <Iconify icon="heroicons:arrows-right-left" size={22} color={colors.accent.sky} />
                 {isSettled && (
-                    <View className="absolute -bottom-1 -right-1 bg-blue-600 rounded-full w-5 h-5 items-center justify-center border border-white dark:border-zinc-950">
-                        <Iconify icon="heroicons:tag" size={12} color="white" />
+                    <View className="absolute -bottom-1 -right-1 bg-blue-600 rounded-full w-5 h-5 items-center justify-center border border-bg-primary">
+                        <Iconify icon="heroicons:tag" size={12} color={colors.text.contrast} />
                     </View>
                 )}
             </View>
@@ -47,20 +51,20 @@ export const TransferRow = ({ item, userId, onPress }: TransferRowProps) => {
             <View className="flex-1 justify-center">
                 {/* Row 1 */}
                 <View className="flex-row items-center justify-between">
-                    <AppText variant="body-base" className="font-semibold text-gray-900 dark:text-zinc-100 flex-1 mr-2" numberOfLines={1}>
+                    <AppText variant="body-base" className="font-semibold text-text-primary flex-1 mr-2" numberOfLines={1}>
                         {`${senderName} paid ${recipientName}`}
                     </AppText>
-                    <AppText variant="body-small" className="text-gray-400 dark:text-zinc-500 font-medium">
+                    <AppText variant="body-small" className="text-text-primary-lighter font-medium">
                         {formattedRowDate}
                     </AppText>
                 </View>
 
                 {/* Row 2 */}
                 <View className="flex-row items-center justify-between mt-0.5">
-                    <AppText variant="body-small" className="text-gray-400 dark:text-zinc-500 capitalize" numberOfLines={1}>
+                    <AppText variant="body-small" className="text-text-primary-lighter capitalize" numberOfLines={1}>
                         {displayMode}
                     </AppText>
-                    <AppText variant="body-base" className="font-bold text-gray-900 dark:text-zinc-50 text-right">
+                    <AppText variant="body-base" className="font-bold text-text-primary text-right">
                         {getCurrencySymbol(item.currency)}{item.total_amount.toFixed(2)}
                     </AppText>
                 </View>

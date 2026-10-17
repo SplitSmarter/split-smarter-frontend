@@ -1,6 +1,7 @@
 import React from 'react';
 import {ActivityIndicator, Pressable, StyleProp, View, ViewStyle} from 'react-native';
 import {Iconify} from 'react-native-iconify';
+import {COLORS} from '@/src/constants/colors';
 
 interface MyLocationFabProps {
     isLoading: boolean;
@@ -10,6 +11,8 @@ interface MyLocationFabProps {
 }
 
 export function MyLocationFab({isLoading, isDark, onPress, style}: MyLocationFabProps) {
+    const colors = isDark ? COLORS.dark : COLORS.light;
+
     return (
         <View
             className="absolute z-40"
@@ -24,12 +27,12 @@ export function MyLocationFab({isLoading, isDark, onPress, style}: MyLocationFab
                 className="h-[52px] w-[52px] items-center justify-center rounded-full bg-bg-primary-lighter shadow-lg shadow-black/30 elevation-6 active:opacity-80 dark:bg-bg-overlay"
             >
                 {isLoading ? (
-                    <ActivityIndicator size="small" color="#2D8A5B" />
+                    <ActivityIndicator size="small" color={colors.accent.sky} />
                 ) : (
                     <Iconify
                         icon="heroicons:map-pin"
                         size={24}
-                        color={isDark ? '#FFFFFF' : '#2D8A5B'}
+                        color={colors.accent.sky}
                     />
                 )}
             </Pressable>

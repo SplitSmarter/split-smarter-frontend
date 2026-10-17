@@ -4,6 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Iconify } from 'react-native-iconify';
 import { AppText } from '@/src/components/common/AppText';
 import { AppButton } from '@/src/components/common/AppButton';
+import { COLORS } from '@/src/constants/colors';
+import { themeStore } from '@/src/store/themeStore';
 
 // Internal Splitted Modules
 import { ScheduleTabs } from './ScheduleTabs';
@@ -28,6 +30,8 @@ interface ExpenseScheduleModalProps {
 }
 
 export const ExpenseScheduleModal = ({ visible, onClose, onSaveSchedule, initialDate }: ExpenseScheduleModalProps) => {
+    const isDark = themeStore((state) => state.theme === 'dark');
+    const colors = isDark ? COLORS.dark : COLORS.light;
     const [activeTab, setActiveTab] = useState<SchedulingTab>('one_time');
     const [selectedPeriod, setSelectedPeriod] = useState<RecurringPeriod>('monthly');
 
@@ -144,14 +148,14 @@ export const ExpenseScheduleModal = ({ visible, onClose, onSaveSchedule, initial
 
     return (
         <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
-            <SafeAreaView className="flex-1 bg-white">
+            <SafeAreaView className="flex-1 bg-bg-primary">
 
                 {/* 1. Header Navigation Bar Component */}
-                <View className="flex-row items-center justify-between px-6 py-4 border-b border-gray-100">
+                <View className="flex-row items-center justify-between px-6 py-4 border-b border-border-input">
                     <Pressable onPress={onClose} className="p-1 active:opacity-60">
-                        <Iconify icon="heroicons:chevron-left" size={26} color="#111827" />
+                        <Iconify icon="heroicons:chevron-left" size={26} color={colors.icon.primary} />
                     </Pressable>
-                    <AppText variant="h3" className="text-gray-900 font-bold text-center flex-1">
+                    <AppText variant="h3" className="text-text-primary font-bold text-center flex-1">
                         Select Date
                     </AppText>
                     <View className="w-8" />
@@ -174,9 +178,9 @@ export const ExpenseScheduleModal = ({ visible, onClose, onSaveSchedule, initial
                             {selectedPeriod === 'weekly' ? (
                                 <WeekdaySelector selectedWeekdays={selectedWeekdays} onToggleWeekday={handleToggleWeekday} />
                             ) : selectedPeriod === 'daily' ? (
-                                <View className="p-8 mx-4 bg-bg-secondary-lighter rounded-3xl items-center border border-bg-secondary/20">
-                                    <AppText className="text-bg-secondary font-semibold mb-2">Daily Configuration Pool Active</AppText>
-                                    <AppText className="text-gray-500 text-center text-sm">Triggers automatically across ongoing dates based on selected operational interval metrics.</AppText>
+                                <View className="p-8 mx-4 bg-bg-primary-lighter rounded-3xl items-center border border-border-input">
+                                    <AppText className="text-text-primary font-semibold mb-2">Daily Configuration Pool Active</AppText>
+                                    <AppText className="text-text-primary-lighter text-center text-sm">Triggers automatically across ongoing dates based on selected operational interval metrics.</AppText>
                                 </View>
                             ) : (
                                 <CalendarGrid
@@ -198,10 +202,13 @@ export const ExpenseScheduleModal = ({ visible, onClose, onSaveSchedule, initial
                 </ScrollView>
 
                 {/* 6. Human Summary & Double Sticky Confirmation Action Deck */}
-                <View className="p-6 bg-gray-50 border-t border-gray-100 items-center">
-                    <View className="flex-row items-center bg-gray-200/60 rounded-2xl px-5 py-3 w-full mb-4">
-                        <Iconify icon="heroicons:calendar" size={20} color="#374151" />
-                        <AppText variant="body-small" className="ml-3 text-gray-700 font-semibold flex-1" numberOfLines={2}>
+                <View className="p-6 bg-bg-primary border-t border-border-input items-center">
+                    <View
+                        className="flex-row items-center rounded-2xl px-5 py-3 w-full mb-4"
+                        style={{ backgroundColor: colors.bg.darker }}
+                    >
+                        <Iconify icon="heroicons:calendar" size={20} color={colors.icon.primary} />
+                        <AppText variant="body-small" className="ml-3 text-text-primary font-semibold flex-1" numberOfLines={2}>
                             {summaryText}
                         </AppText>
                     </View>

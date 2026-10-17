@@ -1,12 +1,13 @@
 import React, {useEffect, useState} from 'react';
-import {View, TouchableOpacity, TextInput, ScrollView} from 'react-native';
+import {View, Pressable, TextInput, ScrollView} from 'react-native';
 import Svg, {G, Circle} from 'react-native-svg';
-import {Feather} from '@expo/vector-icons';
+import {Iconify} from 'react-native-iconify';
 import {AppText} from '@/src/components/common/AppText';
+import {AppImageV2} from '@/src/components/common/AppImageV2';
+import {EntityFallbackIcon} from '@/src/components/common/EntityFallbackIcon';
 import {themeStore} from '@/src/store/themeStore';
 import {COLORS} from '@/src/constants/colors';
 import {Merchant, SpendCategory} from '../types/dashboard';
-import {AppImageV2} from '@/src/components/common/AppImageV2';
 
 interface SpendCategoriesInsightsProps {
     categories: SpendCategory[];
@@ -15,6 +16,9 @@ interface SpendCategoriesInsightsProps {
     totalSpendAmount?: number;
     onViewAllPress?: () => void;
 }
+
+const DONUT_SIZE = 128;
+const LIST_MAX_HEIGHT = 148;
 
 export const SpendCategoriesInsights: React.FC<SpendCategoriesInsightsProps> = ({
     categories,
@@ -39,10 +43,9 @@ export const SpendCategoriesInsights: React.FC<SpendCategoriesInsightsProps> = (
         m.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    const size = 110;
-    const strokeWidth = 12;
-    const center = size / 2;
-    const radius = (size - strokeWidth) / 2;
+    const strokeWidth = 14;
+    const center = DONUT_SIZE / 2;
+    const radius = (DONUT_SIZE - strokeWidth) / 2;
     const circumference = 2 * Math.PI * radius;
     let strokeDashoffsetAccumulator = 0;
 
@@ -54,29 +57,30 @@ export const SpendCategoriesInsights: React.FC<SpendCategoriesInsightsProps> = (
     return (
         <View className="mb-6 px-5">
             <View className="mb-3 flex-row items-center justify-between">
-                <AppText
-                    variant="h4"
-                    className="font-bold"
-                    style={{color: colors.text.primary}}
-                >
+                <AppText variant="h4" className="font-bold" style={{color: colors.text.primary}}>
                     Spend Analysis
                 </AppText>
-                <TouchableOpacity onPress={onViewAllPress}>
+                <Pressable onPress={onViewAllPress} className="active:opacity-70">
                     <AppText
                         variant="body-small"
                         className="font-semibold"
-                        style={{color: colors.text.lighter}}
+                        style={{color: colors.text.link}}
                     >
                         View All
                     </AppText>
-                </TouchableOpacity>
+                </Pressable>
             </View>
 
             <View
-                className="gap-4 rounded-3xl border p-4 shadow-2xl"
+                className="rounded-3xl border p-4"
                 style={{
-                    backgroundColor: colors.bg.overlay,
+                    backgroundColor: colors.bg.lighter,
                     borderColor: colors.status.border,
+                    shadowColor: COLORS.light.brand.primary,
+                    shadowOpacity: isDark ? 0.35 : 0.08,
+                    shadowRadius: 12,
+                    shadowOffset: {width: 0, height: 4},
+                    elevation: 3,
                 }}
             >
                 {categories.length === 0 ? (
@@ -97,177 +101,212 @@ export const SpendCategoriesInsights: React.FC<SpendCategoriesInsightsProps> = (
                         </AppText>
                     </View>
                 ) : (
-                <>
-                <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{gap: 8, paddingRight: 4}}
-                >
-                    {categories.map((cat) => {
-                        const isSelected = selectedCategory?.id === cat.id;
-                        return (
-                            <TouchableOpacity
-                                key={cat.id}
-                                activeOpacity={0.7}
-                                onPress={() => setSelectedCategory(isSelected ? null : cat)}
-                                style={{
-                                    backgroundColor: isSelected ? `${cat.color}25` : colors.bg.primary,
-                                    borderColor: isSelected ? cat.color : colors.status.border,
-                                }}
-                                className="flex-row items-center gap-1.5 rounded-full border px-3 py-1.5"
-                            >
+                    <>
+                        <View className="flex-row items-center gap-3">
+                            {/* Donut — left */}
+                            <View className="items-center justify-center">
                                 <View
-                                    style={{backgroundColor: cat.color}}
-                                    className="h-2 w-2 rounded-full"
-                                />
-                                <AppText
-                                    variant="caption-xs"
-                                    className="font-semibold"
-                                    style={{
-                                        color: isSelected ? colors.text.primary : colors.text.lighter,
-                                    }}
+                                    className="relative items-center justify-center"
+                                    style={{width: DONUT_SIZE, height: DONUT_SIZE}}
                                 >
-                                    {cat.name} ({cat.percentage}%)
-                                </AppText>
-                            </TouchableOpacity>
-                        );
-                    })}
-                </ScrollView>
+                                    <Svg
+                                        height={DONUT_SIZE}
+                                        width={DONUT_SIZE}
+                                        viewBox={`0 0 ${DONUT_SIZE} ${DONUT_SIZE}`}
+                                    >
+                                        <G rotation="-90" origin={`${center}, ${center}`}>
+                                            {categories.map((cat) => {
+                                                const strokeDasharray = `${(cat.percentage / 100) * circumference} ${circumference}`;
+                                                const offset = strokeDashoffsetAccumulator;
+                                                strokeDashoffsetAccumulator +=
+                                                    (cat.percentage / 100) * circumference;
+                                                const isSelected =
+                                                    selectedCategory?.id === cat.id;
 
-                <View
-                    className={`flex-row items-center ${showMerchants ? '' : 'justify-center'}`}
-                >
-                    <View
-                        className={`items-center justify-center ${
-                            showMerchants ? 'w-[45%] border-r pr-3' : 'w-full'
-                        }`}
-                        style={showMerchants ? {borderRightColor: colors.status.border} : undefined}
-                    >
-                        <View className="relative h-[110px] w-[110px] items-center justify-center">
-                            <Svg height={size} width={size} viewBox={`0 0 ${size} ${size}`}>
-                                <G rotation="-90" origin={`${center}, ${center}`}>
-                                    {categories.map((cat) => {
-                                        const strokeDasharray = `${(cat.percentage / 100) * circumference} ${circumference}`;
-                                        const offset = strokeDashoffsetAccumulator;
-                                        strokeDashoffsetAccumulator +=
-                                            (cat.percentage / 100) * circumference;
-                                        const isSelected = selectedCategory?.id === cat.id;
+                                                return (
+                                                    <Circle
+                                                        key={cat.id}
+                                                        cx={center}
+                                                        cy={center}
+                                                        r={radius}
+                                                        stroke={cat.color}
+                                                        strokeWidth={
+                                                            isSelected
+                                                                ? strokeWidth + 3
+                                                                : strokeWidth
+                                                        }
+                                                        strokeDasharray={strokeDasharray}
+                                                        strokeDashoffset={-offset}
+                                                        fill="transparent"
+                                                        opacity={
+                                                            selectedCategory && !isSelected
+                                                                ? 0.3
+                                                                : 1
+                                                        }
+                                                    />
+                                                );
+                                            })}
+                                        </G>
+                                    </Svg>
 
-                                        return (
-                                            <Circle
-                                                key={cat.id}
-                                                cx={center}
-                                                cy={center}
-                                                r={radius}
-                                                stroke={cat.color}
-                                                strokeWidth={isSelected ? strokeWidth + 3 : strokeWidth}
-                                                strokeDasharray={strokeDasharray}
-                                                strokeDashoffset={-offset}
-                                                fill="transparent"
-                                                opacity={selectedCategory && !isSelected ? 0.35 : 1}
-                                            />
-                                        );
-                                    })}
-                                </G>
-                            </Svg>
-
-                            <TouchableOpacity
-                                activeOpacity={0.8}
-                                onPress={() => setSelectedCategory(null)}
-                                className="absolute items-center justify-center px-1"
-                            >
-                                <AppText
-                                    variant="caption-xs"
-                                    className="text-center text-[10px] font-medium"
-                                    numberOfLines={1}
-                                    style={{color: colors.text.lighter}}
-                                >
-                                    {displayCategoryName}
-                                </AppText>
-                                <AppText
-                                    variant="body-base"
-                                    className="mt-0.5 text-xs font-extrabold"
-                                    style={{color: colors.text.primary}}
-                                >
-                                    ₹{displayAmount.toLocaleString('en-IN')}
-                                </AppText>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-
-                    {showMerchants && (
-                        <View className="w-[55%] gap-2.5 pl-3.5">
-                            <View
-                                className="flex-row items-center rounded-xl border px-2.5 py-1.5"
-                                style={{
-                                    backgroundColor: colors.bg.primary,
-                                    borderColor: colors.status.border,
-                                }}
-                            >
-                                <Feather name="search" size={13} color={colors.icon.lighter} />
-                                <TextInput
-                                    value={searchQuery}
-                                    onChangeText={setSearchQuery}
-                                    placeholder="Search merchants..."
-                                    placeholderTextColor={colors.text.placeholder}
-                                    className="ml-2 h-6 flex-1 p-0 text-xs font-medium"
-                                    style={{color: colors.text.primary}}
-                                />
+                                    <Pressable
+                                        onPress={() => setSelectedCategory(null)}
+                                        className="absolute items-center justify-center px-2 active:opacity-80"
+                                        accessibilityRole="button"
+                                        accessibilityLabel="Show total spend"
+                                    >
+                                        <AppText
+                                            variant="caption-xs"
+                                            className="text-center text-[10px] font-medium text-text-primary-lighter"
+                                            numberOfLines={1}
+                                        >
+                                            {displayCategoryName}
+                                        </AppText>
+                                        <AppText
+                                            variant="body-base"
+                                            className="mt-0.5 text-center text-xs font-extrabold text-text-primary"
+                                        >
+                                            ₹{displayAmount.toLocaleString('en-IN')}
+                                        </AppText>
+                                    </Pressable>
+                                </View>
                             </View>
 
-                            <View className="gap-2">
-                                {filteredMerchants.length > 0 ? (
-                                    filteredMerchants.map((merchant) => (
-                                        <View
-                                            key={merchant.id}
-                                            className="flex-row items-center justify-between py-0.5"
+                            {/* Categories — right, vertical scroll */}
+                            <ScrollView
+                                style={{flex: 1, maxHeight: LIST_MAX_HEIGHT}}
+                                showsVerticalScrollIndicator={categories.length > 4}
+                                nestedScrollEnabled
+                                contentContainerStyle={{gap: 6, paddingVertical: 2}}
+                            >
+                                {categories.map((cat) => {
+                                    const isSelected = selectedCategory?.id === cat.id;
+                                    const amount = Math.round(
+                                        (totalSpendAmount * cat.percentage) / 100
+                                    );
+
+                                    return (
+                                        <Pressable
+                                            key={cat.id}
+                                            onPress={() =>
+                                                setSelectedCategory(isSelected ? null : cat)
+                                            }
+                                            accessibilityRole="button"
+                                            accessibilityState={{selected: isSelected}}
+                                            className="flex-row items-center gap-2.5 rounded-2xl border px-2.5 py-2 active:opacity-80"
+                                            style={{
+                                                backgroundColor: isSelected
+                                                    ? `${cat.color}22`
+                                                    : colors.bg.primary,
+                                                borderColor: isSelected
+                                                    ? cat.color
+                                                    : colors.status.border,
+                                            }}
                                         >
-                                            <View className="min-w-0 flex-1 flex-row items-center gap-2 pr-2">
-                                                <View
-                                                    className="h-6 w-6 items-center justify-center overflow-hidden rounded-full border"
-                                                    style={{
-                                                        backgroundColor: colors.bg.primary,
-                                                        borderColor: colors.status.border,
-                                                    }}
+                                            <View
+                                                className="h-2.5 w-2.5 rounded-full"
+                                                style={{backgroundColor: cat.color}}
+                                            />
+                                            <View className="min-w-0 flex-1">
+                                                <AppText
+                                                    variant="caption-xs"
+                                                    className="font-semibold text-text-primary"
+                                                    numberOfLines={1}
                                                 >
-                                                    <AppImageV2
-                                                        id={merchant.icon.id}
-                                                        url={merchant.icon.url}
-                                                        contentFit="cover"
-                                                    />
+                                                    {cat.name}
+                                                </AppText>
+                                                <AppText
+                                                    variant="caption-xs"
+                                                    className="mt-0.5 text-[10px] text-text-primary-lighter"
+                                                    numberOfLines={1}
+                                                >
+                                                    {cat.percentage}% · ₹
+                                                    {amount.toLocaleString('en-IN')}
+                                                </AppText>
+                                            </View>
+                                            {isSelected && (
+                                                <Iconify
+                                                    icon="heroicons:check-circle-20-solid"
+                                                    size={16}
+                                                    color={cat.color}
+                                                />
+                                            )}
+                                        </Pressable>
+                                    );
+                                })}
+                            </ScrollView>
+                        </View>
+
+                        {showMerchants && (
+                            <View className="mt-4 gap-2.5 border-t border-border-input pt-3.5">
+                                <View className="flex-row items-center rounded-xl border border-border-input bg-bg-primary px-2.5 py-1.5">
+                                    <Iconify
+                                        icon="heroicons:magnifying-glass"
+                                        size={13}
+                                        color={colors.icon.lighter}
+                                    />
+                                    <TextInput
+                                        value={searchQuery}
+                                        onChangeText={setSearchQuery}
+                                        placeholder="Search merchants..."
+                                        placeholderTextColor={colors.text.placeholder}
+                                        className="ml-2 h-6 flex-1 p-0 text-xs font-medium text-text-primary"
+                                    />
+                                </View>
+
+                                <View className="gap-2">
+                                    {filteredMerchants.length > 0 ? (
+                                        filteredMerchants.map((merchant) => (
+                                            <View
+                                                key={merchant.id}
+                                                className="flex-row items-center justify-between py-0.5"
+                                            >
+                                                <View className="min-w-0 flex-1 flex-row items-center gap-2 pr-2">
+                                                    <View className="h-6 w-6 items-center justify-center overflow-hidden rounded-full border border-border-input bg-bg-primary">
+                                                        <AppImageV2
+                                                            id={merchant.icon.id}
+                                                            url={merchant.icon.url}
+                                                            contentFit="cover"
+                                                            fallbackComponent={
+                                                                <EntityFallbackIcon
+                                                                    kind="merchant"
+                                                                    size={14}
+                                                                    color={colors.icon.lighter}
+                                                                />
+                                                            }
+                                                        />
+                                                    </View>
+                                                    <AppText
+                                                        variant="body-small"
+                                                        className="text-xs font-semibold text-text-primary"
+                                                        numberOfLines={1}
+                                                    >
+                                                        {merchant.name}
+                                                    </AppText>
                                                 </View>
                                                 <AppText
                                                     variant="body-small"
-                                                    className="text-xs font-semibold"
-                                                    numberOfLines={1}
-                                                    style={{color: colors.text.primary}}
+                                                    className="shrink-0 text-xs font-bold text-text-primary"
                                                 >
-                                                    {merchant.name}
+                                                    ₹
+                                                    {merchant.amountSpent.toLocaleString(
+                                                        'en-IN'
+                                                    )}
                                                 </AppText>
                                             </View>
-                                            <AppText
-                                                variant="body-small"
-                                                className="shrink-0 text-xs font-bold"
-                                                style={{color: colors.text.primary}}
-                                            >
-                                                ₹{merchant.amountSpent.toLocaleString('en-IN')}
-                                            </AppText>
-                                        </View>
-                                    ))
-                                ) : (
-                                    <AppText
-                                        variant="caption-xs"
-                                        className="py-2 text-center italic"
-                                        style={{color: colors.text.lighter}}
-                                    >
-                                        No merchants found
-                                    </AppText>
-                                )}
+                                        ))
+                                    ) : (
+                                        <AppText
+                                            variant="caption-xs"
+                                            className="py-2 text-center italic text-text-primary-lighter"
+                                        >
+                                            No merchants found
+                                        </AppText>
+                                    )}
+                                </View>
                             </View>
-                        </View>
-                    )}
-                </View>
-                </>
+                        )}
+                    </>
                 )}
             </View>
         </View>

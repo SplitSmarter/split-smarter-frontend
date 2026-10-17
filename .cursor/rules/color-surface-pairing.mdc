@@ -12,9 +12,9 @@ Follow [.llm/color-palette.md](mdc:.llm/color-palette.md) — especially **§0 S
 | Surface | Text | Iconify / spinner hex |
 | :--- | :--- | :--- |
 | Neutral (`bg-primary`, `bg-canvas`, sheets) | `text-text-primary` / `text-text-primary-lighter` | `COLORS.*.icon.primary` |
-| Primary CTA (`bg-secondary`) | `text-text-secondary` (white) only | `COLORS.*.text.contrast` (white) |
+| Primary CTA (`bg-secondary` slate invert) | `text-text-secondary` (theme-aware) | `COLORS.*.text.contrast` |
 | Selection (`bg-accent-sky-bg`) | `text-accent-sky` or `text-text-primary` | `#0284C7` / `#38BDF8` |
-| Success tint (`bg-secondary-lighter`) | `text-green-increase` | brand / success |
+| Success tint (`bg-secondary-lighter`) | `text-green-increase` | `status.success` / `icon.brand` |
 
 Canonical CTA icons: `AppButton` / `AppButtonV2` `getIconColor()`.
 
@@ -26,7 +26,7 @@ Canonical CTA icons: `AppButton` / `AppButtonV2` `getIconColor()`.
 <AppText className="text-text-primary">Title</AppText>
 <AppText className="text-text-primary-lighter">Meta</AppText>
 
-// Primary CTA — white label + white icon (via AppButton renderIcon color)
+// Primary CTA — contrast label + icon (via AppButton renderIcon color)
 <AppButton variant="primary" renderIcon={(c) => <Iconify icon="heroicons:plus-circle" size={18} color={c} />}>
   Create
 </AppButton>
@@ -38,16 +38,16 @@ Canonical CTA icons: `AppButton` / `AppButtonV2` `getIconColor()`.
 ## Do not
 
 ```tsx
-// White CTA text as muted body → invisible on light sheets
+// CTA contrast text as muted body → invisible / wrong on sheets
 <AppText className="text-text-secondary">Loading more...</AppText>
 
-// Brand / icon.secondary on green CTA → muddy “black” icon
-color={COLORS.light.brand.primary} // on bg-bg-secondary button
+// Emerald icon on slate CTA → wrong contrast family
+color={COLORS.light.icon.brand} // on bg-bg-secondary button
 
-// White nav icons after chrome left the green bar
+// CTA contrast icons on neutral header
 color={COLORS.light.text.contrast} // on bg-bg-primary header
 
-// Brand green for selection or full-screen chrome
+// Emerald for selection or full-screen chrome
 className="bg-bg-secondary/10" // selected row — use accent-sky*
 className="flex-1 bg-bg-secondary" // screen shell — use bg-bg-primary
 ```
@@ -57,4 +57,5 @@ className="flex-1 bg-bg-secondary" // screen shell — use bg-bg-primary
 - Same control: label and icon share contrast family.
 - Dividers: `border-border-input`, not `border-bg-secondary-lighter`.
 - Sheet body ≈ canvas; sheet header icons = `icon.primary`.
+- Emerald = money+/success only (`green-increase`, `bg-secondary-lighter`).
 - Iconify `icon` prop stays a string literal (see iconify-string-literals rule); only `color` is dynamic.

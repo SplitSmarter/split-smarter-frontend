@@ -6,6 +6,7 @@ import { themeStore } from '@/src/store/themeStore';
 import { userStore } from '@/src/store/userStore';
 import { AppText } from "@/src/components/common/AppText";
 import { AppImageV2 } from "@/src/components/common/AppImageV2";
+import { EntityFallbackIcon } from "@/src/components/common/EntityFallbackIcon";
 import { Currency } from "@/src/constants/expense/currency";
 import { COLORS } from "@/src/constants/colors";
 import { i18n as i18nInstance } from "@/src/i18n/index";
@@ -40,8 +41,9 @@ export const CurrencyModal = React.memo(({
     const isDark = themeStore((state) => state.theme === 'dark');
     const loggedInUser = userStore((state) => state.user);
 
-    const iconColor = isDark ? COLORS.icon_primary_dark : COLORS.icon_primary_light;
-    const brandGreen = isDark ? COLORS.icon_secondary_dark : COLORS.icon_secondary_light;
+    const colors = isDark ? COLORS.dark : COLORS.light;
+    const iconColor = colors.icon.primary;
+    const brandGreen = colors.icon.brand;
 
     const calculateConversionSubtitle = useCallback((targetCurrencyCode: string) => {
         if (!showConversionRates || !exchangeRates) return '';
@@ -75,11 +77,11 @@ export const CurrencyModal = React.memo(({
                 className={`flex-row items-center p-4 rounded-2xl border mb-2.5 ${
                     isSelected
                         ? 'border-accent-sky bg-accent-sky-bg'
-                        : 'border-zinc-100 dark:border-zinc-900 bg-zinc-50/40 dark:bg-zinc-900/20'
+                        : 'border-border-input bg-bg-canvas/40'
                 }`}
             >
                 {/* Advanced Cache Optimized Flag Layer */}
-                <View className="w-10 h-10 rounded-full overflow-hidden border border-zinc-200/60 dark:border-zinc-800/60 shadow-sm bg-zinc-100 dark:bg-zinc-900 items-center justify-center">
+                <View className="w-10 h-10 rounded-full overflow-hidden border border-border-input shadow-sm bg-bg-primary-darker items-center justify-center">
                     <AppImageV2
                         id={`flag_v2_${item.countryTag}`}
                         url={flagUrl}
@@ -87,9 +89,7 @@ export const CurrencyModal = React.memo(({
                         placeholder="|rF?hV%2WCj[ayj[a|j[ayjtayj[ayjtayj[ayjtayj[ayjtayj[ayjtayj[ayjtayj[ayjtayj["
                         style={{ width: '100%', height: '100%' }}
                         fallbackComponent={
-                            <View className="p-2">
-                                <Iconify icon="heroicons:flag" size={16} color="gray" />
-                            </View>
+                            <EntityFallbackIcon kind="currencyFlag" size={16} color={colors.icon.lighter} />
                         }
                     />
                 </View>
@@ -123,7 +123,7 @@ export const CurrencyModal = React.memo(({
                 )}
             </Pressable>
         );
-    }, [currentCurrency, brandGreen, calculateConversionSubtitle, showConversionRates, onSelect, t]);
+    }, [currentCurrency, brandGreen, colors.icon.lighter, calculateConversionSubtitle, showConversionRates, onSelect, t]);
 
     const currenciesList = useMemo(() => Object.values(Currency), []);
 
@@ -133,7 +133,7 @@ export const CurrencyModal = React.memo(({
             <View className="flex-1 justify-center items-center bg-black/60 px-5">
 
                 {/* Floating Dialog Box Frame using design variables */}
-                <View className="bg-white dark:bg-zinc-950 w-full rounded-[28px] p-5 border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xl max-h-[75%]">
+                <View className="bg-bg-canvas w-full rounded-[28px] p-5 border border-border-input shadow-2xl max-h-[75%]">
 
                     {/* Relative Header Structure */}
                     <View className="w-full flex-row items-center justify-between mb-5">
@@ -141,7 +141,7 @@ export const CurrencyModal = React.memo(({
                             {t('common.currency.select', 'Select Currency')}
                         </AppText>
 
-                        <Pressable onPress={onClose} className="p-1.5 bg-zinc-100 dark:bg-zinc-900 rounded-full active:opacity-60">
+                        <Pressable onPress={onClose} className="p-1.5 bg-bg-primary-darker rounded-full active:opacity-60">
                             <Iconify icon="heroicons:x-mark" size={14} color={iconColor} />
                         </Pressable>
                     </View>

@@ -2,6 +2,7 @@ import React, {useMemo} from 'react';
 import {View, ScrollView, TouchableOpacity} from 'react-native';
 import {AppText} from "@/src/components/common/AppText";
 import {AppImageV2} from "@/src/components/common/AppImageV2";
+import {EntityFallbackIcon} from "@/src/components/common/EntityFallbackIcon";
 import {themeStore} from '@/src/store/themeStore';
 import {COLORS} from '@/src/constants/colors';
 import {PeerSettlement} from '../types/dashboard';
@@ -69,6 +70,9 @@ export const PrivateP2PSettlements: React.FC<PrivateP2PSettlementsProps> = ({
                                     url={peer.avatar.url}
                                     contentFit="cover"
                                     style={{width: '100%', height: '100%', borderRadius: 999}}
+                                    fallbackComponent={
+                                        <EntityFallbackIcon kind="user" size={22} color={colors.icon.lighter} />
+                                    }
                                 />
                             </View>
 

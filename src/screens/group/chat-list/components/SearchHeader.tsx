@@ -11,23 +11,31 @@ interface SearchHeaderProps {
 
 export const SearchHeader = ({ searchQuery, onSearchChange }: SearchHeaderProps) => {
     const isDark = themeStore((state) => state.theme) === 'dark';
-    const iconColor = isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary;
-    const placeholderColor = isDark ? COLORS.dark.text.placeholder : COLORS.light.text.placeholder;
+    const colors = isDark ? COLORS.dark : COLORS.light;
 
     return (
         <View className="px-4 mb-4">
-            <View className="bg-bg-canvas flex-row items-center px-4 h-12 rounded-full shadow-sm">
-                <Iconify icon="heroicons:magnifying-glass" size={20} color={iconColor} />
+            <View
+                className="flex-row items-center px-4 h-12 rounded-full"
+                style={{
+                    // Light: white pill on slate header. Dark: deepest body black (not slate/white).
+                    backgroundColor: isDark ? colors.bg.primary : colors.bg.lighter,
+                    borderWidth: 1,
+                    borderColor: colors.status.border,
+                }}
+            >
+                <Iconify icon="heroicons:magnifying-glass" size={20} color={colors.icon.primary} />
                 <TextInput
                     placeholder="Type to search"
-                    className="flex-1 ml-2 text-base h-full text-text-primary"
-                    placeholderTextColor={placeholderColor}
+                    className="flex-1 ml-2 text-base h-full"
+                    style={{ color: colors.text.primary }}
+                    placeholderTextColor={colors.text.placeholder}
                     value={searchQuery}
                     onChangeText={onSearchChange}
                 />
                 {searchQuery.length > 0 && (
                     <Pressable onPress={() => onSearchChange('')}>
-                        <Iconify icon="heroicons:x-mark" size={18} color={iconColor} />
+                        <Iconify icon="heroicons:x-mark" size={18} color={colors.icon.primary} />
                     </Pressable>
                 )}
             </View>

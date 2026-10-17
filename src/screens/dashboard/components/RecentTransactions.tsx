@@ -1,5 +1,5 @@
 import React from 'react';
-import {View, TouchableOpacity, ScrollView} from 'react-native';
+import {View, Pressable, ScrollView} from 'react-native';
 import {Iconify} from 'react-native-iconify';
 import {AppText} from '@/src/components/common/AppText';
 import {themeStore} from '@/src/store/themeStore';
@@ -29,23 +29,19 @@ export const RecentTransactions: React.FC<RecentTransactionsProps> = ({
     return (
         <View className="mb-6 px-5">
             <View className="mb-3 flex-row items-center justify-between">
-                <AppText
-                    variant="h4"
-                    className="font-bold"
-                    style={{color: colors.text.primary}}
-                >
+                <AppText variant="h4" className="font-bold" style={{color: colors.text.primary}}>
                     Recent Transactions
                 </AppText>
                 {!isEmpty && (
-                    <TouchableOpacity onPress={onViewAllPress}>
+                    <Pressable onPress={onViewAllPress} className="active:opacity-70">
                         <AppText
                             variant="body-small"
                             className="font-semibold"
-                            style={{color: colors.text.lighter}}
+                            style={{color: colors.text.link}}
                         >
                             View All
                         </AppText>
-                    </TouchableOpacity>
+                    </Pressable>
                 )}
             </View>
 
@@ -53,13 +49,13 @@ export const RecentTransactions: React.FC<RecentTransactionsProps> = ({
                 <View
                     className="items-center justify-center rounded-3xl border px-5 py-8"
                     style={{
-                        backgroundColor: colors.bg.overlay,
+                        backgroundColor: colors.bg.lighter,
                         borderColor: colors.status.border,
                     }}
                 >
                     <View
                         className="mb-3 h-12 w-12 items-center justify-center rounded-full"
-                        style={{backgroundColor: isDark ? colors.bg.darker : colors.bg.darker}}
+                        style={{backgroundColor: colors.bg.darker}}
                     >
                         <Iconify
                             icon="heroicons:banknotes"

@@ -6,8 +6,8 @@ import {
     StyleSheet,
     ListRenderItem,
     Modal,
-    ScrollView,
 } from 'react-native';
+import {ScrollView} from 'react-native-gesture-handler';
 import {
     BottomSheetModal,
     BottomSheetBackdrop,
@@ -21,6 +21,7 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {AppText} from '@/src/components/common/AppText';
 import {AppInput} from '@/src/components/common/AppInput';
 import {AppImageV2} from '@/src/components/common/AppImageV2';
+import {EntityFallbackIcon} from '@/src/components/common/EntityFallbackIcon';
 import {AppButton} from '@/src/components/common/AppButton';
 import {SheetEmptyState} from '@/src/components/empty-states/SheetEmptyState';
 import {themeStore} from '@/src/store/themeStore';
@@ -29,21 +30,33 @@ import {ListUserExpenseItemsApi} from '@/src/api/expense/item';
 import {ExpenseItemResponse} from '@/src/api/dto/expense/item';
 import {ExpenseItemSource} from '@/src/api/dto/constants';
 import {PaginationResponse} from '@/src/api/dto/ApiResponse';
-import type {ExpenseItem as DraftExpenseItem} from '@/src/store/draft/expenseDraftStore';
+import type {
+    ExpenseItem as DraftExpenseItem,
+    PayerUser,
+} from '@/src/store/draft/expenseDraftStore';
+import {applyItemAttributionToSettlements} from '@/src/utils/expense/expenseCalculations';
 
 const PAGE_SIZE = 40;
 const ITEM_SOURCES = [ExpenseItemSource.SYSTEM, ExpenseItemSource.CUSTOM];
 
 type FilterTab = 'All' | 'System' | 'Custom';
 
+export type ItemSheetSaveOpts = {
+    syncTotalAmount?: number;
+    redistributeParticipants?: boolean;
+    /** Updated settlements: pool + item attributions */
+    splitParticipants?: PayerUser[];
+};
+
 interface SelectExpenseItemBottomSheetProps {
     visible: boolean;
     /** Current draft selection — sheet works on a local copy until Save */
     selectedItems: DraftExpenseItem[];
+    splitParticipants: PayerUser[];
     currencySymbol?: string;
     expenseTotalAmount: number;
     onClose: () => void;
-    onSave: (items: DraftExpenseItem[], opts?: {syncTotalAmount?: number}) => void;
+    onSave: (items: DraftExpenseItem[], opts?: ItemSheetSaveOpts) => void;
     onAddNew?: () => void;
 }
 
@@ -67,12 +80,14 @@ function toDraftItem(item: ExpenseItemResponse): DraftExpenseItem {
         quantity: 1,
         iconUrl: item.icon?.url ?? null,
         sharedBetween: [],
+        paidBetween: [],
     };
 }
 
 export const SelectExpenseItemBottomSheet: React.FC<SelectExpenseItemBottomSheetProps> = ({
     visible,
     selectedItems,
+    splitParticipants,
     currencySymbol = '₹',
     expenseTotalAmount,
     onClose,
@@ -81,8 +96,9 @@ export const SelectExpenseItemBottomSheet: React.FC<SelectExpenseItemBottomSheet
 }) => {
     const theme = themeStore((s) => s.theme);
     const isDark = theme === 'dark';
+    const colors = isDark ? COLORS.dark : COLORS.light;
     const insets = useSafeAreaInsets();
-    const iconColor = isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary;
+    const iconColor = colors.icon.primary;
     const emptyIconColor = iconColor;
 
     const bottomSheetModalRef = useRef<BottomSheetModal>(null);
@@ -100,6 +116,9 @@ export const SelectExpenseItemBottomSheet: React.FC<SelectExpenseItemBottomSheet
     const [activeTab, setActiveTab] = useState<FilterTab>('All');
     const [pending, setPending] = useState<DraftExpenseItem[]>([]);
     const [mismatchVisible, setMismatchVisible] = useState(false);
+    const [overLimitVisible, setOverLimitVisible] = useState(false);
+    const [overLimitMsg, setOverLimitMsg] = useState('');
+    const pendingSaveOptsRef = useRef<ItemSheetSaveOpts | undefined>(undefined);
 
     const fetchItems = useCallback(async (nextOffset: number, append: boolean) => {
         if (loadingRef.current) return;
@@ -156,8 +175,16 @@ export const SelectExpenseItemBottomSheet: React.FC<SelectExpenseItemBottomSheet
         if (visible) {
             setSearchQuery('');
             setActiveTab('All');
-            setPending(selectedItems.map((i) => ({...i})));
+            setPending(
+                selectedItems.map((i) => ({
+                    ...i,
+                    sharedBetween: i.sharedBetween ?? [],
+                    paidBetween: i.paidBetween ?? [],
+                })),
+            );
             setMismatchVisible(false);
+            setOverLimitVisible(false);
+            pendingSaveOptsRef.current = undefined;
             resetAndLoad();
             bottomSheetModalRef.current?.present();
         } else {
@@ -206,26 +233,93 @@ export const SelectExpenseItemBottomSheet: React.FC<SelectExpenseItemBottomSheet
         );
     }, []);
 
-    const commitSave = useCallback(
-        (opts?: {syncTotalAmount?: number}) => {
-            onSave(pending, opts);
+    const buildSavedItems = useCallback((): DraftExpenseItem[] => {
+        return pending
+            .filter((item) => item.quantity > 0)
+            .map((item) => ({
+                ...item,
+                sharedBetween: item.sharedBetween ?? [],
+                paidBetween: item.paidBetween ?? [],
+            }));
+    }, [pending]);
+
+    const finalizeSave = useCallback(
+        (opts?: ItemSheetSaveOpts, forceIncreaseOverLimit = false) => {
+            const nextItems = buildSavedItems();
+            const effectiveTotal =
+                typeof opts?.syncTotalAmount === 'number'
+                    ? opts.syncTotalAmount
+                    : expenseTotalAmount;
+
+            const {participants, overLimitKeys} = applyItemAttributionToSettlements(
+                splitParticipants,
+                selectedItems,
+                nextItems,
+                effectiveTotal
+            );
+
+            if (overLimitKeys.length > 0 && !forceIncreaseOverLimit) {
+                pendingSaveOptsRef.current = opts;
+                const names = overLimitKeys
+                    .map((k) => {
+                        const p = participants.find(
+                            (x) => `${x.id}-${x.user_type || 'USER'}` === k
+                        );
+                        return p?.name || k;
+                    })
+                    .join(', ');
+                setOverLimitMsg(
+                    `Item assignments exceed the current Split Between amount for: ${names}. Increase their shared amount to match items (pool becomes 0 for them)?`
+                );
+                setOverLimitVisible(true);
+                return;
+            }
+
+            onSave(nextItems, {
+                ...opts,
+                splitParticipants: participants,
+            });
             onClose();
         },
-        [onSave, onClose, pending]
+        [
+            buildSavedItems,
+            expenseTotalAmount,
+            splitParticipants,
+            selectedItems,
+            onSave,
+            onClose,
+        ]
     );
 
+    const amountsDiffer =
+        pending.length > 0 && Math.abs(selectedTotal - expenseTotalAmount) > 0.009;
+    const isSettingFromEmpty = amountsDiffer && expenseTotalAmount <= 0.009;
+
     const handleConfirm = useCallback(() => {
-        if (pending.length > 0 && Math.abs(selectedTotal - expenseTotalAmount) > 0.009) {
+        if (amountsDiffer) {
             setMismatchVisible(true);
             return;
         }
-        commitSave();
-    }, [pending.length, selectedTotal, expenseTotalAmount, commitSave]);
+        finalizeSave();
+    }, [amountsDiffer, finalizeSave]);
 
     const handleUpdateAmountAndSave = useCallback(() => {
         setMismatchVisible(false);
-        commitSave({syncTotalAmount: selectedTotal});
-    }, [commitSave, selectedTotal]);
+        finalizeSave({
+            syncTotalAmount: selectedTotal,
+            redistributeParticipants: true,
+        });
+    }, [finalizeSave, selectedTotal]);
+
+    const handleKeepAmountAndSave = useCallback(() => {
+        setMismatchVisible(false);
+        finalizeSave();
+    }, [finalizeSave]);
+
+    const handleAcceptOverLimit = useCallback(() => {
+        setOverLimitVisible(false);
+        finalizeSave(pendingSaveOptsRef.current, true);
+    }, [finalizeSave]);
 
     const handleLoadMore = useCallback(() => {
         if (!hasMore || loadingRef.current || loading || loadingMore) return;
@@ -253,9 +347,9 @@ export const SelectExpenseItemBottomSheet: React.FC<SelectExpenseItemBottomSheet
                         paddingHorizontal: 20,
                         paddingTop: 12,
                         paddingBottom: footerPad,
-                        backgroundColor: isDark ? '#1A1A1A' : '#FFFFFF',
+                        backgroundColor: colors.bg.overlay,
                         borderTopWidth: StyleSheet.hairlineWidth,
-                        borderTopColor: isDark ? '#2A2A2A' : '#E5E7EB',
+                        borderTopColor: colors.status.border,
                         flexDirection: 'row',
                         gap: 10,
                     }}
@@ -287,7 +381,7 @@ export const SelectExpenseItemBottomSheet: React.FC<SelectExpenseItemBottomSheet
                 </View>
             </BottomSheetFooter>
         ),
-        [footerPad, isDark, onAddNew, onClose, handleConfirm, pending.length]
+        [footerPad, colors, onAddNew, onClose, handleConfirm, pending.length]
     );
 
     const renderItem = useCallback<ListRenderItem<ExpenseItemResponse>>(
@@ -309,6 +403,9 @@ export const SelectExpenseItemBottomSheet: React.FC<SelectExpenseItemBottomSheet
                         style={{width: 44, height: 44}}
                         className="rounded-full"
                         contentFit="contain"
+                        fallbackComponent={
+                            <EntityFallbackIcon kind="expenseItem" size={22} color={iconColor} />
+                        }
                     />
                     <View className="ml-3 min-w-0 flex-1">
                         <AppText
@@ -325,14 +422,14 @@ export const SelectExpenseItemBottomSheet: React.FC<SelectExpenseItemBottomSheet
                         </AppText>
                     </View>
                     {isSelected ? (
-                        <Iconify icon="heroicons:check-circle-solid" size={26} color="#0284C7" />
+                        <Iconify icon="heroicons:check-circle-solid" size={26} color={colors.accent.sky} />
                     ) : (
                         <Iconify icon="heroicons:plus-circle" size={26} color={iconColor} />
                     )}
                 </Pressable>
             );
         },
-        [pending, handleToggle, currencySymbol, iconColor]
+        [pending, handleToggle, currencySymbol, iconColor, colors.accent.sky]
     );
 
     const listHeader = useMemo(
@@ -343,8 +440,11 @@ export const SelectExpenseItemBottomSheet: React.FC<SelectExpenseItemBottomSheet
                 </AppText>
                 <ScrollView
                     horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{paddingBottom: 4, gap: 10}}
+                    nestedScrollEnabled
+                    showsHorizontalScrollIndicator
+                    keyboardShouldPersistTaps="handled"
+                    style={styles.selectedRow}
+                    contentContainerStyle={styles.selectedRowContent}
                 >
                     {pending.length === 0 ? (
                         <View className="rounded-2xl border border-dashed border-border-input px-4 py-3">
@@ -356,38 +456,66 @@ export const SelectExpenseItemBottomSheet: React.FC<SelectExpenseItemBottomSheet
                         pending.map((item) => (
                             <View
                                 key={item.id}
-                                className="items-center rounded-2xl border border-border-input bg-bg-primary-lighter px-3 py-2"
+                                className="mr-3 rounded-2xl border border-border-input bg-bg-primary-lighter px-3 py-2"
+                                style={styles.selectedCard}
                             >
-                                <Pressable
-                                    onPress={() => updateQuantity(item.id, -item.quantity)}
-                                    hitSlop={8}
-                                    className="absolute -right-1 -top-1 z-10 h-5 w-5 items-center justify-center rounded-full"
-                                    style={{backgroundColor: isDark ? COLORS.dark.status.error : COLORS.light.status.error}}
-                                >
-                                    <Iconify icon="heroicons:x-mark" size={12} color="#FFFFFF" />
-                                </Pressable>
-                                <AppImageV2
-                                    id={`sel-${item.id}`}
-                                    url={item.iconUrl ?? null}
-                                    style={{width: 36, height: 36}}
-                                    className="rounded-full"
-                                    contentFit="contain"
-                                />
-                                <AppText
-                                    variant="caption-xs"
-                                    className="mt-1 max-w-[72px] font-bold text-text-primary"
-                                    numberOfLines={1}
-                                >
-                                    {item.title}
-                                </AppText>
-                                <View className="mt-1 flex-row items-center rounded-lg bg-bg-primary px-1">
-                                    <Pressable onPress={() => updateQuantity(item.id, -1)} className="p-1">
-                                        <Iconify icon="heroicons:minus" size={14} color={iconColor} />
+                                <View className="flex-row items-center">
+                                    <Pressable
+                                        onPress={() => updateQuantity(item.id, -item.quantity)}
+                                        hitSlop={8}
+                                        className="absolute -right-1 -top-1 z-10 h-5 w-5 items-center justify-center rounded-full"
+                                        style={{backgroundColor: colors.status.error}}
+                                    >
+                                        <Iconify
+                                            icon="heroicons:x-mark"
+                                            size={12}
+                                            color={colors.text.contrast}
+                                        />
                                     </Pressable>
-                                    <AppText className="mx-1 font-bold text-text-primary">{item.quantity}</AppText>
-                                    <Pressable onPress={() => updateQuantity(item.id, 1)} className="p-1">
-                                        <Iconify icon="heroicons:plus" size={14} color={iconColor} />
-                                    </Pressable>
+                                    <AppImageV2
+                                        id={`sel-${item.id}`}
+                                        url={item.iconUrl ?? null}
+                                        style={{width: 36, height: 36}}
+                                        className="rounded-full"
+                                        contentFit="contain"
+                                        fallbackComponent={
+                                            <EntityFallbackIcon kind="expenseItem" size={18} color={iconColor} />
+                                        }
+                                    />
+                                    <View className="ml-2" style={{width: 140}}>
+                                        <AppText
+                                            variant="caption-xs"
+                                            className="font-bold text-text-primary"
+                                            numberOfLines={1}
+                                        >
+                                            {item.title}
+                                        </AppText>
+                                        <View className="mt-1 flex-row items-center self-start rounded-lg bg-bg-primary px-1">
+                                            <Pressable
+                                                onPress={() => updateQuantity(item.id, -1)}
+                                                className="p-1"
+                                            >
+                                                <Iconify
+                                                    icon="heroicons:minus"
+                                                    size={14}
+                                                    color={iconColor}
+                                                />
+                                            </Pressable>
+                                            <AppText className="mx-1 font-bold text-text-primary">
+                                                {item.quantity}
+                                            </AppText>
+                                            <Pressable
+                                                onPress={() => updateQuantity(item.id, 1)}
+                                                className="p-1"
+                                            >
+                                                <Iconify
+                                                    icon="heroicons:plus"
+                                                    size={14}
+                                                    color={iconColor}
+                                                />
+                                            </Pressable>
+                                        </View>
+                                    </View>
                                 </View>
                             </View>
                         ))
@@ -395,26 +523,26 @@ export const SelectExpenseItemBottomSheet: React.FC<SelectExpenseItemBottomSheet
                 </ScrollView>
             </View>
         ),
-        [pending, updateQuantity, iconColor, isDark]
+        [pending, updateQuantity, iconColor, colors]
     );
 
     const listFooter = useMemo(() => {
         if (!loadingMore) return <View style={{height: 96}} />;
         return (
             <View className="items-center py-4">
-                <ActivityIndicator size="small" color={COLORS.light.brand.primary} />
+                <ActivityIndicator size="small" color={colors.icon.primary} />
                 <AppText variant="caption-xs" className="mt-2 text-text-primary-lighter">
                     Loading more...
                 </AppText>
             </View>
         );
-    }, [loadingMore]);
+    }, [loadingMore, colors.icon.primary]);
 
     const renderBody = () => {
         if (loading && catalog.length === 0) {
             return (
                 <View style={styles.centered}>
-                    <ActivityIndicator size="large" color={COLORS.light.brand.primary} />
+                    <ActivityIndicator size="large" color={colors.icon.primary} />
                     <AppText variant="caption-xs" className="mt-3 text-text-primary-lighter">
                         Loading items...
                     </AppText>
@@ -514,11 +642,11 @@ export const SelectExpenseItemBottomSheet: React.FC<SelectExpenseItemBottomSheet
                 keyboardBehavior="interactive"
                 keyboardBlurBehavior="restore"
                 backgroundStyle={{
-                    backgroundColor: isDark ? '#1A1A1A' : '#FFFFFF',
+                    backgroundColor: colors.bg.overlay,
                     borderRadius: 28,
                 }}
                 handleIndicatorStyle={{
-                    backgroundColor: isDark ? '#3F3F46' : '#D4D4D8',
+                    backgroundColor: colors.icon.lighter,
                     width: 40,
                     height: 4,
                 }}
@@ -586,22 +714,104 @@ export const SelectExpenseItemBottomSheet: React.FC<SelectExpenseItemBottomSheet
                     <View className="w-full rounded-3xl border border-border-input bg-bg-primary p-6">
                         <View className="mb-4 items-center">
                             <View className="mb-2 rounded-full bg-amber-500/10 p-3">
-                                <Iconify icon="heroicons:exclamation-triangle" size={32} color="#F59E0B" />
+                                <Iconify
+                                    icon="heroicons:exclamation-triangle"
+                                    size={32}
+                                    color={colors.status.warning}
+                                />
                             </View>
                             <AppText variant="h3" className="text-center font-bold text-text-primary">
-                                Amount Mismatch
+                                {isSettingFromEmpty ? 'Set amount from items?' : 'Amount mismatch'}
+                            </AppText>
+                        </View>
+
+                        <AppText className="mb-2 text-center text-text-primary-lighter">
+                            {isSettingFromEmpty ? (
+                                <>
+                                    Selected items total{' '}
+                                    <AppText className="font-bold text-green-increase">
+                                        {currencySymbol}
+                                        {selectedTotal.toFixed(2)}
+                                    </AppText>
+                                    , but no expense amount is set yet.
+                                </>
+                            ) : (
+                                <>
+                                    Items sum to{' '}
+                                    <AppText className="font-bold text-green-increase">
+                                        {currencySymbol}
+                                        {selectedTotal.toFixed(2)}
+                                    </AppText>
+                                    , but the expense amount is{' '}
+                                    <AppText className="font-bold text-golden">
+                                        {currencySymbol}
+                                        {expenseTotalAmount.toFixed(2)}
+                                    </AppText>
+                                    .
+                                </>
+                            )}
+                        </AppText>
+                        <AppText
+                            variant="caption-xs"
+                            className="mb-6 text-center text-text-primary-lighter"
+                        >
+                            Updating the amount will also redistribute Paid by and Split Between
+                            (locked shares stay fixed).
+                        </AppText>
+
+                        <AppButton variant="primary" size="md" onPress={handleUpdateAmountAndSave}>
+                            {isSettingFromEmpty
+                                ? `Set amount to ${currencySymbol}${selectedTotal.toFixed(2)}`
+                                : `Update amount to ${currencySymbol}${selectedTotal.toFixed(2)}`}
+                        </AppButton>
+
+                        {!isSettingFromEmpty && (
+                            <AppButton
+                                variant="secondary"
+                                size="md"
+                                className="mt-3"
+                                onPress={handleKeepAmountAndSave}
+                            >
+                                Keep {currencySymbol}
+                                {expenseTotalAmount.toFixed(2)}
+                            </AppButton>
+                        )}
+
+                        <Pressable
+                            onPress={() => setMismatchVisible(false)}
+                            className="mt-3 items-center py-3"
+                        >
+                            <AppText className="font-bold text-text-link">Go back</AppText>
+                        </Pressable>
+                    </View>
+                </View>
+            </Modal>
+
+            <Modal visible={overLimitVisible} animationType="fade" transparent>
+                <View className="flex-1 items-center justify-center bg-black/60 px-6">
+                    <View className="w-full rounded-3xl border border-border-input bg-bg-primary p-6">
+                        <View className="mb-4 items-center">
+                            <View className="mb-2 rounded-full bg-amber-500/10 p-3">
+                                <Iconify
+                                    icon="heroicons:exclamation-triangle"
+                                    size={32}
+                                    color={colors.status.warning}
+                                />
+                            </View>
+                            <AppText variant="h3" className="text-center font-bold text-text-primary">
+                                Split amount too low
                             </AppText>
                         </View>
                         <AppText className="mb-6 text-center text-text-primary-lighter">
-                            Items sum to {currencySymbol}
-                            {selectedTotal.toFixed(2)}, but the expense amount is {currencySymbol}
-                            {expenseTotalAmount.toFixed(2)}.
+                            {overLimitMsg}
                         </AppText>
-                        <AppButton variant="primary" size="md" onPress={handleUpdateAmountAndSave}>
-                            Update amount to {currencySymbol}
-                            {selectedTotal.toFixed(2)}
+                        <AppButton variant="primary" size="md" onPress={handleAcceptOverLimit}>
+                            Increase shared amounts
                         </AppButton>
-                        <Pressable onPress={() => setMismatchVisible(false)} className="mt-3 items-center py-3">
+                        <Pressable
+                            onPress={() => setOverLimitVisible(false)}
+                            className="mt-3 items-center py-3"
+                        >
                             <AppText className="font-bold text-text-link">Go back</AppText>
                         </Pressable>
                     </View>
@@ -619,6 +829,18 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         paddingHorizontal: 24,
+    },
+    selectedRow: {
+        flexGrow: 0,
+    },
+    selectedRowContent: {
+        paddingBottom: 4,
+        paddingRight: 16,
+        alignItems: 'flex-start',
+    },
+    selectedCard: {
+        width: 220,
+        flexShrink: 0,
     },
 });
 

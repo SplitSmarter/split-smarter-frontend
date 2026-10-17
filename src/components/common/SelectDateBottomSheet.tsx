@@ -37,6 +37,7 @@ export const SelectDateBottomSheet: React.FC<SelectDateBottomSheetProps> = ({
                                                                                 visible,
                                                                                 initialDate = new Date().toISOString().split('T')[0],
                                                                                 allowedModes = 'both',
+                                                                                allowFutureDates = false,
                                                                                 onClose,
                                                                                 onConfirm,
                                                                             }) => {
@@ -55,6 +56,7 @@ export const SelectDateBottomSheet: React.FC<SelectDateBottomSheetProps> = ({
         untilDate,
         snapPoints,
         palette,
+        maxSingleDate,
         setActiveTab,
         setSelectedDate,
         setPeriod,
@@ -66,7 +68,7 @@ export const SelectDateBottomSheet: React.FC<SelectDateBottomSheetProps> = ({
         setUntilDate,
         toggleWeekday,
         handleSave,
-    } = useSelectDateBottomSheet(visible, initialDate, onClose, onConfirm);
+    } = useSelectDateBottomSheet(visible, initialDate, onClose, onConfirm, allowFutureDates);
 
     // Enforce default tab based on allowedModes prop
     useEffect(() => {
@@ -130,10 +132,15 @@ export const SelectDateBottomSheet: React.FC<SelectDateBottomSheetProps> = ({
                     </AppText>
                     <Pressable
                         onPress={handleSave}
-                        className="px-4 py-1.5 rounded-2xl"
+                        className="rounded-2xl px-4 py-1.5"
                         style={{backgroundColor: palette.ctaBg}}
                     >
-                        <AppText className="text-white font-bold text-sm">Save</AppText>
+                        <AppText
+                            className="text-sm font-bold"
+                            style={{color: palette.ctaLabel}}
+                        >
+                            Save
+                        </AppText>
                     </Pressable>
                 </View>
 
@@ -155,7 +162,7 @@ export const SelectDateBottomSheet: React.FC<SelectDateBottomSheetProps> = ({
                                 activeTab === 'NO_REPEAT'
                                     ? {
                                         backgroundColor: palette.cardBg,
-                                        shadowColor: '#000',
+                                        shadowColor: palette.textPrimary,
                                         shadowOffset: {width: 0, height: 2},
                                         shadowOpacity: 0.1,
                                         shadowRadius: 4,
@@ -189,7 +196,7 @@ export const SelectDateBottomSheet: React.FC<SelectDateBottomSheetProps> = ({
                                 activeTab === 'REPEAT'
                                     ? {
                                         backgroundColor: palette.cardBg,
-                                        shadowColor: '#000',
+                                        shadowColor: palette.textPrimary,
                                         shadowOffset: {width: 0, height: 2},
                                         shadowOpacity: 0.1,
                                         shadowRadius: 4,
@@ -230,15 +237,19 @@ export const SelectDateBottomSheet: React.FC<SelectDateBottomSheetProps> = ({
                                     calendarBackground: 'transparent',
                                     textSectionTitleColor: palette.textLighter,
                                     selectedDayBackgroundColor: palette.accentSky,
-                                    selectedDayTextColor: '#FFFFFF',
+                                    selectedDayTextColor: palette.ctaLabel,
                                     todayTextColor: palette.accentSky,
                                     dayTextColor: palette.textPrimary,
                                     monthTextColor: palette.textPrimary,
                                     arrowColor: palette.accentSky,
                                     textMonthFontWeight: '700',
                                     textDayHeaderFontWeight: '600',
+                                    textDisabledColor: isDark
+                                        ? 'rgba(255,255,255,0.25)'
+                                        : 'rgba(0,0,0,0.25)',
                                 }}
                                 current={selectedDate}
+                                maxDate={maxSingleDate}
                                 onDayPress={(day: DateData) => setSelectedDate(day.dateString)}
                                 markedDates={{
                                     [selectedDate]: {
@@ -342,16 +353,16 @@ export const SelectDateBottomSheet: React.FC<SelectDateBottomSheetProps> = ({
                                                     style={{
                                                         backgroundColor: isSelected
                                                             ? palette.accentSky
-                                                            : isDark
-                                                                ? '#374151'
-                                                                : '#E2E8F0',
+                                                            : palette.segmentedBg,
                                                     }}
                                                     onPress={() => toggleWeekday(d.value)}
                                                 >
                                                     <AppText
                                                         className="text-xs font-bold"
                                                         style={{
-                                                            color: isSelected ? '#FFFFFF' : palette.textLighter,
+                                                            color: isSelected
+                                                                ? palette.ctaLabel
+                                                                : palette.textLighter,
                                                         }}
                                                     >
                                                         {d.label}

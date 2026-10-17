@@ -219,7 +219,7 @@ const LoginScreen = () => {
                                 variant="secondary"
                                 size="lg"
                                 hasBorder={true}
-                                className={`w-full ${isDark ? 'border-white/20' : 'border-gray-900'}`}
+                                className="w-full border-border-input"
                             >
                                 {t('common.auth.signup')}
                             </AppButton>

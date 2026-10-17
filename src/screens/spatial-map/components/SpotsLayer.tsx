@@ -7,22 +7,17 @@ interface SpotsLayerProps {
     onSelectPlace: (place: PlaceAgg) => void;
 }
 
-export function SpotsLayer({places = [], onSelectPlace}: SpotsLayerProps) {
-    console.log(`[SpotsLayer Output] Rendering ${places.length} places:`, places.map((p) => p.placeName));
-
+function SpotsLayerComponent({places = [], onSelectPlace}: SpotsLayerProps) {
     if (!places || places.length === 0) return null;
 
     return (
         <>
             {places.map((place) => {
                 const isValidCoord =
-                    !isNaN(place.latitude) &&
-                    !isNaN(place.longitude);
+                    !Number.isNaN(place.latitude) &&
+                    !Number.isNaN(place.longitude);
 
-                if (!isValidCoord) {
-                    console.warn(`[SpotsLayer] Invalid coordinates for place ${place.placeName}:`, place);
-                    return null;
-                }
+                if (!isValidCoord) return null;
 
                 const description = place.address
                     ? `${place.address} • ₹${place.totalAmount || 0}`
@@ -31,9 +26,13 @@ export function SpotsLayer({places = [], onSelectPlace}: SpotsLayerProps) {
                 return (
                     <Marker
                         key={`place-spot-${place.placeId}`}
-                        coordinate={{latitude: place.latitude, longitude: place.longitude}}
+                        coordinate={{
+                            latitude: place.latitude,
+                            longitude: place.longitude,
+                        }}
                         title={place.placeName}
                         description={description}
+                        tracksViewChanges={false}
                         onPress={() => onSelectPlace(place)}
                     />
                 );
@@ -41,3 +40,5 @@ export function SpotsLayer({places = [], onSelectPlace}: SpotsLayerProps) {
         </>
     );
 }
+
+export const SpotsLayer = React.memo(SpotsLayerComponent);

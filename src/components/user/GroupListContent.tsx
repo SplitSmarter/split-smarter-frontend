@@ -5,6 +5,7 @@ import {BottomSheetFlatList} from '@gorhom/bottom-sheet';
 import {Iconify} from 'react-native-iconify';
 import {AppText} from "@/src/components/common/AppText";
 import {AppImage} from "@/src/components/common/AppImage";
+import {EntityFallbackIcon} from "@/src/components/common/EntityFallbackIcon";
 import {SheetEmptyState} from "@/src/components/empty-states/SheetEmptyState";
 import {GroupDetails} from '@/src/api/dto/user/group';
 
@@ -35,9 +36,10 @@ export const GroupListContent = React.memo<GroupListContentProps>(({
     onLoadMore,
     isDark,
 }: GroupListContentProps) => {
+    const colors = isDark ? COLORS.dark : COLORS.light;
     const trimmedQuery = searchQuery.trim();
     const isSearching = trimmedQuery.length > 0;
-    const emptyIconColor = isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary;
+    const emptyIconColor = colors.icon.primary;
 
     const renderItem = useCallback<ListRenderItem<GroupDetails>>(
         ({item}) => (
@@ -46,7 +48,15 @@ export const GroupListContent = React.memo<GroupListContentProps>(({
                 className={`flex-row items-center py-3 px-2 rounded-2xl mb-1 ${item.id === selectedId ? 'bg-accent-sky-bg' : ''}`}
             >
                 <View className="w-14 h-14 mr-4">
-                    <AppImage id={item.icon?.id} url={item.icon?.url} variant="circular" size="full"/>
+                    <AppImage
+                        id={item.icon?.id}
+                        url={item.icon?.url}
+                        variant="circular"
+                        size="full"
+                        fallbackIcon={
+                            <EntityFallbackIcon kind="group" size={28} color={colors.icon.lighter}/>
+                        }
+                    />
                 </View>
                 <View className="flex-1">
                     <AppText variant="body-base" className="font-semibold text-text-primary">
@@ -58,19 +68,19 @@ export const GroupListContent = React.memo<GroupListContentProps>(({
                     {[1, 2, 3].map((i) => (
                         <View
                             key={i}
-                            className="-mr-2 border-2 border-white dark:border-zinc-900 rounded-full overflow-hidden w-6 h-6 bg-bg-primary"
+                            className="-mr-2 border-2 border-bg-primary-lighter rounded-full overflow-hidden w-6 h-6 bg-bg-primary"
                         >
                             <Iconify
                                 icon="heroicons:user-circle"
                                 size={20}
-                                color={isDark ? "#333" : "#CCC"}
+                                color={colors.icon.lighter}
                             />
                         </View>
                     ))}
                 </View>
             </Pressable>
         ),
-        [isDark, onSelect, selectedId]
+        [colors.icon.lighter, onSelect, selectedId]
     );
 
     const listHeader = useMemo(() => (
@@ -89,13 +99,13 @@ export const GroupListContent = React.memo<GroupListContentProps>(({
         if (!loadingMore) return <View style={styles.footerSpacer}/>;
         return (
             <View style={styles.footerLoading}>
-                <ActivityIndicator size="small" color={COLORS.light.brand.primary}/>
+                <ActivityIndicator size="small" color={colors.icon.primary}/>
                 <AppText variant="caption-xs" className="text-text-primary-lighter mt-2">
                     Loading more...
                 </AppText>
             </View>
         );
-    }, [loadingMore]);
+    }, [colors.icon.primary, loadingMore]);
 
     const listEmpty = useMemo(() => {
         if (!isSearching) return null;
@@ -135,7 +145,7 @@ export const GroupListContent = React.memo<GroupListContentProps>(({
     }
 
     return (
-        <View style={styles.listCard} className="bg-white dark:bg-zinc-900">
+        <View style={[styles.listCard, { backgroundColor: colors.bg.lighter }]}>
             <BottomSheetFlatList
                 data={filteredGroups}
                 keyExtractor={(item) => String(item.id)}

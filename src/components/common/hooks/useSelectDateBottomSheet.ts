@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Keyboard } from 'react-native';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { themeStore } from '@/src/store/themeStore';
+import { COLORS } from '@/src/constants/colors';
 import {
     ExpenseRecurringPeriod,
     EndType,
@@ -11,11 +12,20 @@ import {
     RecurringDateSchema,
 } from '@/src/components/common/types/selectDateBottomSheet.types';
 
+const todayYmd = () => new Date().toISOString().split('T')[0];
+
+const clampToTodayIfNeeded = (ymd: string, allowFuture: boolean): string => {
+    if (allowFuture) return ymd;
+    const today = todayYmd();
+    return ymd > today ? today : ymd;
+};
+
 export const useSelectDateBottomSheet = (
     visible: boolean,
-    initialDate: string = new Date().toISOString().split('T')[0],
+    initialDate: string = todayYmd(),
     onClose: () => void,
-    onConfirm: (result: DateSelectionResult) => void
+    onConfirm: (result: DateSelectionResult) => void,
+    allowFutureDates: boolean = false,
 ) => {
     const theme = themeStore((state) => state.theme);
     const isDark = theme === 'dark';
@@ -23,7 +33,9 @@ export const useSelectDateBottomSheet = (
     const bottomSheetModalRef = useRef<BottomSheetModal>(null);
 
     const [activeTab, setActiveTab] = useState<'NO_REPEAT' | 'REPEAT'>('NO_REPEAT');
-    const [selectedDate, setSelectedDate] = useState<string>(initialDate);
+    const [selectedDate, setSelectedDate] = useState<string>(() =>
+        clampToTodayIfNeeded(initialDate, allowFutureDates),
+    );
 
     // Recurrence pattern state
     const [period, setPeriod] = useState<ExpenseRecurringPeriod>(ExpenseRecurringPeriod.DAILY);
@@ -39,13 +51,23 @@ export const useSelectDateBottomSheet = (
 
     useEffect(() => {
         if (visible) {
+            setSelectedDate(clampToTodayIfNeeded(initialDate, allowFutureDates));
             bottomSheetModalRef.current?.present();
         } else {
             bottomSheetModalRef.current?.dismiss();
         }
-    }, [visible]);
+    }, [visible, initialDate, allowFutureDates]);
 
     const snapPoints = useMemo(() => ['85%'], []);
+
+    const maxSingleDate = allowFutureDates ? undefined : todayYmd();
+
+    const selectSingleDate = useCallback(
+        (ymd: string) => {
+            setSelectedDate(clampToTodayIfNeeded(ymd, allowFutureDates));
+        },
+        [allowFutureDates],
+    );
 
     const toggleWeekday = useCallback((day: DayOfWeek) => {
         setSelectedWeekdays((prev) =>
@@ -53,29 +75,33 @@ export const useSelectDateBottomSheet = (
         );
     }, []);
 
+    const colors = isDark ? COLORS.dark : COLORS.light;
+
     const palette = useMemo(
         () => ({
-            background: isDark ? '#111827' : '#F8FAFC',
-            cardBg: isDark ? '#1F2937' : '#FFFFFF',
-            canvasBg: isDark ? '#0F172A' : '#FFFFFF',
-            handle: isDark ? '#374151' : '#CBD5E1',
-            textPrimary: isDark ? '#F9FAFB' : '#0F172A',
-            textLighter: isDark ? '#9CA3AF' : '#64748B',
-            accentSky: isDark ? '#38BDF8' : '#0284C7',
-            accentSkyBg: isDark ? 'rgba(56, 189, 248, 0.12)' : '#E0F2FE',
-            ctaBg: isDark ? '#32966E' : '#2B8761',
-            border: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.06)',
-            segmentedBg: isDark ? '#1F2937' : '#E2E8F0',
+            background: colors.bg.primary,
+            cardBg: colors.bg.lighter,
+            canvasBg: colors.bg.canvas,
+            handle: colors.icon.lighter,
+            textPrimary: colors.text.primary,
+            textLighter: colors.text.lighter,
+            accentSky: colors.accent.sky,
+            accentSkyBg: colors.accent.skyBg,
+            ctaBg: colors.brand.primary,
+            ctaLabel: colors.text.contrast,
+            border: colors.status.border,
+            segmentedBg: colors.bg.darker,
         }),
-        [isDark]
+        [colors]
     );
 
     const handleSave = useCallback(() => {
         Keyboard.dismiss();
         if (activeTab === 'NO_REPEAT') {
+            const safeDate = clampToTodayIfNeeded(selectedDate, allowFutureDates);
             const payload: DateSelectionResult = {
                 isRecurring: false,
-                selectedDate,
+                selectedDate: safeDate,
             };
             const parsed = NonRecurringDateSchema.parse(payload);
             onConfirm(parsed);
@@ -108,6 +134,7 @@ export const useSelectDateBottomSheet = (
     }, [
         activeTab,
         selectedDate,
+        allowFutureDates,
         period,
         selectedWeekdays,
         monthlyOption,
@@ -135,8 +162,10 @@ export const useSelectDateBottomSheet = (
         untilDate,
         snapPoints,
         palette,
+        maxSingleDate,
+        allowFutureDates,
         setActiveTab,
-        setSelectedDate,
+        setSelectedDate: selectSingleDate,
         setPeriod,
         setInterval,
         setMonthlyOption,

@@ -1,9 +1,11 @@
 import React from 'react';
 import { View, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { AppText } from "@/src/components/common/AppText";
 import { AppImageV2 } from "@/src/components/common/AppImageV2";
+import { EntityFallbackIcon } from "@/src/components/common/EntityFallbackIcon";
 import { ConsumerPaymentCategorySummaryResponse } from "@/src/api/dto/user_payments/categories";
+import { themeStore } from "@/src/store/themeStore";
+import { COLORS } from "@/src/constants/colors";
 
 interface CategoryStepContentProps {
     categories: ConsumerPaymentCategorySummaryResponse[];
@@ -18,6 +20,9 @@ export const CategoryStepContent: React.FC<CategoryStepContentProps> = ({
                                                                             error,
                                                                             onSelectCategory,
                                                                         }) => {
+    const isDark = themeStore((state) => state.theme === 'dark');
+    const iconColor = isDark ? COLORS.dark.icon.lighter : COLORS.light.icon.lighter;
+
     if (isLoading) {
         return (
             <View className="py-8 items-center justify-center">
@@ -55,20 +60,15 @@ export const CategoryStepContent: React.FC<CategoryStepContentProps> = ({
                         style={{ width: 48, height: 48 }}
                         className="rounded-full justify-center items-center mb-2 bg-bg-secondary-lighter p-2.5"
                     >
-                        {cat.icon?.url ? (
-                            /* Fixed dimensions and contentFit for AppImageV2 */
-                            <AppImageV2
-                                id={`cat-${cat.id}`}
-                                url={cat.icon.url}
-                                contentFit="contain"
-                                style={{ width: 26, height: 26 }}
-                                fallbackComponent={
-                                    <Ionicons name="wallet-outline" size={24} className="text-icon-secondary" />
-                                }
-                            />
-                        ) : (
-                            <Ionicons name="wallet-outline" size={24} className="text-icon-secondary" />
-                        )}
+                        <AppImageV2
+                            id={`cat-${cat.id}`}
+                            url={cat.icon?.url}
+                            contentFit="contain"
+                            style={{ width: 26, height: 26 }}
+                            fallbackComponent={
+                                <EntityFallbackIcon kind="paymentCategory" size={24} color={iconColor} />
+                            }
+                        />
                     </View>
                     <AppText variant="body-small" className="font-semibold text-text-primary text-center" numberOfLines={2}>
                         {cat.name}

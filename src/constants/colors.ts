@@ -1,108 +1,136 @@
-// /src/constants/Colors.ts
+// /src/constants/Colors.ts — Full Platinum (synced with app/global.css)
+
+/** Metallic slate header chrome (always dark) — not brand.primary (CTA fill flips in dark). */
+export const PLATINUM_HEADER = {
+    light: '#1E293B',
+    mid: '#334155',
+    dark: '#0F172A',
+} as const;
+
 export const COLORS = {
     // --- Light Theme ---
     light: {
         // --- Core Surfaces ---
         bg: {
-            primary: '#F2F2F2',
+            primary: '#F1F4F8',
             lighter: '#FFFFFF',
-            darker: '#E0E0E0',
+            darker: '#E2E8F0',
             canvas: '#FFFFFF',
             overlay: '#FFFFFF',
         },
+        // Primary CTA = inverted slate (not emerald)
         brand: {
-            primary: '#2B8761',        // Main Green
-            lighter: '#D4EDE1',        // Tinted Green surface
-            darker: '#226C4E',         // Tap/Press interactive Green
+            primary: '#0F172A',
+            lighter: '#D1FAE5',        // Emerald success tint (status only)
+            darker: '#1E293B',         // Pressed CTA
         },
 
         // --- Text System ---
         text: {
-            primary: '#2B2B2B',        // High contrast titles
-            lighter: '#646464',        // Secondary descriptions
-            darker: '#121212',         // Deep accent black
-            placeholder: '#8C8C8C',
-            contrast: '#FFFFFF',       // Clean readable white text on Green elements
-            link: '#2B8761',
+            primary: '#0F172A',
+            lighter: '#64748B',
+            darker: '#020617',
+            placeholder: '#94A3B8',
+            contrast: '#FFFFFF',       // Label / icon on dark CTA
+            link: '#0284C7',
         },
 
         // --- Icon Scale ---
         icon: {
-            primary: '#4D4D4D',        // Default UI Icons
-            lighter: '#787878',        // Muted/Secondary decoration icons
-            darker: '#1E1E1E',         // Structural headers or heavy glyphs
-            brand: '#2B8761',          // Green themed status icons
+            primary: '#475569',
+            lighter: '#94A3B8',
+            darker: '#1E293B',
+            brand: '#10B981',          // Emerald success icons on neutral surfaces
+        },
+
+        // --- Interactive Accent ---
+        accent: {
+            sky: '#0284C7',
+            skyBg: '#E0F2FE',
+            orbIndigo: '#6366F1',
+            violet: '#A855F7',
+            teal: '#14B8A6',
         },
 
         // --- System Status ---
         status: {
             error: '#EF4444',
-            success: '#289F32',
-            decrease: '#D12E34',
-            warning: '#B5AF98',
-            border: '#E4E4E7',         // Standard form track limits
-        }
+            success: '#10B981',
+            decrease: '#EF4444',
+            warning: '#D97706',
+            border: '#CBD5E1',
+        },
     },
 
     dark: {
         // --- Core Surfaces ---
         bg: {
-            primary: '#1A1A1A',
-            lighter: '#1E1E1E',
-            darker: '#121212',
-            canvas: '#0C0C0C',
-            overlay: '#1E1E1E',
+            primary: '#07090E',
+            lighter: '#1E293B',
+            darker: '#0B0F17',
+            canvas: '#0F172A',
+            overlay: '#1E293B',
         },
+        // Primary CTA = light platinum fill
         brand: {
-            primary: '#32966E',        // Neon-optimized legible Dark Mode Green
-            lighter: '#1E372D',        // Dark deep forest backdrop
-            darker: '#28785A',
+            primary: '#F8FAFC',
+            lighter: '#064E3B',        // Deep emerald success tint
+            darker: '#E2E8F0',         // Pressed CTA
         },
 
         // --- Text System ---
         text: {
-            primary: '#EBEBEB',        // Bright readable white
-            lighter: '#AAAAAA',        // Soft gray body text
+            primary: '#F8FAFC',
+            lighter: '#94A3B8',
             darker: '#FFFFFF',
-            placeholder: '#6E6E6E',
-            contrast: '#FFFFFF',       // Contrast on primary interactive frames
-            link: '#4CB48C',
+            placeholder: '#64748B',
+            contrast: '#0F172A',       // Label / icon on light CTA
+            link: '#38BDF8',
         },
 
         // --- Icon Scale ---
         icon: {
-            primary: '#B4B4B4',        // Soft off-white icon base
-            lighter: '#7C7C7C',        // Muted secondary icons
-            darker: '#FFFFFF',         // Sharp maximum contrast accent glyphs
-            brand: '#32966E',          // Vibrant mode matching green icon state
+            primary: '#94A3B8',
+            lighter: '#CBD5E1',
+            darker: '#64748B',
+            brand: '#10B981',
+        },
+
+        // --- Interactive Accent ---
+        accent: {
+            sky: '#38BDF8',
+            skyBg: '#0C4A6E',
+            orbIndigo: '#6366F1',
+            violet: '#A855F7',
+            teal: '#14B8A6',
         },
 
         // --- System Status ---
         status: {
-            error: '#F87171',          // Softer tone for reduced optical glare
-            success: '#289F32',
-            decrease: '#D12E34',
-            warning: '#B5AF98',
-            border: '#3F3F46',
-        }
+            error: '#F87171',
+            success: '#10B981',
+            decrease: '#EF4444',
+            warning: '#D97706',
+            border: '#334155',
+        },
     },
 
     // --- Backwards Compatibility and Legacy Shortcuts ---
-    icon_primary_light: '#4D4D4D',
-    icon_primary_lighter_light: '#787878',
-    icon_primary_darker_light: '#1E1E1E',
-    icon_primary_dark: '#B4B4B4',
-    icon_primary_lighter_dark: '#DCscale',
-    icon_primary_darker_dark: '#828282',
+    icon_primary_light: '#475569',
+    icon_primary_lighter_light: '#94A3B8',
+    icon_primary_darker_light: '#1E293B',
+    icon_primary_dark: '#94A3B8',
+    icon_primary_lighter_dark: '#CBD5E1',
+    icon_primary_darker_dark: '#64748B',
 
-    icon_secondary_light: '#2B8761',
-    icon_secondary_lighter_light: '#559F81',
-    icon_secondary_darker_light: '#226C4E',
-    icon_secondary_dark: '#32966E',
-    icon_secondary_lighter_dark: '#64B496',
-    icon_secondary_darker_dark: '#28785A',
+    icon_secondary_light: '#10B981',
+    icon_secondary_lighter_light: '#34D399',
+    icon_secondary_darker_light: '#059669',
+    icon_secondary_dark: '#10B981',
+    icon_secondary_lighter_dark: '#34D399',
+    icon_secondary_darker_dark: '#059669',
 
-    golden: '#B5AF98',
-    color_red_decrease: '#D12E34',
-    bg_primary_dark: '#1A1A1A'
+    golden: '#D97706',
+    color_red_decrease: '#EF4444',
+    bg_primary_dark: '#07090E'
 };

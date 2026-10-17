@@ -4,12 +4,17 @@ import { Iconify } from 'react-native-iconify';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { AppText } from '@/src/components/common/AppText';
 import { AppImage } from '@/src/components/common/AppImage';
+import { EntityFallbackIcon } from '@/src/components/common/EntityFallbackIcon';
 import { GetRelationsApi } from "@/src/api/relations/relation";
 import { RelationDetails } from "@/src/api/dto/user/relation";
+import { COLORS } from '@/src/constants/colors';
+import { themeStore } from '@/src/store/themeStore';
 
 const HORIZ_PADDING = 24;
 
 export const PaidByContent = ({ payers, totalExpense, onQuickAdd, onToggleLock, onDelete, onUpdateAmount }: any) => {
+    const isDark = themeStore((state) => state.theme === 'dark');
+    const colors = isDark ? COLORS.dark : COLORS.light;
     const [suggestions, setSuggestions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -50,7 +55,7 @@ export const PaidByContent = ({ payers, totalExpense, onQuickAdd, onToggleLock, 
                 <View className="flex-row flex-wrap justify-between items-start mb-10">
                     {loading ? (
                         <View className="w-full items-center py-4">
-                            <ActivityIndicator color="rgb(var(--color-bg-secondary))" />
+                            <ActivityIndicator color={colors.brand.primary} />
                         </View>
                     ) : (
                         <>
@@ -61,7 +66,14 @@ export const PaidByContent = ({ payers, totalExpense, onQuickAdd, onToggleLock, 
                                     className="items-center"
                                     style={{ width: '22%' }}
                                 >
-                                    <AppImage url={user.avatar?.url || 'https://i.pravatar.cc/150'} size="lg" variant="circular" />
+                                    <AppImage
+                                        url={user.avatar?.url}
+                                        size="lg"
+                                        variant="circular"
+                                        fallbackIcon={
+                                            <EntityFallbackIcon kind="user" size={28} color={colors.icon.lighter} />
+                                        }
+                                    />
                                     <AppText variant="body-base" className="mt-2 text-text-primary text-center" numberOfLines={1}>
                                         {user.name.split(' ')[0]}
                                     </AppText>
@@ -69,7 +81,7 @@ export const PaidByContent = ({ payers, totalExpense, onQuickAdd, onToggleLock, 
                             ))}
                             <Pressable className="items-center" style={{ width: '22%' }}>
                                 <View className="bg-bg-primary-lighter h-[56px] w-[56px] rounded-full items-center justify-center border border-border-input shadow-sm">
-                                    <Iconify icon="ph:user-plus" size={24} color="rgb(var(--color-text-primary))" />
+                                    <Iconify icon="ph:user-plus" size={24} color={colors.icon.primary} />
                                 </View>
                                 <AppText variant="body-base" className="mt-2 text-text-primary font-medium">More</AppText>
                             </Pressable>
@@ -88,7 +100,7 @@ export const PaidByContent = ({ payers, totalExpense, onQuickAdd, onToggleLock, 
                     <AppText variant="body-xs" className="font-bold text-text-primary opacity-60 tracking-[3px]">PERSON</AppText>
                     <View className="flex-row items-center">
                         <AppText variant="body-xs" className="font-bold text-text-primary opacity-60 tracking-[3px]">AMOUNT</AppText>
-                        <Iconify icon="tabler:chevron-down" size={14} color="rgb(var(--color-text-primary))" className="ml-1" />
+                        <Iconify icon="tabler:chevron-down" size={14} color={colors.icon.primary} className="ml-1" />
                     </View>
                 </View>
 
@@ -119,6 +131,8 @@ export const PaidByContent = ({ payers, totalExpense, onQuickAdd, onToggleLock, 
 };
 
 const SwipeableRow = ({ payer, totalExpense, onToggleLock, onDelete, onUpdateAmount, isLast, totalPayersCount }: any) => {
+    const isDark = themeStore((state) => state.theme === 'dark');
+    const colors = isDark ? COLORS.dark : COLORS.light;
     const percentage = totalExpense > 0 ? (payer.amount / totalExpense) * 100 : 0;
 
     // Initial display logic
@@ -152,11 +166,15 @@ const SwipeableRow = ({ payer, totalExpense, onToggleLock, onDelete, onUpdateAmo
         // Rule: Don't show lock action if only one user
         if (totalPayersCount <= 1) return null;
         return (
-            <Pressable onPress={() => onToggleLock(payer.id)} className="bg-golden w-20 justify-center items-center">
+            <Pressable
+                onPress={() => onToggleLock(payer.id)}
+                className="w-20 justify-center items-center"
+                style={{ backgroundColor: colors.status.warning }}
+            >
                 {payer.isLocked ? (
-                    <Iconify icon="heroicons:lock-open-solid" size={30} color={payer.isLocked ? "rgb(var(--color-golden))" : "rgb(var(--color-text-secondary))"}/>
+                    <Iconify icon="heroicons:lock-open-solid" size={30} color={colors.text.contrast} />
                 ) : (
-                    <Iconify icon="heroicons:lock-closed-solid" size={30} color={payer.isLocked ? "rgb(var(--color-golden))" : "rgb(var(--color-text-secondary))"}/>
+                    <Iconify icon="heroicons:lock-closed-solid" size={30} color={colors.text.contrast} />
                 )}
             </Pressable>
         );
@@ -166,8 +184,12 @@ const SwipeableRow = ({ payer, totalExpense, onToggleLock, onDelete, onUpdateAmo
         // Rule: Don't show delete action if only one user
         if (totalPayersCount <= 1) return null;
         return (
-            <Pressable onPress={() => onDelete(payer.id)} className="bg-red-decrease w-20 justify-center items-center">
-                <Iconify icon="material-symbols:delete-rounded" size={28} color="white" />
+            <Pressable
+                onPress={() => onDelete(payer.id)}
+                className="w-20 justify-center items-center"
+                style={{ backgroundColor: colors.status.error }}
+            >
+                <Iconify icon="material-symbols:delete-rounded" size={28} color={colors.text.contrast} />
             </Pressable>
         );
     };
@@ -182,10 +204,17 @@ const SwipeableRow = ({ payer, totalExpense, onToggleLock, onDelete, onUpdateAmo
 
                 {/* Avatar */}
                 <View className="relative">
-                    <AppImage url={payer.avatar?.url || payer.avatar_url} size="md" variant="circular" />
+                    <AppImage
+                        url={payer.avatar?.url || payer.avatar_url}
+                        size="md"
+                        variant="circular"
+                        fallbackIcon={
+                            <EntityFallbackIcon kind="user" size={22} color={colors.icon.lighter} />
+                        }
+                    />
                     {(payer.isLocked || totalPayersCount === 1) && (
                         <View className="absolute -top-1 -right-1 bg-bg-primary-lighter rounded-full p-0.5 shadow-sm">
-                            <Iconify icon="material-symbols:lock" size={12} color="rgb(var(--color-golden))" />
+                            <Iconify icon="material-symbols:lock" size={12} color={colors.status.warning} />
                         </View>
                     )}
                 </View>

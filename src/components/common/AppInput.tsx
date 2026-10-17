@@ -19,16 +19,15 @@ export const AppInput = forwardRef<TextInput, AppInputProps>((props, ref) => {
     const [isFocused, setIsFocused] = useState(false);
     const { theme } = themeStore();
     const isDark = theme === 'dark';
+    const colors = isDark ? COLORS.dark : COLORS.light;
 
-    // 1. Dynamic Native Variable Assignments
-    // Note: If your `COLORS` structure maps to tailwind vars, you can read directly from CSS variables here too!
     const iconColor = error
-        ? (isDark ? '#F87171' : '#EF4444') // Maps exactly to --color-status-error
+        ? colors.status.error
         : isFocused
-            ? (isDark ? COLORS.icon_secondary_dark : COLORS.icon_secondary_light)
-            : (isDark ? COLORS.icon_primary_dark : COLORS.icon_primary_light);
+            ? colors.accent.sky
+            : colors.icon.primary;
 
-    const placeholderColor = isDark ? '#71717A' : '#A1A1AA';
+    const placeholderColor = colors.text.placeholder;
 
     // 2. Pure Variable-Driven Tailwind Selection
     const getBorderClass = () => {

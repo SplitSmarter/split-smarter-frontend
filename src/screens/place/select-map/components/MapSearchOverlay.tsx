@@ -1,12 +1,15 @@
 import React from 'react';
-import {View, Pressable, ActivityIndicator, FlatList} from 'react-native';
+import {View, Pressable, ActivityIndicator, FlatList, type StyleProp, type ViewStyle} from 'react-native';
 import {Iconify} from 'react-native-iconify';
 import {AppInput} from "@/src/components/common/AppInput";
 import {AppText} from "@/src/components/common/AppText";
 import {AppImageV2} from "@/src/components/common/AppImageV2";
+import {EntityFallbackIcon} from "@/src/components/common/EntityFallbackIcon";
 import {LocationDetails} from "@/src/api/dto/user/place";
 import {calculateDistance} from "@/src/utils/place/distance";
 import {styles} from '../styles/selectMap.styles';
+import {themeStore} from '@/src/store/themeStore';
+import {COLORS} from '@/src/constants/colors';
 
 interface MapSearchOverlayProps {
     searchQuery: string;
@@ -17,6 +20,8 @@ interface MapSearchOverlayProps {
     onClearSearch: () => void;
     onSelectResult: (item: LocationDetails) => void;
     defaultImage: string;
+    /** Override absolute top placement (e.g. under regional map header). */
+    containerStyle?: StyleProp<ViewStyle>;
 }
 
 export const MapSearchOverlay: React.FC<MapSearchOverlayProps> = ({
@@ -28,9 +33,13 @@ export const MapSearchOverlay: React.FC<MapSearchOverlayProps> = ({
     onClearSearch,
     onSelectResult,
     defaultImage,
+    containerStyle,
 }) => {
+    const isDark = themeStore((state) => state.theme === 'dark');
+    const colors = isDark ? COLORS.dark : COLORS.light;
+
     return (
-        <View style={styles.fixedSearchContainer}>
+        <View style={[styles.fixedSearchContainer, containerStyle]}>
             <View className="w-full">
                 <AppInput
                     placeholder="Search locations..."
@@ -41,7 +50,7 @@ export const MapSearchOverlay: React.FC<MapSearchOverlayProps> = ({
                     )}
                     renderRightIcon={(color) => {
                         if (isSearching) {
-                            return <ActivityIndicator size="small" color="#2D8A5B"/>;
+                            return <ActivityIndicator size="small" color={colors.accent.sky}/>;
                         }
                         if (searchQuery.length > 0) {
                             return (
@@ -87,6 +96,13 @@ export const MapSearchOverlay: React.FC<MapSearchOverlayProps> = ({
                                                 url={imageUrl}
                                                 style={styles.listItemImage}
                                                 contentFit="cover"
+                                                fallbackComponent={
+                                                    <EntityFallbackIcon
+                                                        kind="place"
+                                                        size={24}
+                                                        color={colors.icon.lighter}
+                                                    />
+                                                }
                                             />
                                         </View>
 
@@ -110,7 +126,7 @@ export const MapSearchOverlay: React.FC<MapSearchOverlayProps> = ({
                                         </View>
 
                                         <View className="items-center justify-center min-w-[50px] pl-1">
-                                            <Iconify icon="heroicons:map-pin-solid" size={22} color="#EF4444"/>
+                                            <Iconify icon="heroicons:map-pin-solid" size={22} color={colors.status.error}/>
                                             {distanceData && (
                                                 <AppText
                                                     variant="caption-xs"

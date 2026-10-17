@@ -4,16 +4,45 @@ import {Currency, ExpenseItemSource} from "@/src/api/dto/constants";
 import {BasicImage} from "@/src/api/dto/user/asset";
 
 
+export type ClassificationTaxonomyType = 'COICOP' | 'CPC';
+
+export const DEFAULT_EXPENSE_ITEM_CLASSIFICATION_REF = 'COICOP_13.9.0.9';
+
 // Request DTOs
 export interface AddExpenseItemRequest {
     title: string;
     description?: string | null;
     cost: number;
     currency?: Currency;
-    category_ref: string;
+    /** Preferred. Defaults server-side to COICOP_13.9.0.9 when omitted. */
+    classification_ref?: string;
+    /** @deprecated Prefer classification_ref */
+    category_ref?: string;
     is_quantifiable?: boolean;
     unit_of_measure?: string | null;
     icon_asset_id?: string | null;
+}
+
+export interface SearchClassificationsRequest {
+    /** Empty string browses taxonomy; non-empty filters title/item_ref. */
+    query?: string;
+    taxonomy_type: ClassificationTaxonomyType;
+    limit?: number;
+    offset?: number;
+}
+
+export interface SearchClassificationResult {
+    classification_ref: string;
+    code: string;
+    title: string;
+    taxonomy_type: ClassificationTaxonomyType;
+    description?: string | null;
+    icon_url?: string | null;
+}
+
+export interface SearchClassificationsResponse {
+    results: SearchClassificationResult[];
+    total_count: number;
 }
 
 export interface SearchExpenseItemRequest {

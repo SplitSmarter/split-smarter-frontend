@@ -11,10 +11,16 @@ interface ProcessingOverlayProps {
 export const ProcessingOverlay: React.FC<ProcessingOverlayProps> = ({ visible, isProcessing }) => {
     if (!visible) return null;
 
+    // Overlay is always dark chrome — use light contrast tokens for spinner/label
+    const contrast = COLORS.light.text.contrast;
+
     return (
-        <View className="absolute inset-0 bg-black/70 z-50 items-center justify-center space-y-4">
-            <ActivityIndicator size="large" color={COLORS.light.bg.canvas} />
-            <AppText className="text-white font-semibold">
+        <View
+            className="absolute inset-0 z-50 items-center justify-center"
+            style={{backgroundColor: 'rgba(7, 9, 14, 0.82)'}}
+        >
+            <ActivityIndicator size="large" color={contrast} />
+            <AppText className="mt-4 font-semibold" style={{color: contrast}}>
                 {isProcessing ? "Parsing receipt records..." : "Uploading transaction data..."}
             </AppText>
         </View>

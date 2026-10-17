@@ -3,9 +3,12 @@ import {View, TouchableOpacity, ActivityIndicator} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import {AppText} from "@/src/components/common/AppText";
 import {AppImageV2} from "@/src/components/common/AppImageV2";
+import {EntityFallbackIcon} from "@/src/components/common/EntityFallbackIcon";
 import {ConsumerPaymentCategorySummaryResponse} from "@/src/api/dto/user_payments/categories";
 import {PaymentAccountAddOptionsDTO} from "@/src/api/dto/user_payments/account";
 import {PaymentRailProviderBasicDetails} from "@/src/api/dto/user_payments/base_dto";
+import {themeStore} from "@/src/store/themeStore";
+import {COLORS} from "@/src/constants/colors";
 
 interface ProviderStepContentProps {
     selectedCategory: ConsumerPaymentCategorySummaryResponse;
@@ -22,6 +25,9 @@ export const ProviderStepContent: React.FC<ProviderStepContentProps> = ({
                                                                             error,
                                                                             onSelectProvider,
                                                                         }) => {
+    const isDark = themeStore((state) => state.theme === 'dark');
+    const iconColor = isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary;
+
     if (isLoading) {
         return (
             <View className="py-8 items-center justify-center">
@@ -89,19 +95,15 @@ export const ProviderStepContent: React.FC<ProviderStepContentProps> = ({
                     >
                         <View style={{width: 24, height: 24}}
                               className="rounded-full overflow-hidden justify-center items-center bg-bg-secondary-lighter">
-                            {item.icon?.url ? (
-                                <AppImageV2
-                                    id={`provider-${item.id}`}
-                                    url={item.icon.url}
-                                    contentFit="contain"
-                                    style={{width: 20, height: 20}}
-                                    fallbackComponent={
-                                        <Ionicons name="wallet-outline" size={16} className="text-icon-primary"/>
-                                    }
-                                />
-                            ) : (
-                                <Ionicons name="wallet-outline" size={16} className="text-icon-primary"/>
-                            )}
+                            <AppImageV2
+                                id={`provider-${item.id}`}
+                                url={item.icon?.url}
+                                contentFit="contain"
+                                style={{width: 20, height: 20}}
+                                fallbackComponent={
+                                    <EntityFallbackIcon kind="paymentProvider" size={16} color={iconColor} />
+                                }
+                            />
                         </View>
 
                         <AppText variant="body-small" className="font-semibold text-text-primary">

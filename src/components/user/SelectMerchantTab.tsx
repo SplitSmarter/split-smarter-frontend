@@ -5,6 +5,7 @@ import { Iconify } from 'react-native-iconify';
 import { useRouter } from 'expo-router';
 import { AppText } from "@/src/components/common/AppText";
 import { AppImage } from "@/src/components/common/AppImage";
+import { EntityFallbackIcon } from "@/src/components/common/EntityFallbackIcon";
 import { COLORS } from "@/src/constants/colors";
 import { UserMerchantDetails } from "@/src/api/dto/expense/merchant";
 import { SearchMerchantsApi } from "@/src/api/expense/merchant"; // Adjust import path if needed
@@ -22,6 +23,7 @@ export const SelectMerchantTab = ({
                                       onClose,
                                       onSelect
                                   }: SelectMerchantTabProps) => {
+    const colors = isDark ? COLORS.dark : COLORS.light;
     const router = useRouter();
     const [search, setSearch] = useState('');
     const [merchants, setMerchants] = useState<UserMerchantDetails[]>([]);
@@ -64,7 +66,7 @@ export const SelectMerchantTab = ({
     const handleAddNewMerchant = () => {
         onClose();
         setTimeout(() => {
-            router.push('/(authenticated)/merchant/add'); // Adjust route as necessary
+            router.push('/(authenticated)/expense/merchant/add');
         }, 200);
     };
 
@@ -76,6 +78,7 @@ export const SelectMerchantTab = ({
             <MerchantRowItem
                 merchant={item}
                 isSelected={isSelected}
+                isDark={isDark}
                 subtext={subtitle}
                 onPress={(id: number, merchantObj: UserMerchantDetails) => {
                     onSelect(id, merchantObj, merchants);
@@ -83,30 +86,37 @@ export const SelectMerchantTab = ({
                 }}
             />
         );
-    }, [selectedMerchantId, merchants, onClose, onSelect]);
+    }, [selectedMerchantId, merchants, onClose, onSelect, isDark]);
 
     return (
         <View className="flex-1">
-            <View className="my-3 flex-row items-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl px-4 h-12">
-                <Iconify icon="heroicons:magnifying-glass" size={20} color={isDark ? COLORS.dark.icon.lighter : COLORS.light.icon.lighter} />
+            <View
+                className="my-3 flex-row items-center rounded-2xl border px-4 h-12"
+                style={{ backgroundColor: colors.bg.lighter, borderColor: colors.status.border }}
+            >
+                <Iconify icon="heroicons:magnifying-glass" size={20} color={colors.icon.lighter} />
                 <BottomSheetTextInput
-                    style={[styles.input, { color: isDark ? '#FFF' : '#000' }]}
+                    style={[styles.input, { color: colors.text.primary }]}
                     placeholder="Search merchant name, category..."
-                    placeholderTextColor={isDark ? COLORS.dark.text.placeholder : COLORS.light.text.placeholder}
+                    placeholderTextColor={colors.text.placeholder}
                     value={search}
                     onChangeText={setSearch}
                 />
                 {isSearching && (
-                    <ActivityIndicator size="small" color={COLORS.icon_primary_darker_light} />
+                    <ActivityIndicator size="small" color={colors.icon.primary} />
                 )}
-                <Pressable onPress={handleAddNewMerchant} className="ml-2 p-1.5 rounded-full bg-gray-100 dark:bg-zinc-800">
-                    <Iconify icon="heroicons:building-storefront" size={18} color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary} />
+                <Pressable
+                    onPress={handleAddNewMerchant}
+                    className="ml-2 p-1.5 rounded-full"
+                    style={{ backgroundColor: colors.bg.darker }}
+                >
+                    <Iconify icon="heroicons:building-storefront" size={18} color={colors.icon.primary} />
                 </Pressable>
             </View>
 
             {loading && merchants.length === 0 ? (
                 <View className="flex-1 justify-center items-center py-20">
-                    <ActivityIndicator size="large" color={COLORS.light.brand.primary} />
+                    <ActivityIndicator size="large" color={colors.icon.primary} />
                 </View>
             ) : (
                 <BottomSheetFlatList
@@ -124,17 +134,27 @@ export const SelectMerchantTab = ({
     );
 };
 
-const MerchantRowItem = React.memo(({ merchant, isSelected, onPress, subtext }: any) => {
+const MerchantRowItem = React.memo(({ merchant, isSelected, isDark, onPress, subtext }: any) => {
+    const colors = isDark ? COLORS.dark : COLORS.light;
+
     return (
         <Pressable
             onPress={() => onPress(merchant.id, merchant)}
-            className={`flex-row items-center p-3 rounded-2xl mb-2 ${
+            className={`flex-row items-center p-3 rounded-2xl mb-2 border ${
                 isSelected
-                    ? 'bg-accent-sky-bg border border-accent-sky'
-                    : 'bg-white dark:bg-zinc-900 border border-transparent'
+                    ? 'bg-accent-sky-bg border-accent-sky'
+                    : 'border-transparent'
             }`}
+            style={isSelected ? undefined : { backgroundColor: colors.bg.lighter }}
         >
-            <AppImage url={merchant.logo?.url} size="sm" variant="rounded" />
+            <AppImage
+                url={merchant.logo?.url}
+                size="sm"
+                variant="rounded"
+                fallbackIcon={
+                    <EntityFallbackIcon kind="merchant" size={18} color={colors.icon.lighter} />
+                }
+            />
             <View className="flex-1 ml-3">
                 <AppText className="font-semibold text-text-primary">{merchant.name}</AppText>
                 <AppText variant="caption-xs" className="text-text-primary-lighter opacity-60" numberOfLines={1}>
@@ -142,9 +162,9 @@ const MerchantRowItem = React.memo(({ merchant, isSelected, onPress, subtext }: 
                 </AppText>
             </View>
             {isSelected ? (
-                <Iconify icon="heroicons:check-circle-solid" size={24} color={COLORS.icon_primary_darker_light} />
+                <Iconify icon="heroicons:check-circle-solid" size={24} color={colors.accent.sky} />
             ) : (
-                <Iconify icon="heroicons:check-circle" size={24} color={COLORS.icon_secondary_light} />
+                <Iconify icon="heroicons:check-circle" size={24} color={colors.icon.primary} />
             )}
         </Pressable>
     );

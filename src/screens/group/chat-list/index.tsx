@@ -1,27 +1,39 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { COLORS } from '@/src/constants/colors';
+import { useLocalSearchParams } from 'expo-router';
+import { COLORS, PLATINUM_HEADER } from '@/src/constants/colors';
 import { View, FlatList, RefreshControl, ActivityIndicator } from 'react-native';
-import { useTranslation } from 'react-i18next';
 import { ScreenWrapper } from "@/src/components/common/ScreenWrapper";
 import { themeStore } from "@/src/store/themeStore";
 import { GroupStatus } from "@/src/api/dto/constants";
 import { GetGroupsApi } from "@/src/api/group/group";
 import { listUserExpensesApi } from "@/src/api/expense/expense";
-import {BaseGroupDetails, GroupDetails} from "@/src/api/dto/user/group";
+import {BaseGroupDetails} from "@/src/api/dto/user/group";
 import { AppText } from '@/src/components/common/AppText';
 
-import {ExpenseDetailsBasicResponse, ExpenseDetailsResponse} from "@/src/api/dto/expense/expense";
+import {ExpenseDetailsBasicResponse} from "@/src/api/dto/expense/expense";
 import { ActivityListItem, UnifiedActivityItem } from "./components/ActivityListItem";
+import { ActivityListEmpty } from "./components/ActivityListEmpty";
 import { SearchHeader } from "./components/SearchHeader";
 import { FilterTabs } from "./components/FilterTabs";
+import type { FilterTab } from "./types";
 
-export type FilterTab = 'All' | 'Chat' | 'Groups' | 'Expenses';
+export type { FilterTab };
+
+const FILTER_TABS: FilterTab[] = ['All', 'Chat', 'Groups', 'Expenses'];
+
+function parseFilterTab(raw: string | string[] | undefined): FilterTab | null {
+    const value = Array.isArray(raw) ? raw[0] : raw;
+    if (!value) return null;
+    return FILTER_TABS.includes(value as FilterTab) ? (value as FilterTab) : null;
+}
 
 // TODO: Fix the values based on the schema returned by group and expenses
 
 const ExpenseChatGroupListScreen = () => {
-    const { t } = useTranslation();
     const isDark = themeStore((state) => state.theme) === 'dark';
+    const colors = isDark ? COLORS.dark : COLORS.light;
+    const headerChrome = isDark ? PLATINUM_HEADER.dark : PLATINUM_HEADER.light;
+    const params = useLocalSearchParams<{ tab?: string }>();
 
     // Master centralized API storage arrays
     const [groups, setGroups] = useState<BaseGroupDetails[]>([]);
@@ -29,8 +41,15 @@ const ExpenseChatGroupListScreen = () => {
 
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [activeTab, setActiveTab] = useState<FilterTab>('All');
+    const [activeTab, setActiveTab] = useState<FilterTab>(
+        () => parseFilterTab(params.tab) ?? 'All',
+    );
     const [searchQuery, setSearchQuery] = useState('');
+
+    useEffect(() => {
+        const next = parseFilterTab(params.tab);
+        if (next) setActiveTab(next);
+    }, [params.tab]);
 
     const fetchData = async () => {
         try {
@@ -114,53 +133,60 @@ const ExpenseChatGroupListScreen = () => {
 
     return (
         <ScreenWrapper
-            backgroundColor={isDark ? COLORS.dark.brand.primary : COLORS.light.brand.primary}
+            // Light: slate under status bar (matches header). Dark: deepest body so gaps stay black.
+            backgroundColor={isDark ? colors.bg.primary : headerChrome}
             statusBarStyle="light-content"
             withPadding={false}
         >
-            {/* Direct Central Header Container Box */}
-            <View className="bg-bg-secondary pt-4 pb-6 rounded-b-[30px] w-full">
-                <View className="items-center mb-4">
-                    <AppText variant="h3" className="text-text-secondary">Expenses</AppText>
+            {/* Metallic slate header chrome (always dark) */}
+            <View
+                className="w-full rounded-b-[30px] pb-6 pt-4"
+                style={{backgroundColor: headerChrome}}
+            >
+                <View className="mb-4 items-center">
+                    <AppText variant="h3" className="text-white">Expenses</AppText>
                 </View>
 
                 <SearchHeader searchQuery={searchQuery} onSearchChange={setSearchQuery} />
                 <FilterTabs activeTab={activeTab} onTabSelect={setActiveTab} />
             </View>
 
-            {/* List Canvas Section */}
-            <View className="flex-1 mt-4">
-                <View className="flex-1 rounded-t-[24px] overflow-hidden bg-bg-primary">
-                    {loading && !refreshing ? (
-                        <View className="flex-1 justify-center items-center">
-                            <ActivityIndicator
-                                color={isDark ? COLORS.dark.brand.primary : COLORS.light.brand.primary}
-                                size="large"
+            {/* List canvas — COLORS.bg.primary */}
+            <View
+                className="flex-1 overflow-hidden rounded-t-[24px] pt-4"
+                style={{backgroundColor: colors.bg.primary}}
+            >
+                {loading && !refreshing ? (
+                    <View className="flex-1 items-center justify-center">
+                        <ActivityIndicator color={colors.icon.primary} size="large" />
+                    </View>
+                ) : (
+                    <FlatList
+                        data={unifiedDisplayItems}
+                        keyExtractor={(item) => item.id}
+                        renderItem={({ item }) => <ActivityListItem item={item} isDark={isDark} />}
+                        style={{backgroundColor: colors.bg.primary}}
+                        refreshControl={
+                            <RefreshControl
+                                refreshing={refreshing}
+                                onRefresh={handleRefresh}
+                                tintColor={colors.icon.primary}
                             />
-                        </View>
-                    ) : (
-                        <FlatList
-                            data={unifiedDisplayItems}
-                            keyExtractor={(item) => item.id}
-                            renderItem={({ item }) => <ActivityListItem item={item} isDark={isDark} />}
-                            refreshControl={
-                                <RefreshControl
-                                    refreshing={refreshing}
-                                    onRefresh={handleRefresh}
-                                    tintColor={isDark ? COLORS.dark.brand.primary : COLORS.light.brand.primary}
-                                />
-                            }
-                            contentContainerStyle={{ paddingBottom: 100, paddingTop: 10 }}
-                            ListEmptyComponent={
-                                <View className="items-center pt-20">
-                                    <AppText className="text-text-primary-lighter">
-                                        {searchQuery ? t('common.no_results') : t('common.no_items', { item: activeTab })}
-                                    </AppText>
-                                </View>
-                            }
-                        />
-                    )}
-                </View>
+                        }
+                        contentContainerStyle={{
+                            paddingBottom: 100,
+                            paddingTop: 10,
+                            flexGrow: unifiedDisplayItems.length === 0 ? 1 : undefined,
+                        }}
+                        ListEmptyComponent={
+                            <ActivityListEmpty
+                                activeTab={activeTab}
+                                searchQuery={searchQuery}
+                                onClearSearch={() => setSearchQuery('')}
+                            />
+                        }
+                    />
+                )}
             </View>
         </ScreenWrapper>
     );

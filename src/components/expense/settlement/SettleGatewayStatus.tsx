@@ -25,9 +25,9 @@ interface SettleGatewayStatusProps {
 const SettleGatewayStatus = React.memo(({ loading, gatewayDetails, selectedCurrencyCode }: SettleGatewayStatusProps) => {
     if (loading) {
         return (
-            <View className="w-full p-4 rounded-2xl mb-6 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800 h-16 justify-center">
+            <View className="w-full p-4 rounded-2xl mb-6 bg-bg-primary-lighter border border-border-input h-16 justify-center">
                 <View className="flex-row items-center justify-center">
-                    <ActivityIndicator size="small" color={COLORS.light.brand.primary} />
+                    <ActivityIndicator size="small" color={COLORS.light.icon.primary} />
                     <AppText className="text-xs text-text-primary-lighter ml-3 font-medium">Resolving routing parameters...</AppText>
                 </View>
             </View>
@@ -35,11 +35,11 @@ const SettleGatewayStatus = React.memo(({ loading, gatewayDetails, selectedCurre
     }
 
     return (
-        <View className="w-full p-4 rounded-2xl mb-6 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800 min-h-[64px] justify-center">
+        <View className="w-full p-4 rounded-2xl mb-6 bg-bg-primary-lighter border border-border-input min-h-[64px] justify-center">
             {gatewayDetails?.hasValidGateway ? (
                 <View className="flex-row items-start">
                     <View className="p-1.5 rounded-lg bg-bg-secondary-lighter mt-0.5">
-                        <View className="w-2 h-2 rounded-full bg-bg-secondary" />
+                        <View className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS.light.status.success }} />
                     </View>
                     <View className="ml-3 flex-1">
                         <AppText className="font-bold text-text-primary text-sm leading-5">

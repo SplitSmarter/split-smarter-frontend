@@ -5,6 +5,8 @@ import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated from "react-native-reanimated";
 import { BRAND_COLORS, ThemeColors } from "../constants/theme";
+import { themeStore } from '@/src/store/themeStore';
+import { COLORS } from '@/src/constants/colors';
 import { createStyles } from "../styles/UserPaymentTransferScreen.styles";
 
 interface PayFooterProps {
@@ -25,6 +27,8 @@ export const PayFooter: React.FC<PayFooterProps> = ({
                                                         onPay,
                                                     }) => {
     const styles = createStyles(colors);
+    const isDark = themeStore((state) => state.theme === 'dark');
+    const palette = isDark ? COLORS.dark : COLORS.light;
     const formattedAmount = parseFloat(amount || "0").toFixed(2);
 
     return (
@@ -43,7 +47,7 @@ export const PayFooter: React.FC<PayFooterProps> = ({
                         <LinearGradient
                             colors={
                                 isProcessing
-                                    ? ["#4B5563", "#374151"]
+                                    ? [palette.icon.darker, palette.bg.lighter]
                                     : [BRAND_COLORS.primaryGreen, BRAND_COLORS.primaryGreenDark]
                             }
                             start={{ x: 0, y: 0 }}
@@ -51,13 +55,13 @@ export const PayFooter: React.FC<PayFooterProps> = ({
                             style={styles.payBtnGradient}
                         >
                             {isProcessing ? (
-                                <ActivityIndicator color="#FFFFFF" />
+                                <ActivityIndicator color={palette.text.contrast} />
                             ) : (
                                 <View style={styles.payBtnTextWrapper}>
                                     <Text style={styles.payBtnText}>
                                         PAY ₹{formattedAmount} {selectedAppName ? `VIA ${selectedAppName.toUpperCase()}` : ""}
                                     </Text>
-                                    <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={{ marginLeft: 6 }} />
+                                    <Ionicons name="arrow-forward" size={18} color={palette.text.contrast} style={{ marginLeft: 6 }} />
                                 </View>
                             )}
                         </LinearGradient>

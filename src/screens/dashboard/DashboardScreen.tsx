@@ -1,10 +1,12 @@
 import React, {useCallback, useState} from 'react';
 import {ScrollView} from 'react-native';
+import {useRouter} from 'expo-router';
 import {ScreenWrapper} from '@/src/components/common/ScreenWrapper';
 import {DateRangeBottomSheet} from '@/src/components/common/DateRangeBottomSheet';
 import type {DateRangeResult} from '@/src/components/common/types/dateRangeBottomSheet.types';
 import {themeStore} from '@/src/store/themeStore';
-import {COLORS} from '@/src/constants/colors';
+import {COLORS, PLATINUM_HEADER} from '@/src/constants/colors';
+import {ROUTES} from '@/src/constants/routes';
 
 import {useDashboardData} from './hooks/useDashboardData';
 import {useExpenseSpendChart} from './hooks/useExpenseSpendChart';
@@ -17,8 +19,10 @@ import {PeersWellnessMonitor} from './components/PeersWellnessMonitor';
 import {OmniFAB} from './components/OmniFAB';
 
 export const DashboardScreen: React.FC = () => {
+    const router = useRouter();
     const isDark = themeStore((state) => state.theme === 'dark');
     const colors = isDark ? COLORS.dark : COLORS.light;
+    const heroStatusBar = isDark ? PLATINUM_HEADER.dark : PLATINUM_HEADER.light;
 
     const [dateRangeVisible, setDateRangeVisible] = useState(false);
     const [dateRange, setDateRange] = useState<DateRangeResult | null>(null);
@@ -45,16 +49,16 @@ export const DashboardScreen: React.FC = () => {
 
     return (
         <ScreenWrapper
-            backgroundColor="#8B0000"
+            backgroundColor={heroStatusBar}
             statusBarStyle="light-content"
             withPadding={false}
             className="relative flex-1"
         >
             <ScrollView
                 className="flex-1"
-                style={{backgroundColor: isDark ? colors.bg.canvas : colors.bg.primary}}
+                style={{backgroundColor: colors.bg.primary}}
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={{paddingBottom: 140}}
+                contentContainerStyle={{paddingBottom: 168}}
             >
                 <HeaderCardSection
                     profile={profile}
@@ -67,14 +71,23 @@ export const DashboardScreen: React.FC = () => {
 
                 <ActionButtons />
 
-                <BudgetsFinancialHealth budgets={budgets} />
+                <BudgetsFinancialHealth
+                    budgets={budgets}
+                    onCreateNewPress={() =>
+                        router.push('/(authenticated)/expense/budget/add' as any)
+                    }
+                />
 
-                <RecentTransactions transactions={transactions} />
+                <RecentTransactions
+                    transactions={transactions}
+                    onViewAllPress={() => router.push(ROUTES.groupsTab('Expenses') as any)}
+                />
 
                 <SpendCategoriesInsights
                     categories={categories}
                     totalSpendAmount={totalSpendAmount}
                     showMerchants={false}
+                    onViewAllPress={() => router.push(ROUTES.analyticsTab() as any)}
                 />
 
                 <PeersWellnessMonitor score="8.5/10" />

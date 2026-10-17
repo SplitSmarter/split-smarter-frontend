@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { COLORS } from '@/src/constants/colors';
 import { ScrollView, View, Pressable } from 'react-native';
-import { Image } from 'expo-image';
+import { themeStore } from '@/src/store/themeStore';
 import { Iconify } from 'react-native-iconify';
 import { AppText } from '@/src/components/common/AppText';
+import { AppImageV2 } from '@/src/components/common/AppImageV2';
+import { EntityFallbackIcon } from '@/src/components/common/EntityFallbackIcon';
 import { GroupMemberDetails } from "@/src/api/dto/user/group";
 import { RelationWithUserType } from "@/src/api/dto/constants";
 import { Currency } from '@/src/constants/expense/currency';
@@ -23,6 +25,8 @@ export const SettlementActionGrid = ({
                                          currentUserId,
                                          currentUserType
                                      }: SettlementActionGridProps) => {
+    const isDark = themeStore((state) => state.theme === 'dark');
+    const colors = isDark ? COLORS.dark : COLORS.light;
 
     // Modal Active Pipeline States
     // const [settleTarget, setSettleTarget] = useState<{ name: string; amount: number } | null>(null);
@@ -47,17 +51,21 @@ export const SettlementActionGrid = ({
                     return (
                         <View
                             key={`${member.id}-${member.user_type}`}
-                            className="w-[140px] p-4 mr-3 rounded-2xl items-center border border-gray-100 dark:border-zinc-900 bg-gray-50/50 dark:bg-zinc-900/30"
+                            className="w-[140px] p-4 mr-3 rounded-2xl items-center border border-border-input bg-bg-primary-lighter"
                         >
-                            <View className="w-14 h-14 rounded-full bg-gray-200 dark:bg-zinc-800 items-center justify-center overflow-hidden mb-2 border-2 border-white dark:border-zinc-950">
-                                {member.avatar?.url ? (
-                                    <Image source={{ uri: member.avatar.url }} style={{ width: '100%', height: '100%' }} />
-                                ) : (
-                                    <Iconify icon="heroicons:user" size={24} color="#A1A1AA" />
-                                )}
+                            <View className="w-14 h-14 rounded-full bg-bg-primary-darker items-center justify-center overflow-hidden mb-2 border-2 border-bg-primary">
+                                <AppImageV2
+                                    id={`settle-grid-${member.id}`}
+                                    url={member.avatar?.url}
+                                    style={{ width: '100%', height: '100%' }}
+                                    contentFit="cover"
+                                    fallbackComponent={
+                                        <EntityFallbackIcon kind="user" size={24} color={colors.icon.lighter} />
+                                    }
+                                />
                             </View>
 
-                            <AppText variant="body-base" className="font-semibold text-gray-900 dark:text-zinc-100 mb-1" numberOfLines={1}>
+                            <AppText variant="body-base" className="font-semibold text-text-primary mb-1" numberOfLines={1}>
                                 {member.name}
                             </AppText>
 
@@ -71,19 +79,18 @@ export const SettlementActionGrid = ({
                             {isOwedToCurrentUser ? (
                                 <Pressable
                                     onPress={() => setRemindTarget({ name: member.name })}
-                                    className="w-full bg-gray-200 dark:bg-zinc-800 py-2 rounded-xl active:opacity-70"
+                                    className="w-full bg-bg-primary-darker py-2 rounded-xl active:opacity-70"
                                 >
-                                    <AppText variant="body-small" className="text-center font-bold text-gray-700 dark:text-zinc-300">
+                                    <AppText variant="body-small" className="text-center font-bold text-text-primary-lighter">
                                         REMIND
                                     </AppText>
                                 </Pressable>
                             ) : (
                                 <Pressable
                                     onPress={() => setSettleTarget({ member: member, amount: syntheticBalanceEvaluator })}
-                                    className="w-full bg-gray-200 py-2 rounded-xl active:opacity-70"
-                                    style={{ backgroundColor: COLORS.light.brand.primary }}
+                                    className="w-full bg-bg-secondary py-2 rounded-xl active:opacity-70"
                                 >
-                                    <AppText variant="body-small" className="text-center font-bold text-white">SETTLE</AppText>
+                                    <AppText variant="body-small" className="text-center font-bold text-text-secondary">SETTLE</AppText>
                                 </Pressable>
                             )}
                         </View>

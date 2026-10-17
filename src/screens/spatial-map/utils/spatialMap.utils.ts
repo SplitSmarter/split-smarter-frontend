@@ -1,8 +1,8 @@
 import {ExpenseDetailsBasicResponse} from "@/src/api/dto/expense/expense";
-import {HOME_GEO, HABIT_RADIUS_M} from "../dummyExpenseMapData";
+import {PlaceSource} from "@/src/api/dto/constants";
 import {
     HeatPoint,
-    MarkerFilter,
+    MapDateRange,
     PlaceAgg,
     ScopeMode,
 } from "../types/spatialMap.types";
@@ -29,60 +29,61 @@ export function getDistanceMeters(
     return R * c;
 }
 
+function expenseDayKey(expenseDate: string): string {
+    return expenseDate.includes('T') ? expenseDate.split('T')[0] : expenseDate.slice(0, 10);
+}
+
 /**
- * Filters raw expenses according to scope, month, trip, and marker filter (local/travel).
+ * Filters raw expenses by scope and inclusive date range.
+ * dateRange null = no date bound (all mock dates).
  */
 export function filterExpenses(
     expenses: ExpenseDetailsBasicResponse[],
     options: {
         scopeMode: ScopeMode;
         selectedTripId: number | string | null;
-        monthId: string;
-        markerFilter: MarkerFilter;
+        dateRange: MapDateRange;
     }
 ): ExpenseDetailsBasicResponse[] {
-    const {scopeMode, selectedTripId, monthId, markerFilter} = options;
-
-    // Convert selectedTripId to number for reliable comparisons
+    const {scopeMode, selectedTripId, dateRange} = options;
     const targetTripId = selectedTripId != null ? Number(selectedTripId) : null;
 
     return expenses.filter((exp) => {
-        // 1. Exclude expenses without spatial placement data
         if (!exp.place || exp.place.geo?.latitude == null || exp.place.geo?.longitude == null) {
             return false;
         }
 
-        // 2. Scope filtering
         if (scopeMode === "trip") {
             if (targetTripId == null) return false;
             if (exp.memory?.id == null) return false;
-
-            // Compare numerically to avoid string vs number type mismatch
             if (Number(exp.memory.id) !== targetTripId) return false;
-        } else {
-            // General mode excludes trip expenses
-            if (exp.memory) return false;
+        } else if (exp.memory) {
+            return false;
         }
 
-        // 3. Month filtering (format: "YYYY-MM")
-        if (monthId !== "all") {
-            if (!exp.expense_date.startsWith(monthId)) return false;
+        if (dateRange) {
+            const day = expenseDayKey(exp.expense_date);
+            if (day < dateRange.startDate || day > dateRange.endDate) return false;
         }
-
-        // 4. Local vs Travel filter based on distance from HOME_GEO
-        const distFromHome = getDistanceMeters(
-            exp.place.geo.latitude,
-            exp.place.geo.longitude,
-            HOME_GEO.latitude,
-            HOME_GEO.longitude
-        );
-        const isLocal = distFromHome <= HABIT_RADIUS_M;
-
-        if (markerFilter === "local" && !isLocal) return false;
-        if (markerFilter === "travel" && isLocal) return false;
 
         return true;
     });
+}
+
+type PlaceWithGoogleId = {
+    google_place_id?: string | null;
+};
+
+/** Resolves a Google Places ID string (ChIJ…) when the location is a Google place. */
+export function resolveGooglePlaceId(
+    place: {provider?: PlaceSource | string | null} & PlaceWithGoogleId
+): string | null {
+    if (place.provider !== PlaceSource.GOOGLE && place.provider !== "GOOGLE") {
+        return null;
+    }
+    const id = place.google_place_id;
+    if (typeof id === "string" && id.trim().length > 0) return id.trim();
+    return null;
 }
 
 /**
@@ -97,19 +98,18 @@ export function aggregateExpensesByPlace(
         if (!exp.place) return;
 
         const placeId = exp.place.id || `${exp.place.geo.latitude},${exp.place.geo.longitude}`;
-        const distFromHome = getDistanceMeters(
-            exp.place.geo.latitude,
-            exp.place.geo.longitude,
-            HOME_GEO.latitude,
-            HOME_GEO.longitude
+        const googlePlaceId = resolveGooglePlaceId(
+            exp.place as typeof exp.place & PlaceWithGoogleId
         );
-        const isLocal = distFromHome <= HABIT_RADIUS_M;
 
         const existing = placeMap.get(placeId);
         if (existing) {
             existing.totalAmount += exp.user_share ?? exp.total_amount;
             existing.expensesCount += 1;
             existing.expenses.push(exp);
+            if (!existing.googlePlaceId && googlePlaceId) {
+                existing.googlePlaceId = googlePlaceId;
+            }
         } else {
             placeMap.set(placeId, {
                 placeId,
@@ -119,8 +119,10 @@ export function aggregateExpensesByPlace(
                 address: exp.place.address,
                 totalAmount: exp.user_share ?? exp.total_amount,
                 expensesCount: 1,
-                isLocal,
                 expenses: [exp],
+                provider: exp.place.provider ?? null,
+                providerId: exp.place.provider_id ?? null,
+                googlePlaceId,
             });
         }
     });

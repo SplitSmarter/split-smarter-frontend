@@ -8,7 +8,7 @@ import {
     MemoryResponse,
 } from "@/src/api/dto/user/memory";
 
-const BASE_PATH = "/v1";
+const BASE_PATH = "/user-memory/v1";
 
 /**
  * Creates a new memory record.

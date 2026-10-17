@@ -1,39 +1,30 @@
 import React from 'react';
-import {TouchableOpacity, View} from 'react-native';
-import {Feather} from '@expo/vector-icons';
-import {LinearGradient} from 'expo-linear-gradient';
+import {View, Pressable} from 'react-native';
+import {Iconify} from 'react-native-iconify';
 import {useRouter} from 'expo-router';
+import {themeStore} from '@/src/store/themeStore';
+import {COLORS} from '@/src/constants/colors';
 
 export const OmniFAB: React.FC = () => {
     const router = useRouter();
+    const isDark = themeStore((state) => state.theme === 'dark');
+    const colors = isDark ? COLORS.dark : COLORS.light;
 
     return (
         <View className="absolute bottom-24 right-6 z-50 items-end">
-            <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={() => router.push('/expense/add')}
+            <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Add expense"
-                className="overflow-hidden rounded-full shadow-2xl"
+                onPress={() => router.push('/expense/add')}
+                className="h-14 w-14 items-center justify-center rounded-full shadow-2xl active:opacity-90"
+                style={{
+                    backgroundColor: colors.brand.primary,
+                    borderWidth: 1,
+                    borderColor: isDark ? 'rgba(15, 23, 42, 0.15)' : 'rgba(255, 255, 255, 0.35)',
+                }}
             >
-                <LinearGradient
-                    colors={['#E07A2F', '#CC5500']}
-                    start={{x: 0, y: 0}}
-                    end={{x: 1, y: 1}}
-                    className="h-14 w-14 items-center justify-center"
-                    style={{
-                        width: 56,
-                        height: 56,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        borderRadius: 28,
-                        borderWidth: 1,
-                        borderColor: 'rgba(255, 255, 255, 0.35)',
-                    }}
-                >
-                    <Feather name="plus" size={26} color="#FFFFFF" />
-                </LinearGradient>
-            </TouchableOpacity>
+                <Iconify icon="heroicons:plus" size={26} color={colors.text.contrast} />
+            </Pressable>
         </View>
     );
 };

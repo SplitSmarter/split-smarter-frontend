@@ -4,15 +4,19 @@ import { Iconify } from 'react-native-iconify';
 import { AppInput } from "@/src/components/common/AppInput";
 import { AppText } from "@/src/components/common/AppText";
 import { AppImage } from "@/src/components/common/AppImage";
+import { EntityFallbackIcon } from "@/src/components/common/EntityFallbackIcon";
 import { AppButton } from "@/src/components/common/AppButton";
 import { GetGroupCategoriesApi, CreateGroupCategoryApi } from "@/src/api/group/categories";
 import { systemStore } from "@/src/store/systemStore";
 import {GroupCategoryDetails} from "@/src/api/dto/user/addGroupCategoryRequest";
 import { COLORS } from '@/src/constants/colors';
+import { themeStore } from '@/src/store/themeStore';
 
 enum PickerView { LIST, ADD }
 
 export const CategoryPicker = ({ onSelect, selectedId, onBack }: any) => {
+    const isDark = themeStore((state) => state.theme === 'dark');
+    const colors = isDark ? COLORS.dark : COLORS.light;
     const { defaults } = systemStore();
     const [view, setView] = useState<PickerView>(PickerView.LIST);
     const [categories, setCategories] = useState<GroupCategoryDetails[]>([]);
@@ -75,10 +79,19 @@ export const CategoryPicker = ({ onSelect, selectedId, onBack }: any) => {
         return (
             <View className="flex-1 px-4">
                 <View className="items-center mb-8">
-                    <View className="w-20 h-20 rounded-3xl bg-zinc-100 dark:bg-zinc-800 items-center justify-center overflow-hidden border-2 border-zinc-200 dark:border-zinc-700">
-                        <AppImage url={defaults.defaultGroupCategoryIconImage.url} size="full" />
+                    <View
+                        className="w-20 h-20 rounded-3xl items-center justify-center overflow-hidden border-2 border-border-input"
+                        style={{ backgroundColor: colors.bg.darker }}
+                    >
+                        <AppImage
+                            url={defaults.defaultGroupCategoryIconImage.url}
+                            size="full"
+                            fallbackIcon={
+                                <EntityFallbackIcon kind="groupCategory" size={28} color={colors.icon.lighter} />
+                            }
+                        />
                     </View>
-                    <AppText variant="caption-xs" className="mt-2 text-zinc-500">Default Category Icon</AppText>
+                    <AppText variant="caption-xs" className="mt-2 text-text-primary-lighter">Default Category Icon</AppText>
                 </View>
 
                 <View className="gap-y-4">
@@ -125,11 +138,11 @@ export const CategoryPicker = ({ onSelect, selectedId, onBack }: any) => {
                 value={search}
                 onChangeText={setSearch}
                 renderLeftIcon={(c) => <Iconify icon="heroicons:magnifying-glass" size={20} color={c} />}
-                className="bg-zinc-100 dark:bg-zinc-800 border-0 mb-4"
+                className="bg-bg-primary-darker border-0 mb-4"
             />
-            <View className="bg-zinc-50 dark:bg-zinc-900 rounded-[32px] p-6 min-h-[300px]">
+            <View className="bg-bg-primary-lighter rounded-[32px] p-6 min-h-[300px]">
                 <AppText variant="h4" className="font-bold mb-6 text-text-primary">All Categories</AppText>
-                {loading ? <ActivityIndicator color={COLORS.light.brand.primary} size="large" className="my-10" /> : (
+                {loading ? <ActivityIndicator color={colors.icon.primary} size="large" className="my-10" /> : (
                     <View className="flex-row flex-wrap">
                         {filtered.map((cat) => (
                             <Pressable
@@ -138,7 +151,13 @@ export const CategoryPicker = ({ onSelect, selectedId, onBack }: any) => {
                                 className={`w-1/4 items-center mb-6 p-1 rounded-2xl ${selectedId === cat.id ? 'bg-accent-sky-bg' : ''}`}
                             >
                                 <View className="w-14 h-14 mb-2">
-                                    <AppImage url={cat.icon.url} size="full" />
+                                    <AppImage
+                                        url={cat.icon.url}
+                                        size="full"
+                                        fallbackIcon={
+                                            <EntityFallbackIcon kind="groupCategory" size={28} color={colors.icon.lighter} />
+                                        }
+                                    />
                                 </View>
                                 <AppText variant="caption-xs" className="text-center text-text-primary" numberOfLines={1}>
                                     {cat.title}
@@ -157,7 +176,7 @@ export const CategoryPicker = ({ onSelect, selectedId, onBack }: any) => {
                 >
                     Add New Category
                 </AppButton>
-                <Pressable onPress={onBack}><AppText className="text-zinc-500 font-medium">Go Back</AppText></Pressable>
+                <Pressable onPress={onBack}><AppText className="text-text-primary-lighter font-medium">Go Back</AppText></Pressable>
             </View>
         </View>
     );

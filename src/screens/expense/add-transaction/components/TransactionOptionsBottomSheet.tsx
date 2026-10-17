@@ -61,11 +61,11 @@ export const TransactionOptionsBottomSheet = ({
             onDismiss={onClose}
             backdropComponent={renderBackdrop}
             backgroundStyle={{
-                backgroundColor: isDark ? '#121212' : '#FFFFFF',
+                backgroundColor: activeColors.bg.overlay,
                 borderRadius: 40,
             }}
             handleIndicatorStyle={{
-                backgroundColor: isDark ? '#3F3F46' : '#D4D4D8',
+                backgroundColor: activeColors.icon.lighter,
                 width: 48,
                 height: 6,
             }}

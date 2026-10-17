@@ -5,6 +5,7 @@ export enum DraftValidationErrorKey {
     TITLE_REQUIRED = "titleRequired",
     AMOUNT_INVALID = "amountInvalid",
     GROUP_MISMATCH = "groupMismatch",
+    ALLOCATION_MISMATCH = "allocationMismatch",
 }
 
 export interface GroupMismatchPayload {
@@ -12,10 +13,16 @@ export interface GroupMismatchPayload {
     missingUsers: BasicUserDetails[];
 }
 
+export type AllocationMismatchSide = 'paidBy' | 'split' | 'both';
+
 export interface ValidationErrorPayloads {
     [DraftValidationErrorKey.TITLE_REQUIRED]: { message: string };
     [DraftValidationErrorKey.AMOUNT_INVALID]: { message: string };
     [DraftValidationErrorKey.GROUP_MISMATCH]: { message: string; data: GroupMismatchPayload };
+    [DraftValidationErrorKey.ALLOCATION_MISMATCH]: {
+        message: string;
+        side: AllocationMismatchSide;
+    };
 }
 
 // Map mapping all potential error tracking collections

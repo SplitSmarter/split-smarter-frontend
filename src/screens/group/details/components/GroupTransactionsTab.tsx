@@ -9,6 +9,7 @@ import { ExpenseDetailsBasicResponse } from "@/src/api/dto/expense/expense";
 import { TransferDetailsBasicResponse } from "@/src/api/dto/expense/transfer";
 import {UnifiedTransaction} from "@/src/interfaces/expense/transaction";
 import {TransactionRow} from "@/src/components/expense/TransactionRow";
+import { COLORS } from '@/src/constants/colors';
 
 interface GroupTransactionsTabProps {
     expenses: ExpenseDetailsBasicResponse[];
@@ -27,6 +28,7 @@ export const GroupTransactionsTab = ({
     const viewType = user?.user_settings?.currency_view_type ?? 'absolute';
     const userProfileCurrencyCode = (user?.currency || 'USD') as CurrencyCode;
 
+    const colors = isDark ? COLORS.dark : COLORS.light;
     const [searchQuery, setSearchQuery] = useState('');
     const [activeFilterCount] = useState(1);
 
@@ -130,10 +132,10 @@ export const GroupTransactionsTab = ({
                     />
                 </View>
 
-                <Pressable className="flex-row items-center px-4 h-14 rounded-2xl bg-[#D4EDE1] dark:bg-[#1E372D] border border-[#2B8761]/20 dark:border-[#32966E]/30 active:opacity-80">
-                    <Iconify icon="heroicons:adjustments-horizontal" size={20} color={isDark ? "#32966E" : "#2B8761"} />
+                <Pressable className="flex-row items-center px-4 h-14 rounded-2xl bg-accent-sky-bg border border-accent-sky/30 active:opacity-80">
+                    <Iconify icon="heroicons:adjustments-horizontal" size={20} color={colors.accent.sky} />
                     {activeFilterCount > 0 && (
-                        <View className="ml-1.5 bg-[#226C4E] dark:bg-[#28785A] rounded-full px-1.5 py-0.5 justify-center items-center min-w-[18px]">
+                        <View className="ml-1.5 bg-accent-sky rounded-full px-1.5 py-0.5 justify-center items-center min-w-[18px]">
                             <AppText className="text-white text-[11px] font-bold text-center leading-none">
                                 {activeFilterCount}
                             </AppText>
@@ -145,8 +147,8 @@ export const GroupTransactionsTab = ({
             {/* Combined List Rendering Layout */}
             {groupedTransactions.length === 0 ? (
                 <View className="items-center pt-16 px-10">
-                    <Iconify icon="heroicons:banknotes" size={54} color={isDark ? "#3E3E3E" : "#E0E0E0"} />
-                    <AppText className="mt-4 opacity-50 text-center text-sm font-medium text-gray-500 dark:text-zinc-400">
+                    <Iconify icon="heroicons:banknotes" size={54} color={colors.icon.lighter} />
+                    <AppText className="mt-4 opacity-50 text-center text-sm font-medium text-text-primary-lighter">
                         {expenses.length === 0 && transfers.length === 0
                             ? "No transactions recorded yet."
                             : "No matching items found."}
@@ -156,8 +158,8 @@ export const GroupTransactionsTab = ({
                 groupedTransactions.map(([monthYearLabel, items]) => (
                     <View key={monthYearLabel} className="mb-4">
                         {/* Sticky Date Component Tracker */}
-                        <View className="border-b border-gray-100 dark:border-zinc-800 pb-2 mb-2">
-                            <AppText variant="body-small" className="font-bold tracking-wider uppercase opacity-60 text-[#2B8761] dark:text-[#32966E]">
+                        <View className="border-b border-border-input pb-2 mb-2">
+                            <AppText variant="body-small" className="font-bold tracking-wider uppercase opacity-60 text-accent-sky">
                                 {monthYearLabel}
                             </AppText>
                         </View>

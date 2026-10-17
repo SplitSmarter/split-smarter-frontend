@@ -14,13 +14,13 @@ interface MediaPickerBottomSheetProps {
 
 export const MediaPickerBottomSheet = ({visible, onClose, onSelect}: MediaPickerBottomSheetProps) => {
     const isDark = themeStore((state) => state.theme === 'dark');
+    const colors = isDark ? COLORS.dark : COLORS.light;
     const bottomSheetModalRef = useRef<BottomSheetModal>(null);
 
     const snapPoints = useMemo(() => ['35%'], []);
 
     useEffect(() => {
         if (visible) {
-            // No index needed, present() handles transition from "closed" to snapPoint[0]
             bottomSheetModalRef.current?.present();
         } else {
             bottomSheetModalRef.current?.dismiss();
@@ -42,13 +42,26 @@ export const MediaPickerBottomSheet = ({visible, onClose, onSelect}: MediaPicker
     const Option = ({title, iconComponent, onPress}: {title: string, iconComponent: React.ReactNode, onPress: () => void}) => (
         <Pressable
             onPress={onPress}
-            className="flex-row items-center p-5 bg-zinc-100 dark:bg-zinc-800 rounded-3xl mb-3"
-            style={({pressed}) => (pressed ? {opacity: 0.6} : undefined)}
+            className="mb-3 flex-row items-center rounded-3xl p-5"
+            style={({pressed}) => [
+                {
+                    backgroundColor: colors.bg.darker,
+                },
+                pressed ? {opacity: 0.6} : undefined,
+            ]}
         >
-            <View className="bg-bg-secondary-lighter p-3 rounded-2xl">
+            <View
+                className="rounded-2xl p-3"
+                style={{backgroundColor: colors.bg.lighter}}
+            >
                 {iconComponent}
             </View>
-            <AppText className="ml-4 font-semibold text-lg text-text-primary">{title}</AppText>
+            <AppText
+                className="ml-4 text-lg font-semibold"
+                style={{color: colors.text.primary}}
+            >
+                {title}
+            </AppText>
         </Pressable>
     );
 
@@ -60,24 +73,27 @@ export const MediaPickerBottomSheet = ({visible, onClose, onSelect}: MediaPicker
             enableDynamicSizing={false}
             backdropComponent={renderBackdrop}
             enablePanDownToClose={true}
-            backgroundStyle={{backgroundColor: isDark ? '#121212' : '#F8F8F8', borderRadius: 40}}
-            handleIndicatorStyle={{backgroundColor: isDark ? '#333' : '#E5E5E5'}}
+            backgroundStyle={{backgroundColor: colors.bg.overlay, borderRadius: 40}}
+            handleIndicatorStyle={{backgroundColor: colors.icon.lighter}}
         >
-            {/* Wrap content in BottomSheetView to fix rendering issues inside ScrollViews */}
             <BottomSheetView className="flex-1 px-6 pt-2">
-                <AppText variant="h4" className="font-bold text-text-primary text-center mb-6">
+                <AppText
+                    variant="h4"
+                    className="mb-6 text-center font-bold"
+                    style={{color: colors.text.primary}}
+                >
                     Choose Image
                 </AppText>
 
                 <Option
                     title="Take Photo"
-                    iconComponent={<Iconify icon="heroicons:camera" size={24} color={COLORS.light.brand.primary} />}
+                    iconComponent={<Iconify icon="heroicons:camera" size={24} color={colors.icon.primary} />}
                     onPress={() => onSelect(true)}
                 />
 
                 <Option
                     title="Choose from Gallery"
-                    iconComponent={<Iconify icon="heroicons:photo" size={24} color={COLORS.light.brand.primary} />}
+                    iconComponent={<Iconify icon="heroicons:photo" size={24} color={colors.icon.primary} />}
                     onPress={() => onSelect(false)}
                 />
             </BottomSheetView>

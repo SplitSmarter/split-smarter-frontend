@@ -299,6 +299,11 @@ function mapBudgetCategories(
     });
 }
 
+/**
+ * Maps a spend budget rule → dashboard card.
+ * TODO(savings-goals): when API adds `kind: spend|save` (+ saved amount),
+ * branch progress/copy for real savings goals instead of treating YEARLY as a “goal”.
+ */
 export function mapBudgetDetailsToGoal(
     rule: BudgetRuleDetails,
     userCurrency: string,

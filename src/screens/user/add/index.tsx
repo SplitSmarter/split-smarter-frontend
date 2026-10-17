@@ -5,6 +5,7 @@ import {Iconify} from 'react-native-iconify';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {AppText} from "@/src/components/common/AppText";
 import {themeStore} from "@/src/store/themeStore";
+import { COLORS } from '@/src/constants/colors';
 import {systemStore} from "@/src/store/systemStore";
 import {logStore} from "@/src/store/logStore";
 
@@ -13,6 +14,7 @@ import {RelationshipForm} from "./components/RelationshipForm";
 
 export default function AddUserScreen() {
     const isDark = themeStore((state) => state.theme === 'dark');
+    const colors = isDark ? COLORS.dark : COLORS.light;
     const {defaults} = systemStore();
     const router = useRouter();
 
@@ -54,8 +56,8 @@ export default function AddUserScreen() {
             {/* Structural Nav Header Context */}
             <View className="px-6 pt-2 pb-4 flex-row items-center justify-between">
                 <Pressable onPress={safeNavigateBack}
-                           className="p-2 rounded-full active:bg-gray-100 dark:active:bg-zinc-800">
-                    <Iconify icon="heroicons:chevron-left" size={24} color={isDark ? "#FFF" : "#000"}/>
+                           className="p-2 rounded-full active:bg-bg-primary-darker">
+                    <Iconify icon="heroicons:chevron-left" size={24} color={colors.icon.primary}/>
                 </Pressable>
                 <AppText variant="h4" className="font-bold text-text-primary">Add Relation</AppText>
                 <View className="w-10"/>

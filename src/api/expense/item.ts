@@ -7,13 +7,15 @@ import {
     AddExpenseItemResponse,
     ExpenseItemResponse,
     ListUserExpenseItemsQueryParams,
+    SearchClassificationsRequest,
+    SearchClassificationsResponse,
     SearchExpenseItemRequest,
     SearchExpenseItemResponse,
     UpdateExpenseItemRequest,
 } from "@/src/api/dto/expense/item";
 import {ExpenseItemSource} from "@/src/api/dto/constants";
 
-const BASE_PATH = "expense/item/v1";
+const BASE_PATH = "/expense/item/v1";
 
 /** @deprecated Use ListUserExpenseItemsApi */
 export const GetExpenseItemsApi = async (
@@ -85,6 +87,34 @@ export const ListUserExpenseItemsApi = async (
                     limit: params?.limit ?? 100,
                 },
                 paramsSerializer: (query) => qs.stringify(query, {arrayFormat: "repeat"}),
+            }
+        );
+
+        if (res.data && res.data.success) {
+            return {
+                message: res.data.message,
+                data: res.data.data,
+                pagination: res.data.pagination as PaginationResponse,
+            };
+        }
+        throw new Error("Invalid Response Schema");
+    } catch (error: any) {
+        return handleApiError(error);
+    }
+};
+
+/**
+ * Searches local SYSTEM COICOP/CPC taxonomy projections for classification pickers.
+ */
+export const SearchClassificationsApi = async (data: SearchClassificationsRequest) => {
+    try {
+        const res = await axiosUserInstance.post<SuccessResponse<SearchClassificationsResponse>>(
+            `${BASE_PATH}/classifications/search`,
+            {
+                query: data.query ?? '',
+                taxonomy_type: data.taxonomy_type,
+                limit: data.limit,
+                offset: data.offset,
             }
         );
 

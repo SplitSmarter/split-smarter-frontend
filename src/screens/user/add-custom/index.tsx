@@ -6,6 +6,9 @@ import { AppText } from '@/src/components/common/AppText';
 import { AppInput } from '@/src/components/common/AppInput';
 import { AppButton } from '@/src/components/common/AppButton';
 import { AppImage } from '@/src/components/common/AppImage';
+import { EntityFallbackIcon } from '@/src/components/common/EntityFallbackIcon';
+import { themeStore } from '@/src/store/themeStore';
+import { COLORS } from '@/src/constants/colors';
 import { systemStore } from '@/src/store/systemStore';
 import { createCustomUserApi } from '@/src/api/user/customuser';
 import { getRelationshipsApi } from '@/src/api/relations/relationship';
@@ -14,6 +17,9 @@ import { RelationshipDetails } from '@/src/api/dto/user/relation';
 export default function AddCustomUserScreen() {
     const router = useRouter();
     const { defaults } = systemStore();
+
+    const isDark = themeStore((state) => state.theme === 'dark');
+    const colors = isDark ? COLORS.dark : COLORS.light;
 
     // Form State
     const [name, setName] = useState('');
@@ -109,6 +115,9 @@ export default function AddCustomUserScreen() {
                             url={defaults.defaultUserAvatarImage.url}
                             size="xxl"
                             variant="circular"
+                            fallbackIcon={
+                                <EntityFallbackIcon kind="user" size={48} color={colors.icon.lighter} />
+                            }
                         />
                         <View className="absolute bottom-1 right-1 bg-bg-secondary p-2 rounded-full border-4 border-bg-primary">
                             <Iconify icon="solar:camera-add-bold" size={18} color="white" />
@@ -155,7 +164,23 @@ export default function AddCustomUserScreen() {
                                                 : 'bg-bg-primary-lighter border-border-input/20'
                                         }`}
                                     >
-                                        <AppImage id={rel.icon?.id} url={rel.icon?.url} size="sm" variant="circular" />
+                                        <AppImage
+                                            id={rel.icon?.id}
+                                            url={rel.icon?.url}
+                                            size="sm"
+                                            variant="circular"
+                                            fallbackIcon={
+                                                <EntityFallbackIcon
+                                                    kind="relationship"
+                                                    size={18}
+                                                    color={
+                                                        selectedRelationId === rel.id
+                                                            ? colors.accent.sky
+                                                            : colors.icon.lighter
+                                                    }
+                                                />
+                                            }
+                                        />
                                         <AppText
                                             className={`ml-3 font-semibold flex-1 ${selectedRelationId === rel.id ? 'text-accent-sky' : 'text-text-primary'}`}
                                             numberOfLines={1}

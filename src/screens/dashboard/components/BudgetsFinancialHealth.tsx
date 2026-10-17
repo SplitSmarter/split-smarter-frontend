@@ -1,11 +1,20 @@
 import React from 'react';
-import {View, TouchableOpacity} from 'react-native';
+import {View, Pressable} from 'react-native';
 import Svg, {Circle} from 'react-native-svg';
 import {AppText} from '@/src/components/common/AppText';
 import {AppImageV2} from '@/src/components/common/AppImageV2';
+import {EntityFallbackIcon} from '@/src/components/common/EntityFallbackIcon';
 import {themeStore} from '@/src/store/themeStore';
 import {COLORS} from '@/src/constants/colors';
 import {BudgetCategory, BudgetGoal} from '../types/dashboard';
+
+function successBorderColor(hex: string, alpha: number) {
+    const h = hex.replace('#', '');
+    const r = parseInt(h.slice(0, 2), 16);
+    const g = parseInt(h.slice(2, 4), 16);
+    const b = parseInt(h.slice(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
 
 interface BudgetsFinancialHealthProps {
     budgets: BudgetGoal[];
@@ -38,6 +47,13 @@ const CategoryIconRow: React.FC<{
                         url={cat.icon.url}
                         contentFit="contain"
                         style={{width: '100%', height: '100%'}}
+                        fallbackComponent={
+                            <EntityFallbackIcon
+                                kind="expenseCategory"
+                                size={12}
+                                color={colors.icon.lighter}
+                            />
+                        }
                     />
                 </View>
             ))}
@@ -72,22 +88,18 @@ export const BudgetsFinancialHealth: React.FC<BudgetsFinancialHealthProps> = ({
     return (
         <View className="mb-6 px-5">
             <View className="mb-3 flex-row items-center justify-between">
-                <AppText
-                    variant="h4"
-                    className="font-bold"
-                    style={{color: colors.text.primary}}
-                >
+                <AppText variant="h4" className="font-bold" style={{color: colors.text.primary}}>
                     Budgets & Goals
                 </AppText>
-                <TouchableOpacity onPress={onCreateNewPress} activeOpacity={0.7}>
+                <Pressable onPress={onCreateNewPress} className="active:opacity-70">
                     <AppText
                         variant="body-small"
                         className="font-semibold"
-                        style={{color: colors.text.lighter}}
+                        style={{color: colors.text.link}}
                     >
                         Create New
                     </AppText>
-                </TouchableOpacity>
+                </Pressable>
             </View>
 
             <View className="gap-3">
@@ -95,14 +107,24 @@ export const BudgetsFinancialHealth: React.FC<BudgetsFinancialHealthProps> = ({
                     const isLinear = budget.type === 'linear';
                     const remaining = budget.totalAmount - budget.usedAmount;
                     const categories = budget.categories || [];
+                    const progressFill =
+                        budget.progressPercent >= 90
+                            ? colors.status.decrease
+                            : colors.status.warning;
 
                     return (
                         <View
                             key={budget.id}
-                            className="rounded-3xl border p-4 shadow-2xl"
+                            className="rounded-3xl border p-4"
                             style={{
-                                backgroundColor: colors.bg.overlay,
+                                backgroundColor: colors.bg.lighter,
                                 borderColor: colors.status.border,
+                                // Soft elevation so white cards separate from light canvas
+                                shadowColor: COLORS.light.brand.primary,
+                                shadowOpacity: isDark ? 0.35 : 0.08,
+                                shadowRadius: 12,
+                                shadowOffset: {width: 0, height: 4},
+                                elevation: 3,
                             }}
                         >
                             <View className="mb-3 flex-row items-start justify-between">
@@ -125,14 +147,30 @@ export const BudgetsFinancialHealth: React.FC<BudgetsFinancialHealthProps> = ({
 
                                 {isLinear && (
                                     <View className="shrink-0 items-end gap-1.5">
-                                        <View className="rounded-full border border-bg-secondary/20 bg-bg-secondary-lighter px-2.5 py-1">
-                                            <AppText variant="caption-xs" className="font-bold text-green-increase">
+                                        <View
+                                            className="rounded-full border px-2.5 py-1"
+                                            style={{
+                                                backgroundColor: colors.brand.lighter,
+                                                borderColor: successBorderColor(
+                                                    colors.status.success,
+                                                    isDark ? 0.35 : 0.3
+                                                ),
+                                            }}
+                                        >
+                                            <AppText
+                                                variant="caption-xs"
+                                                className="font-bold"
+                                                style={{color: colors.status.success}}
+                                            >
                                                 {budget.currencySymbol}
                                                 {remaining.toLocaleString('en-IN')} left
                                             </AppText>
                                         </View>
                                         {categories.length > 0 && (
-                                            <CategoryIconRow categories={categories} colors={colors} />
+                                            <CategoryIconRow
+                                                categories={categories}
+                                                colors={colors}
+                                            />
                                         )}
                                     </View>
                                 )}
@@ -147,7 +185,7 @@ export const BudgetsFinancialHealth: React.FC<BudgetsFinancialHealthProps> = ({
                                         <View
                                             style={{
                                                 width: `${Math.min(budget.progressPercent, 100)}%`,
-                                                backgroundColor: '#FF7A00',
+                                                backgroundColor: progressFill,
                                             }}
                                             className="h-full rounded-full"
                                         />
@@ -165,22 +203,27 @@ export const BudgetsFinancialHealth: React.FC<BudgetsFinancialHealthProps> = ({
                                         <AppText
                                             variant="caption-xs"
                                             className="font-bold"
-                                            style={{color: colors.text.primary}}
+                                            style={{
+                                                color:
+                                                    budget.progressPercent >= 90
+                                                        ? colors.status.decrease
+                                                        : colors.text.primary,
+                                            }}
                                         >
                                             {budget.progressPercent}% used
                                         </AppText>
                                     </View>
                                 </View>
                             ) : (
-                                <>
-                                    <View className="flex-row items-center justify-between">
+                                <View className="flex-row items-center justify-between">
+                                    <View className="flex-row items-center gap-3">
                                         <View className="relative h-12 w-12 items-center justify-center">
                                             <Svg height="48" width="48" viewBox="0 0 36 36">
                                                 <Circle
                                                     cx="18"
                                                     cy="18"
                                                     r="15.915"
-                                                    stroke={colors.status.border}
+                                                    stroke={colors.bg.darker}
                                                     strokeWidth="3.5"
                                                     fill="transparent"
                                                 />
@@ -188,9 +231,9 @@ export const BudgetsFinancialHealth: React.FC<BudgetsFinancialHealthProps> = ({
                                                     cx="18"
                                                     cy="18"
                                                     r="15.915"
-                                                    stroke="#FF7A00"
+                                                    stroke={colors.text.primary}
                                                     strokeWidth="3.5"
-                                                    strokeDasharray={`${budget.progressPercent}, 100`}
+                                                    strokeDasharray={`${Math.max(budget.progressPercent, 2)}, 100`}
                                                     strokeLinecap="round"
                                                     fill="transparent"
                                                     transform="rotate(-90 18 18)"
@@ -204,43 +247,33 @@ export const BudgetsFinancialHealth: React.FC<BudgetsFinancialHealthProps> = ({
                                                 {budget.progressPercent}%
                                             </AppText>
                                         </View>
-
-                                        <View className="items-end gap-0.5">
-                                            <AppText
-                                                variant="caption-xs"
-                                                className="font-medium"
-                                                style={{color: colors.text.lighter}}
-                                            >
-                                                Goal Target
-                                            </AppText>
-                                            <AppText
-                                                variant="body-base"
-                                                className="font-extrabold"
-                                                style={{color: colors.text.primary}}
-                                            >
-                                                {budget.currencySymbol}
-                                                {budget.totalAmount.toLocaleString('en-IN')}
-                                            </AppText>
-                                        </View>
+                                        {categories.length > 0 && (
+                                            <CategoryIconRow
+                                                categories={categories}
+                                                colors={colors}
+                                            />
+                                        )}
                                     </View>
 
-                                    {/* Ring goals keep the categories footer */}
-                                    {categories.length > 0 && (
-                                        <View
-                                            className="mt-3 flex-row items-center justify-between border-t pt-3"
-                                            style={{borderTopColor: colors.status.border}}
+                                    <View className="items-end gap-0.5">
+                                        {/* TODO(savings-goals): “Goal Target” is yearly/group spend UI — swap to saved/of-goal when kind=save exists */}
+                                        <AppText
+                                            variant="caption-xs"
+                                            className="font-medium"
+                                            style={{color: colors.text.lighter}}
                                         >
-                                            <AppText
-                                                variant="caption-xs"
-                                                className="text-[10px] font-medium"
-                                                style={{color: colors.text.lighter}}
-                                            >
-                                                Categories
-                                            </AppText>
-                                            <CategoryIconRow categories={categories} colors={colors} />
-                                        </View>
-                                    )}
-                                </>
+                                            Goal Target
+                                        </AppText>
+                                        <AppText
+                                            variant="body-base"
+                                            className="font-extrabold"
+                                            style={{color: colors.text.primary}}
+                                        >
+                                            {budget.currencySymbol}
+                                            {budget.totalAmount.toLocaleString('en-IN')}
+                                        </AppText>
+                                    </View>
+                                </View>
                             )}
                         </View>
                     );

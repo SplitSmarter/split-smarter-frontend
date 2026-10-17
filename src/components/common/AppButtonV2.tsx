@@ -6,7 +6,6 @@ import {
     View,
     GestureResponderEvent,
     ActivityIndicator,
-    StyleSheet,
     ViewStyle,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
@@ -46,6 +45,7 @@ export const AppButtonV2 = ({
     const platform = deviceStore((state) => state.platform);
 
     const isDark = theme === 'dark';
+    const colors = isDark ? COLORS.dark : COLORS.light;
     const isInteractionDisabled = disabled || loading;
 
     const handlePress = (event: GestureResponderEvent) => {
@@ -57,12 +57,12 @@ export const AppButtonV2 = ({
         }
     };
 
-    // Primary CTA sits on bg-secondary — icons must match white CTA label text
+    // Primary CTA = platinum invert (brand.primary) — icons match text.contrast
     const getIconColor = () => {
         if (variant === 'primary') {
-            return isDark ? COLORS.dark.text.contrast : COLORS.light.text.contrast;
+            return colors.text.contrast;
         }
-        return isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary;
+        return colors.icon.primary;
     };
 
     // StyleSheet shadows — avoid NativeWind shadow-* during theme flips
@@ -71,15 +71,46 @@ export const AppButtonV2 = ({
         if (platform === 'android') {
             return {elevation: isPressed ? 1 : 4, opacity: isPressed ? 0.9 : 1};
         }
-        if (isPressed) return styles.shadowPressed;
-        return isDark ? styles.shadowDark : styles.shadowLight;
+        if (isPressed) {
+            return {
+                shadowColor: COLORS.light.brand.primary,
+                shadowOffset: {width: 0, height: 1},
+                shadowOpacity: 0.12,
+                shadowRadius: 2,
+                opacity: 0.85,
+            };
+        }
+        return isDark
+            ? {
+                shadowColor: COLORS.dark.text.primary,
+                shadowOffset: {width: 0, height: 3},
+                shadowOpacity: 0.05,
+                shadowRadius: 6,
+            }
+            : {
+                shadowColor: COLORS.light.brand.primary,
+                shadowOffset: {width: 0, height: 3},
+                shadowOpacity: 0.2,
+                shadowRadius: 6,
+            };
     };
 
-    // Core Theme Presets - Only controls colors. Structurally naked!
+    // Force fill via COLORS — NativeWind bg-bg-secondary can linger as emerald
+    const variantSurfaceStyle: ViewStyle =
+        variant === 'primary'
+            ? {backgroundColor: colors.brand.primary}
+            : variant === 'secondary'
+                ? {backgroundColor: colors.bg.lighter}
+                : {backgroundColor: 'transparent'};
+
+    const labelColor =
+        variant === 'primary' ? colors.text.contrast : colors.text.primary;
+
+    // Structural / border classes only (fill + label color come from style)
     const variantStyles = {
-        primary: "bg-bg-secondary border-transparent text-text-secondary",
-        secondary: "bg-bg-primary-lighter border-border-input text-text-primary",
-        ghost: "bg-transparent border-transparent text-text-primary",
+        primary: "border-transparent",
+        secondary: "border-border-input",
+        ghost: "border-transparent",
     };
 
     // Core Metric Presets - Sensible defaults, completely omitted if size="none"
@@ -97,7 +128,7 @@ export const AppButtonV2 = ({
         <Pressable
             onPress={handlePress}
             disabled={isInteractionDisabled}
-            /* The user's custom className string is placed here at the end so it takes priority */
+            /* className last so callers can override layout; fill always from COLORS */
             className={`
                 flex-row gap-x-2 items-center justify-center border
                 ${variantStyles[variant]}
@@ -106,6 +137,7 @@ export const AppButtonV2 = ({
                 ${className} 
             `}
             {...props}
+            style={[variantSurfaceStyle, props.style as ViewStyle]}
         >
             {({ pressed }) => (
                 <View
@@ -121,7 +153,11 @@ export const AppButtonV2 = ({
                         <>
                             <ActivityIndicator size="small" color={getIconColor()} />
                             {loadingText && (
-                                <AppText variant={textVariants[size]} className="font-bold text-inherit">
+                                <AppText
+                                    variant={textVariants[size]}
+                                    className="font-bold"
+                                    style={{color: labelColor}}
+                                >
                                     {loadingText}
                                 </AppText>
                             )}
@@ -129,9 +165,12 @@ export const AppButtonV2 = ({
                     ) : (
                         <>
                             {renderIcon && renderIcon(getIconColor(), iconSizes[size])}
-                            {/* If standard string children are passed, style it safely. Otherwise render node directly */}
                             {typeof children === 'string' ? (
-                                <AppText variant={textVariants[size]} className="font-bold text-inherit">
+                                <AppText
+                                    variant={textVariants[size]}
+                                    className="font-bold"
+                                    style={{color: labelColor}}
+                                >
                                     {children}
                                 </AppText>
                             ) : (
@@ -146,25 +185,3 @@ export const AppButtonV2 = ({
 };
 
 AppButtonV2.displayName = 'AppButtonV2';
-
-const styles = StyleSheet.create({
-    shadowLight: {
-        shadowColor: '#000',
-        shadowOffset: {width: 0, height: 3},
-        shadowOpacity: 0.2,
-        shadowRadius: 6,
-    },
-    shadowDark: {
-        shadowColor: '#fff',
-        shadowOffset: {width: 0, height: 3},
-        shadowOpacity: 0.05,
-        shadowRadius: 6,
-    },
-    shadowPressed: {
-        shadowColor: '#000',
-        shadowOffset: {width: 0, height: 1},
-        shadowOpacity: 0.12,
-        shadowRadius: 2,
-        opacity: 0.85,
-    },
-});

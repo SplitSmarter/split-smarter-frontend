@@ -5,6 +5,7 @@ import {GetGooglePlaceDetailsApi, GetPlaceDetailsByProviderApi} from "@/src/api/
 import {CachedPlace, placeStore} from '@/src/store/placeStore';
 import {userStore} from '@/src/store/userStore';
 import {EnrichedPlaceDetails, fetchEnrichedPlaceDetails} from '@/src/utils/place/placeDataFetcher';
+import {filterUsablePlacePhotos} from '@/src/utils/place/placePhotos';
 import {useEffect, useMemo, useState} from 'react';
 
 interface UsePlaceDetailsProps {
@@ -57,12 +58,13 @@ export const usePlaceDetails = (place: UsePlaceDetailsProps['place'], isVisible:
                                 latitude: data.geo.latitude,
                                 longitude: data.geo.longitude,
                             },
-                            city: "",
-                            country: "",
-                            country_code: "",
+                            city: data.city || "",
+                            state: data.state || "",
+                            country: data.country || "",
+                            country_code: data.country_code || "",
                             provider: data.provider,
                             provider_id: data.provider_id,
-                            photos: data.photos as PlacePhotoDetails[],
+                            photos: filterUsablePlacePhotos(data.photos as PlacePhotoDetails[]),
                             rating: data.rating,
                             id: data.id
                         });
@@ -115,7 +117,7 @@ export const usePlaceDetails = (place: UsePlaceDetailsProps['place'], isVisible:
         };
 
         loadData();
-    }, [isVisible, place?.id, place?.provider_id, place?.provider]);
+    }, [isVisible, place?.id, place?.provider_id, place?.provider, place?.place_id]);
 
     const displayData = useMemo<EnrichedPlaceDetails>(() => {
         const source = enrichedDetails || cachedData || {} as EnrichedPlaceDetails;
@@ -125,10 +127,11 @@ export const usePlaceDetails = (place: UsePlaceDetailsProps['place'], isVisible:
             description: source.description || "",
             address: source.address || place?.address || "Unknown Address",
             city: source.city || "",
+            state: source.state || "",
             country: source.country || "",
             country_code: source.country_code || "",
             rating: source.rating ?? null,
-            photos: source.photos || [],
+            photos: filterUsablePlacePhotos(source.photos),
             geo: source.geo || {
                 latitude: place?.coordinate[1] || 0,
                 longitude: place?.coordinate[0] || 0

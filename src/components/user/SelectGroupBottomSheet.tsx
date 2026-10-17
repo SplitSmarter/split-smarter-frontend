@@ -167,7 +167,7 @@ export const SelectGroupBottomSheet = ({
         if (loading && !hasGroups) {
             return (
                 <View style={styles.centeredBody}>
-                    <ActivityIndicator size="large" color={COLORS.light.brand.primary}/>
+                    <ActivityIndicator size="large" color={COLORS.light.icon.primary}/>
                     <AppText variant="caption-xs" className="text-text-primary-lighter mt-3">
                         Loading groups...
                     </AppText>
@@ -221,19 +221,23 @@ export const SelectGroupBottomSheet = ({
             keyboardBehavior="interactive"
             keyboardBlurBehavior="restore"
             backgroundStyle={{
-                backgroundColor: isDark ? '#121212' : '#F8F8F8',
+                backgroundColor: isDark ? COLORS.dark.bg.overlay : COLORS.light.bg.overlay,
                 borderRadius: 40,
             }}
             handleIndicatorStyle={{
-                backgroundColor: isDark ? '#3F3F46' : '#D4D4D8',
+                backgroundColor: isDark ? COLORS.dark.icon.lighter : COLORS.light.icon.lighter,
                 width: 48,
                 height: 6,
             }}
         >
             <View style={styles.container}>
-                <View className="flex-row items-center justify-between py-4 px-6 border-b border-gray-500/10">
+                <View className="flex-row items-center justify-between py-4 px-6 border-b border-border-input">
                     <Pressable onPress={onClose} className="p-2 rounded-full active:opacity-60">
-                        <Iconify icon="heroicons:chevron-left" size={24} color={isDark ? "#FFF" : "#000"}/>
+                        <Iconify
+                            icon="heroicons:chevron-left"
+                            size={24}
+                            color={isDark ? COLORS.dark.text.primary : COLORS.light.text.primary}
+                        />
                     </Pressable>
                     <AppText variant="h4" className="font-bold text-text-primary text-center">
                         Select Group

@@ -6,7 +6,6 @@ import {
     View,
     GestureResponderEvent,
     ActivityIndicator,
-    StyleSheet,
     ViewStyle,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
@@ -48,6 +47,7 @@ export const AppButton = ({
     const platform = deviceStore((state) => state.platform);
 
     const isDark = theme === 'dark';
+    const colors = isDark ? COLORS.dark : COLORS.light;
     const isInteractionDisabled = disabled || loading;
 
     const handlePress = (event: GestureResponderEvent) => {
@@ -60,12 +60,20 @@ export const AppButton = ({
     };
 
     const getIconColor = () => {
-        // Primary CTA sits on bg-secondary — icons must match white CTA label text
+        // Primary CTA = platinum invert (brand.primary) — icons match text.contrast
         if (variant === 'primary') {
-            return isDark ? COLORS.dark.text.contrast : COLORS.light.text.contrast;
+            return colors.text.contrast;
         }
-        return isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary;
+        return colors.icon.primary;
     };
+
+    // Force fill via COLORS — NativeWind bg-bg-secondary can linger as emerald after theme flips
+    const variantSurfaceStyle: ViewStyle =
+        variant === 'primary'
+            ? {backgroundColor: colors.brand.primary}
+            : {backgroundColor: colors.bg.lighter};
+
+    const labelColor = variant === 'primary' ? colors.text.contrast : colors.text.primary;
 
     // StyleSheet shadows — avoid NativeWind shadow-* during theme flips (nav-context race)
     const getShadowStyle = (isPressed: boolean): ViewStyle | undefined => {
@@ -76,10 +84,28 @@ export const AppButton = ({
         }
 
         if (isPressed) {
-            return styles.shadowPressed;
+            return {
+                shadowColor: COLORS.light.brand.primary,
+                shadowOffset: {width: 0, height: 1},
+                shadowOpacity: 0.15,
+                shadowRadius: 2,
+                opacity: 0.8,
+            };
         }
 
-        return isDark ? styles.shadowDark : styles.shadowLight;
+        return isDark
+            ? {
+                shadowColor: COLORS.dark.text.primary,
+                shadowOffset: {width: 0, height: 4},
+                shadowOpacity: 0.1,
+                shadowRadius: 8,
+            }
+            : {
+                shadowColor: COLORS.light.brand.primary,
+                shadowOffset: {width: 0, height: 4},
+                shadowOpacity: 0.3,
+                shadowRadius: 8,
+            };
     };
 
     const getBorderStyle = () => {
@@ -101,6 +127,7 @@ export const AppButton = ({
             {({ pressed }) => (
                 <View
                     style={[
+                        variantSurfaceStyle,
                         (pressed && !isInteractionDisabled)
                             ? {transform: [{scale: 0.96}]}
                             : {transform: [{scale: 1}]},
@@ -111,7 +138,6 @@ export const AppButton = ({
                     ]}
                     className={`
                         flex-row gap-x-2 rounded-full items-center justify-center border w-full
-                        ${variant === 'primary' ? "bg-bg-secondary" : "bg-bg-primary-lighter"}
                         ${getBorderStyle()}
                         ${sizes[size]}
                         ${isInteractionDisabled ? 'opacity-60' : ''}
@@ -126,7 +152,8 @@ export const AppButton = ({
                             {loadingText && (
                                 <AppText
                                     variant={textVariants[size]}
-                                    className={`${variant === 'primary' ? "text-text-secondary" : "text-text-primary"} font-bold`}
+                                    className="font-bold"
+                                    style={{color: labelColor}}
                                 >
                                     {loadingText}
                                 </AppText>
@@ -137,7 +164,8 @@ export const AppButton = ({
                             {renderIcon && renderIcon(getIconColor(), iconSizes[size])}
                             <AppText
                                 variant={textVariants[size]}
-                                className={`${variant === 'primary' ? "text-text-secondary" : "text-text-primary"} font-bold`}
+                                className="font-bold"
+                                style={{color: labelColor}}
                             >
                                 {children}
                             </AppText>
@@ -148,25 +176,3 @@ export const AppButton = ({
         </Pressable>
     );
 };
-
-const styles = StyleSheet.create({
-    shadowLight: {
-        shadowColor: '#000',
-        shadowOffset: {width: 0, height: 4},
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-    },
-    shadowDark: {
-        shadowColor: '#fff',
-        shadowOffset: {width: 0, height: 4},
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-    },
-    shadowPressed: {
-        shadowColor: '#000',
-        shadowOffset: {width: 0, height: 1},
-        shadowOpacity: 0.15,
-        shadowRadius: 2,
-        opacity: 0.8,
-    },
-});

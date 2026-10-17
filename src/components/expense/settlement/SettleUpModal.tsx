@@ -43,6 +43,7 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
                                                                 exchangeRates = DEFAULT_EXCHANGE_RATES,
                                                             }) => {
     const isDark = themeStore((state) => state.theme === 'dark');
+    const colors = isDark ? COLORS.dark : COLORS.light;
     const loggedInUser = userStore((state) => state.user);
     const setPendingPayment = expensePaymentStore((state) => state.setPendingPayment);
 
@@ -175,12 +176,12 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
                 enablePanDownToClose
                 onDismiss={onClose}
                 backdropComponent={renderBackdrop}
-                backgroundStyle={{backgroundColor: isDark ? '#121212' : '#FFFFFF', borderRadius: 40}}
-                handleIndicatorStyle={{backgroundColor: isDark ? '#3F3F46' : '#D4D4D8', width: 48, height: 6}}
+                backgroundStyle={{backgroundColor: colors.bg.overlay, borderRadius: 40}}
+                handleIndicatorStyle={{backgroundColor: colors.icon.lighter, width: 48, height: 6}}
             >
                 {!member ? (
                     <BottomSheetView className="p-6 items-center justify-center">
-                        <ActivityIndicator size="small" color={COLORS.light.brand.primary}/>
+                        <ActivityIndicator size="small" color={colors.icon.primary}/>
                     </BottomSheetView>
                 ) : (
                     <BottomSheetView className="flex-1 px-6 pb-8 items-center">
@@ -205,7 +206,8 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
                                 renderLeftIcon={(iconColor) => (
                                     <Pressable
                                         onPress={() => setIsCurrencyModalOpen(true)}
-                                        className="flex-row items-center mr-1 pr-2.5 border-r border-zinc-200 dark:border-zinc-800 h-6"
+                                        className="flex-row items-center mr-1 pr-2.5 border-r h-6"
+                                        style={{ borderRightColor: colors.status.border }}
                                     >
                                         <AppText className="text-green-increase text-base font-bold">
                                             {activeCurrencySymbol}
@@ -237,11 +239,15 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
                                 disabled={!gatewayDetails?.hasValidGateway || loadingCredentials || !payingAmount}
                                 className="w-full py-4 rounded-xl items-center justify-center"
                                 style={{
-                                    backgroundColor: (gatewayDetails?.hasValidGateway && !loadingCredentials && payingAmount) ? COLORS.light.brand.primary : '#A1A1AA',
+                                    backgroundColor: (gatewayDetails?.hasValidGateway && !loadingCredentials && payingAmount)
+                                        ? colors.brand.primary
+                                        : colors.text.placeholder,
                                     opacity: (gatewayDetails?.hasValidGateway && !loadingCredentials && payingAmount) ? 1 : 0.4
                                 }}
                             >
-                                <AppText className="font-bold text-white text-sm">Pay with Gateway</AppText>
+                                <AppText className="font-bold text-sm" style={{ color: colors.text.contrast }}>
+                                    Pay with Gateway
+                                </AppText>
                             </AppButtonV2>
                         </View>
 
@@ -249,7 +255,8 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
                             <Pressable
                                 onPress={handleSettleWithCashLocalBypass}
                                 disabled={!payingAmount}
-                                className={`w-full py-4 items-center justify-center rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent active:bg-zinc-100 dark:active:bg-zinc-900 ${!payingAmount ? 'opacity-40' : ''}`}
+                                className={`w-full py-4 items-center justify-center rounded-xl border bg-transparent ${!payingAmount ? 'opacity-40' : ''}`}
+                                style={{ borderColor: colors.status.border }}
                             >
                                 <AppText className="font-bold text-text-primary text-sm">Settle via Cash / Outside
                                     App</AppText>

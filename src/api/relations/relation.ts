@@ -1,3 +1,4 @@
+import qs from "qs";
 import axiosUserInstance from "@/src/api/axiosUserServiceInstance";
 import { SuccessResponse } from "@/src/api/dto/ApiResponse";
 import { handleApiError } from "@/src/api/utils/mapper";
@@ -46,10 +47,12 @@ export const GetRelationsApi = async (
             `${BASE_PATH}/`,
             {
                 params: {
-                    relation_type: relation_types, // Axios handles array to multiple query params
+                    relation_type: relation_types,
                     offset,
-                    limit
-                }
+                    limit,
+                },
+                // Backend expects repeated keys: relation_type=USER&relation_type=CUSTOM
+                paramsSerializer: (query) => qs.stringify(query, {arrayFormat: 'repeat'}),
             }
         );
 

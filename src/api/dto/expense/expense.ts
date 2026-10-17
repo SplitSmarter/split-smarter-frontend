@@ -103,7 +103,10 @@ export interface ItemComponent {
     unit_cost?: number | null;
     unit_price?: number | null;
     currency: Currency;
-    shared_between: ExpenseItemSharer[] | null; // unused for now — always null
+    /** Who owes on the line; null/empty = everyone in sharers. */
+    shared_between: ExpenseItemSharer[] | null;
+    /** Who funded the line; null/empty = everyone in paid_by_users. */
+    paid_between: ExpenseItemSharer[] | null;
 }
 
 /** @deprecated Prefer flat line_items on AddExpenseRequest */
@@ -155,11 +158,25 @@ export interface ExchangeRateDetails {
     GBP: number;
 }
 
+/**
+ * Thin embed on GET expense (`payment_links`).
+ * Full list/create shapes live in `@/src/api/dto/expense/payment_link`.
+ */
+export interface PaymentLinkSummary {
+    id: number;
+    transfer_id: number;
+    expense_paid_by_id?: number | null;
+    covered_amount: number;
+    transfer_currency: Currency;
+    amount_inr: number;
+}
+
 export interface ExpenseDetailsBasicResponse {
     id: number;
     name: string;
     status: ExpenseStatus;
-    expense_type: ExpenseComponentType;
+    /** Present on some list payloads; omitted on backend getExpense basic. */
+    expense_type?: ExpenseComponentType;
     expense_date: string;
     total_amount: number;
     currency: Currency;
@@ -168,6 +185,8 @@ export interface ExpenseDetailsBasicResponse {
     memory: MemoryBasicDetails | null;
     paid_by_users: ExpensePaidByDetail[];
     sharers: ExpenseSharerDetail[];
+    /** Linked settlement coverage summaries (backend getExpense). */
+    payment_links?: PaymentLinkSummary[];
     /** Viewer's sharer amount (split share / spend). */
     user_share: number | null;
     /** Viewer's paid_by amount (cash put in). */
@@ -187,6 +206,27 @@ export interface ExpensePaidByDetail extends BasicUserDetails {
 
 export interface ExpenseSharerDetail extends BasicUserDetails {
     amount: number;
+}
+
+/** GET line-item attribution (not the same as create ItemComponent). */
+export interface ExpenseItemSharedBetweenDetail extends BasicUserDetails {
+    amount: number;
+}
+
+export interface ExpenseItemPaidBetweenDetail extends BasicUserDetails {
+    amount: number;
+}
+
+export interface ExpenseLineItemDetail {
+    expense_item_id: number;
+    quantity?: number | null;
+    unit_price?: number | null;
+    total_amount?: number | null;
+    currency: Currency;
+    is_shared_by_everyone: boolean;
+    shared_between: ExpenseItemSharedBetweenDetail[];
+    is_paid_by_everyone: boolean;
+    paid_between: ExpenseItemPaidBetweenDetail[];
 }
 
 // Discriminator types organizing custom backend payload expansions
@@ -237,4 +277,6 @@ export interface ExpenseDetailsResponse extends ExpenseDetailsBasicResponse {
 
     extra_details: ExpenseExtraFieldDetail[];
     schedule_blueprint: ScheduledBlueprintDetail | null;
+    /** Line items from GET — read model, not create ItemComponent. */
+    line_items: ExpenseLineItemDetail[];
 }

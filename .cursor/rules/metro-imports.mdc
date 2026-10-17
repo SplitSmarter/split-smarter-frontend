@@ -1,0 +1,34 @@
+---
+description: Prefer @/ absolute imports so Metro on Windows resolves newly added modules
+globs: "**/*.{ts,tsx}"
+alwaysApply: true
+---
+
+# Metro imports (Expo / Windows)
+
+Metro can fail with `Unable to resolve "./Foo"` for a sibling file that exists on disk—especially right after creating several new modules in one change. Prefer path-alias imports.
+
+## Do
+
+```tsx
+// Sibling / colocated under src/
+import { LedgerDayCell } from '@/src/screens/dev/ledger-month/components/LedgerDayCell';
+import { loadLedgerMonth } from '@/src/screens/dev/ledger-month/mock/loadLedgerMonth';
+
+// Tiny one-off used only here → keep in the same file (no extra module)
+function FilterChip({ label, active, onPress }: Props) { /* … */ }
+```
+
+## Do not
+
+```tsx
+// Fragile on Windows Metro after adding new files in the same turn
+import { FilterChip } from './FilterChip';
+import { FilterChip } from './FilterChip.tsx'; // also avoid; Metro does not want extensions
+```
+
+## Also
+
+- Use the `@/` alias (project root) for anything under `src/`, including same-folder components.
+- Relative `../` for types next door is OK if stable; when in doubt, use `@/src/…`.
+- After adding many new files, if resolve fails: switch the import to `@/src/…` or inline a single-use helper—do not assume the file is missing.

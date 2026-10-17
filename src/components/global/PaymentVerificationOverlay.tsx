@@ -1,8 +1,8 @@
 // Location: src/components/global/PaymentVerificationOverlay.tsx
 import React from 'react';
-// FIX: Import TouchableOpacity from 'react-native' instead of gesture-handler
-import { View, StyleSheet, Modal, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Modal } from 'react-native';
 import { AppText } from '../common/AppText';
+import { AppButton } from '@/src/components/common/AppButton';
 import { expensePaymentStore } from '@/src/store/expensePaymentStore';
 
 export const PaymentVerificationOverlay = ({ context }: { context: any }) => {
@@ -23,26 +23,28 @@ export const PaymentVerificationOverlay = ({ context }: { context: any }) => {
     return (
         <Modal transparent animationType="fade" visible={true}>
             <View style={styles.container}>
-                <View className="bg-white dark:bg-bg-primary p-6 rounded-3xl w-11/12 shadow-xl border border-gray-100">
-                    <AppText variant="h2" className="mb-2 text-center text-black dark:text-white">Verify Settlement</AppText>
-                    <AppText className="text-center opacity-70 mb-6 text-gray-600 dark:text-gray-300">
+                <View className="bg-bg-canvas p-6 rounded-3xl w-11/12 shadow-xl border border-border-input">
+                    <AppText variant="h2" className="mb-2 text-center text-text-primary">Verify Settlement</AppText>
+                    <AppText className="text-center opacity-70 mb-6 text-text-primary-lighter">
                         You left the app to pay ₹{context.amount} to {context.recipientName}. Did the transaction complete?
                     </AppText>
 
                     <View className="flex-row gap-4">
-                        <TouchableOpacity
+                        <AppButton
+                            variant="secondary"
+                            className="flex-1 rounded-xl"
                             onPress={handleCancelPayment}
-                            className="flex-1 bg-gray-100 p-4 rounded-xl items-center"
                         >
-                            <AppText className="text-black font-semibold">No, Canceled</AppText>
-                        </TouchableOpacity>
+                            No, Canceled
+                        </AppButton>
 
-                        <TouchableOpacity
+                        <AppButton
+                            variant="primary"
+                            className="flex-1 rounded-xl"
                             onPress={handleConfirmPayment}
-                            className="flex-1 bg-blue-900 p-4 rounded-xl items-center"
                         >
-                            <AppText className="text-white font-semibold">Yes, Sent</AppText>
-                        </TouchableOpacity>
+                            Yes, Sent
+                        </AppButton>
                     </View>
                 </View>
             </View>

@@ -6,7 +6,7 @@ import {format} from 'date-fns';
 import {Iconify} from 'react-native-iconify';
 import {AppText} from '@/src/components/common/AppText';
 import {themeStore} from '@/src/store/themeStore';
-import {resolveCssVar} from '@/src/lib/utils';
+import {COLORS} from '@/src/constants/colors';
 
 interface DurationSelectionBottomSheetProps {
     visible: boolean;
@@ -27,6 +27,7 @@ export const DurationSelectionBottomSheet = ({
                                              }: DurationSelectionBottomSheetProps) => {
     const theme = themeStore((state) => state.theme);
     const isDark = theme === 'dark';
+    const colors = isDark ? COLORS.dark : COLORS.light;
 
     const bottomSheetModalRef = useRef<BottomSheetModal>(null);
     const snapPoints = useMemo(() => (Platform.OS === 'ios' ? ['62%'] : ['48%']), []);
@@ -54,17 +55,6 @@ export const DurationSelectionBottomSheet = ({
 
     const startTimeFormatted = useMemo(() => format(startDateTime, 'h:mm a'), [startDateTime]);
     const endTimeFormatted = useMemo(() => format(endDateTime, 'h:mm a'), [endDateTime]);
-
-    // Resolve bottom sheet container background color dynamically for Gorhom Sheet prop
-    const sheetBgColor = useMemo(
-        () => resolveCssVar('var(--color-bg-primary)', isDark ? '#111827' : '#F8FAFC'),
-        [isDark]
-    );
-
-    const sheetHandleColor = useMemo(
-        () => resolveCssVar('var(--color-handle)', isDark ? '#374151' : '#CBD5E1'),
-        [isDark]
-    );
 
     useEffect(() => {
         if (visible) {
@@ -160,6 +150,11 @@ export const DurationSelectionBottomSheet = ({
 
     const currentDateTime = activeTarget === 'START' ? startDateTime : endDateTime;
 
+    const elevatedSurface = {
+        backgroundColor: colors.bg.lighter,
+        borderColor: colors.status.border,
+    };
+
     return (
         <BottomSheetModal
             ref={bottomSheetModalRef}
@@ -169,11 +164,11 @@ export const DurationSelectionBottomSheet = ({
             onDismiss={onClose}
             backdropComponent={renderBackdrop}
             backgroundStyle={{
-                backgroundColor: sheetBgColor,
+                backgroundColor: colors.bg.primary,
                 borderRadius: 36,
             }}
             handleIndicatorStyle={{
-                backgroundColor: sheetHandleColor,
+                backgroundColor: colors.icon.lighter,
                 width: 36,
                 height: 4,
                 borderRadius: 2,
@@ -183,16 +178,28 @@ export const DurationSelectionBottomSheet = ({
                 <View className="flex-1">
                     {/* All Day Toggle Card */}
                     <View
-                        className="flex-row items-center justify-between py-3 px-4 rounded-2xl border mt-2 mb-4 bg-bg-primary-lighter border-border-input">
+                        className="mb-4 mt-2 flex-row items-center justify-between rounded-2xl border px-4 py-3"
+                        style={elevatedSurface}
+                    >
                         <View className="flex-row items-center gap-3">
-                            <View className="w-9 h-9 rounded-xl items-center justify-center bg-accent-sky-bg">
-                                <Iconify icon="heroicons:clock" size={20} color={isDark ? '#38BDF8' : '#0284C7'}/>
+                            <View
+                                className="h-9 w-9 items-center justify-center rounded-xl"
+                                style={{backgroundColor: colors.accent.skyBg}}
+                            >
+                                <Iconify icon="heroicons:clock" size={20} color={colors.accent.sky}/>
                             </View>
                             <View>
-                                <AppText variant="body-large" className="font-semibold text-[15px] text-text-primary">
+                                <AppText
+                                    variant="body-large"
+                                    className="text-[15px] font-semibold"
+                                    style={{color: colors.text.primary}}
+                                >
                                     All-Day Event
                                 </AppText>
-                                <AppText className="text-xs mt-0.5 text-text-primary-lighter">
+                                <AppText
+                                    className="mt-0.5 text-xs"
+                                    style={{color: colors.text.lighter}}
+                                >
                                     Set schedule without specific hours
                                 </AppText>
                             </View>
@@ -201,34 +208,42 @@ export const DurationSelectionBottomSheet = ({
                             value={isAllDay}
                             onValueChange={setIsAllDay}
                             trackColor={{
-                                false: isDark ? '#374151' : '#E2E8F0',
-                                true: isDark ? '#32966E' : '#2B8761',
+                                false: colors.bg.darker,
+                                true: colors.brand.primary,
                             }}
-                            thumbColor="#FFFFFF"
+                            thumbColor={colors.text.contrast}
                         />
                     </View>
 
                     {/* Start vs End DateTime Matrix */}
                     {!isAllDay && (
-                        <View className="flex-row items-center justify-between my-1">
-                            {/* Start Section */}
-                            <View className="items-center flex-1">
+                        <View className="my-1 flex-row items-center justify-between">
+                            <View className="flex-1 items-center">
                                 <AppText
-                                    className="text-[11px] font-bold tracking-wider mb-2 text-text-primary-lighter">
+                                    className="mb-2 text-[11px] font-bold tracking-wider"
+                                    style={{color: colors.text.lighter}}
+                                >
                                     STARTS
                                 </AppText>
                                 <Pressable
                                     onPress={() => handleOpenDatePicker('START')}
-                                    className="flex-row items-center gap-1.5 mb-2.5 px-3 py-1.5 rounded-xl border bg-bg-primary-lighter border-border-input"
+                                    className="mb-2.5 flex-row items-center gap-1.5 rounded-xl border px-3 py-1.5"
+                                    style={elevatedSurface}
                                 >
-                                    <Iconify icon="heroicons:calendar" size={14}
-                                             color={isDark ? '#9CA3AF' : '#64748B'}/>
+                                    <Iconify
+                                        icon="heroicons:calendar"
+                                        size={14}
+                                        color={colors.icon.lighter}
+                                    />
                                     <AppText
-                                        className={
-                                            activeTarget === 'START'
-                                                ? 'text-xs text-text-primary font-bold'
-                                                : 'text-xs text-text-primary-lighter font-medium'
-                                        }
+                                        className="text-xs font-medium"
+                                        style={{
+                                            color:
+                                                activeTarget === 'START'
+                                                    ? colors.text.primary
+                                                    : colors.text.lighter,
+                                            fontWeight: activeTarget === 'START' ? '700' : '500',
+                                        }}
                                     >
                                         {startDateFormatted}
                                     </AppText>
@@ -236,51 +251,66 @@ export const DurationSelectionBottomSheet = ({
 
                                 <Pressable
                                     onPress={() => handleOpenTimePicker('START')}
-                                    className={
+                                    className="w-full items-center justify-center rounded-2xl border py-3"
+                                    style={
                                         activeTarget === 'START'
-                                            ? 'w-full items-center justify-center py-3 rounded-2xl bg-accent-sky-bg border-accent-sky border-[1.5px]'
-                                            : 'w-full items-center justify-center py-3 rounded-2xl bg-bg-primary-lighter border-border-input border'
+                                            ? {
+                                                  backgroundColor: colors.accent.skyBg,
+                                                  borderColor: colors.accent.sky,
+                                                  borderWidth: 1.5,
+                                              }
+                                            : {...elevatedSurface, borderWidth: 1}
                                     }
                                 >
                                     <AppText
-                                        className={
-                                            activeTarget === 'START'
-                                                ? 'text-base tracking-tight text-accent-sky font-bold'
-                                                : 'text-base tracking-tight text-text-primary font-semibold'
-                                        }
+                                        className="text-base tracking-tight"
+                                        style={{
+                                            color:
+                                                activeTarget === 'START'
+                                                    ? colors.accent.sky
+                                                    : colors.text.primary,
+                                            fontWeight: activeTarget === 'START' ? '700' : '600',
+                                        }}
                                     >
                                         {startTimeFormatted}
                                     </AppText>
                                 </Pressable>
                             </View>
 
-                            {/* Center Arrow Divider */}
                             <View className="mt-5 px-2">
                                 <Iconify
                                     icon="heroicons:arrow-right-20-solid"
                                     size={18}
-                                    color={isDark ? '#9CA3AF' : '#64748B'}
+                                    color={colors.icon.lighter}
                                 />
                             </View>
 
-                            {/* End Section */}
-                            <View className="items-center flex-1">
+                            <View className="flex-1 items-center">
                                 <AppText
-                                    className="text-[11px] font-bold tracking-wider mb-2 text-text-primary-lighter">
+                                    className="mb-2 text-[11px] font-bold tracking-wider"
+                                    style={{color: colors.text.lighter}}
+                                >
                                     ENDS
                                 </AppText>
                                 <Pressable
                                     onPress={() => handleOpenDatePicker('END')}
-                                    className="flex-row items-center gap-1.5 mb-2.5 px-3 py-1.5 rounded-xl border bg-bg-primary-lighter border-border-input"
+                                    className="mb-2.5 flex-row items-center gap-1.5 rounded-xl border px-3 py-1.5"
+                                    style={elevatedSurface}
                                 >
-                                    <Iconify icon="heroicons:calendar" size={14}
-                                             color={isDark ? '#9CA3AF' : '#64748B'}/>
+                                    <Iconify
+                                        icon="heroicons:calendar"
+                                        size={14}
+                                        color={colors.icon.lighter}
+                                    />
                                     <AppText
-                                        className={
-                                            activeTarget === 'END'
-                                                ? 'text-xs text-text-primary font-bold'
-                                                : 'text-xs text-text-primary-lighter font-medium'
-                                        }
+                                        className="text-xs font-medium"
+                                        style={{
+                                            color:
+                                                activeTarget === 'END'
+                                                    ? colors.text.primary
+                                                    : colors.text.lighter,
+                                            fontWeight: activeTarget === 'END' ? '700' : '500',
+                                        }}
                                     >
                                         {endDateFormatted}
                                     </AppText>
@@ -288,18 +318,26 @@ export const DurationSelectionBottomSheet = ({
 
                                 <Pressable
                                     onPress={() => handleOpenTimePicker('END')}
-                                    className={
+                                    className="w-full items-center justify-center rounded-2xl border py-3"
+                                    style={
                                         activeTarget === 'END'
-                                            ? 'w-full items-center justify-center py-3 rounded-2xl bg-accent-sky-bg border-accent-sky border-[1.5px]'
-                                            : 'w-full items-center justify-center py-3 rounded-2xl bg-bg-primary-lighter border-border-input border'
+                                            ? {
+                                                  backgroundColor: colors.accent.skyBg,
+                                                  borderColor: colors.accent.sky,
+                                                  borderWidth: 1.5,
+                                              }
+                                            : {...elevatedSurface, borderWidth: 1}
                                     }
                                 >
                                     <AppText
-                                        className={
-                                            activeTarget === 'END'
-                                                ? 'text-base tracking-tight text-accent-sky font-bold'
-                                                : 'text-base tracking-tight text-text-primary font-semibold'
-                                        }
+                                        className="text-base tracking-tight"
+                                        style={{
+                                            color:
+                                                activeTarget === 'END'
+                                                    ? colors.accent.sky
+                                                    : colors.text.primary,
+                                            fontWeight: activeTarget === 'END' ? '700' : '600',
+                                        }}
                                     >
                                         {endTimeFormatted}
                                     </AppText>
@@ -308,10 +346,14 @@ export const DurationSelectionBottomSheet = ({
                         </View>
                     )}
 
-                    {/* Elevated Wheel Picker Canvas */}
                     {!isAllDay && Platform.OS === 'ios' && (
                         <View
-                            className="items-center justify-center my-4 rounded-3xl border overflow-hidden bg-bg-canvas border-border-input">
+                            className="my-4 items-center justify-center overflow-hidden rounded-3xl border"
+                            style={{
+                                backgroundColor: colors.bg.canvas,
+                                borderColor: colors.status.border,
+                            }}
+                        >
                             <DateTimePicker
                                 key={activeTarget}
                                 value={currentDateTime}
@@ -334,7 +376,6 @@ export const DurationSelectionBottomSheet = ({
                     )}
                 </View>
 
-                {/* Date Picker Modal Trigger */}
                 {showDatePicker && (
                     <DateTimePicker
                         value={currentDateTime}
@@ -345,23 +386,29 @@ export const DurationSelectionBottomSheet = ({
                     />
                 )}
 
-                {/* Action Deck — StyleSheet elevation/opacity; avoid NativeWind shadow/active in sheets */}
-                <View className="flex-row items-center gap-3 mt-4">
+                <View className="mt-4 flex-row items-center gap-3">
                     <Pressable
-                        className="flex-1 items-center justify-center py-3.5 rounded-2xl border bg-bg-primary-lighter border-border-input"
-                        style={({pressed}) => (pressed ? {opacity: 0.8} : undefined)}
+                        className="flex-1 items-center justify-center rounded-2xl border py-3.5"
+                        style={({pressed}) => [
+                            elevatedSurface,
+                            pressed ? {opacity: 0.8} : undefined,
+                        ]}
                         onPress={onClose}
                     >
-                        <AppText className="text-15 font-semibold text-text-primary-lighter">
+                        <AppText
+                            className="text-15 font-semibold"
+                            style={{color: colors.text.lighter}}
+                        >
                             Cancel
                         </AppText>
                     </Pressable>
 
                     <Pressable
-                        className="flex-[2] flex-row items-center justify-center gap-1.5 py-3.5 rounded-2xl bg-bg-secondary"
+                        className="flex-[2] flex-row items-center justify-center gap-1.5 rounded-2xl py-3.5"
                         style={({pressed}) => ({
+                            backgroundColor: colors.brand.primary,
                             elevation: 4,
-                            shadowColor: '#000',
+                            shadowColor: COLORS.light.brand.primary,
                             shadowOffset: {width: 0, height: 2},
                             shadowOpacity: 0.2,
                             shadowRadius: 4,
@@ -369,10 +416,17 @@ export const DurationSelectionBottomSheet = ({
                         })}
                         onPress={handleSave}
                     >
-                        <AppText className="text-white text-15 font-bold">
+                        <AppText
+                            className="text-15 font-bold"
+                            style={{color: colors.text.contrast}}
+                        >
                             Confirm Schedule
                         </AppText>
-                        <Iconify icon="heroicons:check-16-solid" size={18} color="#FFFFFF"/>
+                        <Iconify
+                            icon="heroicons:check-16-solid"
+                            size={18}
+                            color={colors.text.contrast}
+                        />
                     </Pressable>
                 </View>
             </BottomSheetView>

@@ -20,6 +20,7 @@ import {
 } from '@/src/api/dto/expense/expense';
 import {BasicImage} from '@/src/api/dto/user/asset';
 import {BasicUserDetails} from '@/src/api/dto/user/user';
+import {COLORS, PLATINUM_HEADER} from '@/src/constants/colors';
 import {UserProfile} from '../types/dashboard';
 
 export const MONTH_NAMES_SHORT = [
@@ -32,7 +33,42 @@ export const MONTH_NAMES_FULL = [
     'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
-export const CATEGORY_PALETTE = ['#FF7A00', '#3B82F6', '#2B8761', '#A855F7', '#EF4444', '#14B8A6'];
+/** Category ring swatches — status / accent family from palette. */
+export const CATEGORY_PALETTE = [
+    COLORS.light.status.warning,
+    COLORS.light.accent.sky,
+    COLORS.light.status.success,
+    COLORS.light.accent.violet,
+    COLORS.light.status.decrease,
+    COLORS.light.accent.teal,
+];
+
+/** Metallic slate hero stops — from PLATINUM_HEADER. */
+export const PLATINUM_HERO_GRADIENT = {
+    light: [PLATINUM_HEADER.light, PLATINUM_HEADER.mid, PLATINUM_HEADER.light] as const,
+    dark: [PLATINUM_HEADER.dark, PLATINUM_HEADER.light, PLATINUM_HEADER.dark] as const,
+};
+
+export const PLATINUM_HERO_STATUS_BAR = {
+    light: PLATINUM_HEADER.light,
+    dark: PLATINUM_HEADER.dark,
+} as const;
+
+/** Spend chart line + area on metallic hero — accent-sky / platinum neutrals. */
+export const PLATINUM_CHART = {
+    light: {
+        line: COLORS.dark.text.link,
+        fillStart: 'rgba(56, 189, 248, 0.35)',
+        fillEnd: 'rgba(56, 189, 248, 0.0)',
+        pointerBorder: COLORS.light.text.link,
+    },
+    dark: {
+        line: COLORS.light.bg.darker,
+        fillStart: 'rgba(226, 232, 240, 0.35)',
+        fillEnd: 'rgba(226, 232, 240, 0.0)',
+        pointerBorder: COLORS.dark.text.primary,
+    },
+} as const;
 
 const INR_RATE: ExchangeRateDetails = {
     INR: 1,

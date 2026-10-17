@@ -10,6 +10,7 @@ import {Iconify} from 'react-native-iconify';
 import {useRouter} from 'expo-router';
 import {AppText} from "@/src/components/common/AppText";
 import {AppImage} from "@/src/components/common/AppImage";
+import {EntityFallbackIcon} from "@/src/components/common/EntityFallbackIcon";
 import {AppInput} from "@/src/components/common/AppInput";
 import {SheetEmptyState} from "@/src/components/empty-states/SheetEmptyState";
 import {themeStore} from '@/src/store/themeStore';
@@ -200,6 +201,13 @@ export const SelectExpenseCategoryBottomSheet = ({
                         size="full"
                         backgroundColor="transparent"
                         variant="circular"
+                        fallbackIcon={
+                            <EntityFallbackIcon
+                                kind="expenseCategory"
+                                size={28}
+                                color={isDark ? COLORS.dark.icon.lighter : COLORS.light.icon.lighter}
+                            />
+                        }
                     />
                 </View>
                 <AppText
@@ -211,7 +219,7 @@ export const SelectExpenseCategoryBottomSheet = ({
                 </AppText>
             </Pressable>
         ),
-        [onSelect, selectedId]
+        [isDark, onSelect, selectedId]
     );
 
     const listHeader = useMemo(() => (
@@ -230,7 +238,7 @@ export const SelectExpenseCategoryBottomSheet = ({
         if (!loadingMore) return <View style={styles.footerSpacer}/>;
         return (
             <View style={styles.footerLoading}>
-                <ActivityIndicator size="small" color={COLORS.light.brand.primary}/>
+                <ActivityIndicator size="small" color={COLORS.light.icon.primary}/>
                 <AppText variant="caption-xs" className="text-text-primary-lighter mt-2">
                     Loading more...
                 </AppText>
@@ -243,7 +251,7 @@ export const SelectExpenseCategoryBottomSheet = ({
         if (hasMore || loadingMore) {
             return (
                 <View style={styles.centeredBody}>
-                    <ActivityIndicator size="small" color={COLORS.light.brand.primary}/>
+                    <ActivityIndicator size="small" color={COLORS.light.icon.primary}/>
                     <AppText variant="caption-xs" className="text-text-primary-lighter mt-3">
                         Searching loaded categories...
                     </AppText>
@@ -268,7 +276,7 @@ export const SelectExpenseCategoryBottomSheet = ({
         if (loading && !hasCategories) {
             return (
                 <View style={styles.centeredBody}>
-                    <ActivityIndicator size="large" color={COLORS.light.brand.primary}/>
+                    <ActivityIndicator size="large" color={COLORS.light.icon.primary}/>
                     <AppText variant="caption-xs" className="text-text-primary-lighter mt-3">
                         Loading categories...
                     </AppText>
@@ -345,19 +353,23 @@ export const SelectExpenseCategoryBottomSheet = ({
             keyboardBehavior="interactive"
             keyboardBlurBehavior="restore"
             backgroundStyle={{
-                backgroundColor: isDark ? '#1A1A1A' : '#FFFFFF',
+                backgroundColor: isDark ? COLORS.dark.bg.overlay : COLORS.light.bg.overlay,
                 borderRadius: 40,
             }}
             handleIndicatorStyle={{
-                backgroundColor: isDark ? '#3F3F46' : '#D4D4D8',
+                backgroundColor: isDark ? COLORS.dark.icon.lighter : COLORS.light.icon.lighter,
                 width: 48,
                 height: 6,
             }}
         >
             <View style={styles.container}>
-                <View className="flex-row items-center justify-between py-4 px-6 border-b border-gray-500/10">
+                <View className="flex-row items-center justify-between py-4 px-6 border-b border-border-input">
                     <Pressable onPress={onClose} className="p-2 rounded-full active:opacity-60">
-                        <Iconify icon="heroicons:chevron-left" size={24} color={isDark ? "#FFF" : "#000"}/>
+                        <Iconify
+                            icon="heroicons:chevron-left"
+                            size={24}
+                            color={isDark ? COLORS.dark.text.primary : COLORS.light.text.primary}
+                        />
                     </Pressable>
                     <AppText variant="h4" className="font-bold text-text-primary">Select Category</AppText>
                     <Pressable

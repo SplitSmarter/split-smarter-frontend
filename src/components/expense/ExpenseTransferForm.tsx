@@ -12,7 +12,7 @@ export default function ExpenseTransferForm({ transferDetail, setTransferDetail 
         <View className="mb-4">
             <Text className="font-medium">Transfer To</Text>
             <TextInput
-                className="border border-gray-300 rounded-lg p-2"
+                className="border border-border-input rounded-lg p-2"
                 placeholder="Enter recipient name"
                 value={transferDetail}
                 onChangeText={setTransferDetail}

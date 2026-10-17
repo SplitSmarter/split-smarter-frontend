@@ -1,6 +1,7 @@
 import {
     StyleSheet,
 } from 'react-native';
+import { COLORS } from '@/src/constants/colors';
 
 export const styles = StyleSheet.create({
     container: {
@@ -28,7 +29,7 @@ export const styles = StyleSheet.create({
         borderRadius: 16,
     },
     saveHeaderText: {
-        color: '#FFFFFF',
+        color: COLORS.light.text.contrast,
         fontWeight: '700',
         fontSize: 14,
     },

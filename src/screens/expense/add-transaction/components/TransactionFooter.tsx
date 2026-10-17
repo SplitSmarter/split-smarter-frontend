@@ -9,46 +9,34 @@ import {TransactionTabType} from '../constants/addTransaction.constants';
 
 interface TransactionFooterProps {
     activeTab: TransactionTabType;
-    readableDate: string;
     isDark: boolean;
     isValidating: boolean;
     isAddingMissingMembers?: boolean;
     submitDisabled?: boolean;
     activeValidationContent: any;
     pendingGroupMemberCount?: number;
-    transferAmount: number;
-    transferCurrency: string;
-    isInitiatingPayment: boolean;
-    onOpenDatePicker: () => void;
     onOpenPicker: () => void;
     onOpenValidationModal: () => void;
     onSubmit: () => void;
-    onInitiatePayment: () => void;
 }
 
 export const TransactionFooter: React.FC<TransactionFooterProps> = ({
     activeTab,
-    readableDate,
     isDark,
     isValidating,
     isAddingMissingMembers = false,
     submitDisabled = false,
     activeValidationContent,
     pendingGroupMemberCount = 0,
-    transferAmount,
-    transferCurrency,
-    isInitiatingPayment,
-    onOpenDatePicker,
     onOpenPicker,
     onOpenValidationModal,
     onSubmit,
-    onInitiatePayment,
 }) => {
     const insets = useSafeAreaInsets();
     const [keyboardVisible, setKeyboardVisible] = useState(false);
     const cameraIconColor = isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary;
     const mutedIconColor = isDark ? COLORS.dark.icon.lighter : COLORS.light.icon.lighter;
-    const brandIconColor = isDark ? COLORS.dark.brand.primary : COLORS.light.brand.primary;
+    const successIconColor = isDark ? COLORS.dark.icon.brand : COLORS.light.icon.brand;
     const blockSubmit = submitDisabled || isAddingMissingMembers;
 
     // Home-indicator inset is only needed when the keyboard is closed.
@@ -65,30 +53,33 @@ export const TransactionFooter: React.FC<TransactionFooterProps> = ({
     }, []);
 
     const bottomPad = keyboardVisible ? 12 : Math.max(insets.bottom, 16);
+    const colors = isDark ? COLORS.dark : COLORS.light;
+    const elevatedChip = {
+        backgroundColor: colors.bg.lighter,
+        borderColor: colors.status.border,
+    };
 
     return (
         <View
-            className="w-full bg-bg-primary pt-4 px-6 rounded-t-[40px] border-t border-border-input"
-            style={[styles.footerShadow, {paddingBottom: bottomPad}]}
+            className="w-full rounded-t-[40px] border-t px-6 pt-4"
+            style={[
+                styles.footerShadow,
+                {
+                    paddingBottom: bottomPad,
+                    backgroundColor: colors.bg.primary,
+                    borderTopColor: colors.status.border,
+                },
+            ]}
         >
-            <View className="flex-row justify-between items-center mb-6">
+            <View className="mb-6 flex-row items-center justify-between">
                 <View className="flex-row items-center gap-x-2">
                     <Pressable
-                        onPress={onOpenDatePicker}
-                        className="flex-row items-center bg-bg-canvas border border-border-input rounded-full px-5 py-2 active:opacity-80"
-                    >
-                        <Iconify icon="heroicons:calendar" size={18} color={COLORS.color_red_decrease}/>
-                        <AppText variant="body-base" className="ml-2 text-text-primary font-bold">
-                            {readableDate}
-                        </AppText>
-                    </Pressable>
-
-                    <Pressable
                         onPress={onOpenPicker}
-                        className="p-2.5 rounded-full bg-bg-canvas border border-border-input active:opacity-80"
-                        accessibilityLabel="Attach photo"
+                        className="rounded-full border p-2.5 active:opacity-80"
+                        style={elevatedChip}
+                        accessibilityLabel="Scan document"
                     >
-                        <Iconify icon="heroicons:camera" size={20} color={cameraIconColor}/>
+                        <Iconify icon="heroicons:viewfinder-circle" size={20} color={cameraIconColor}/>
                     </Pressable>
                 </View>
 
@@ -111,24 +102,36 @@ export const TransactionFooter: React.FC<TransactionFooterProps> = ({
                         ) : activeValidationContent ? (
                             <Pressable
                                 onPress={onOpenValidationModal}
-                                className={`flex-row items-center gap-x-1 px-3 py-1.5 rounded-xl max-w-[55%] active:opacity-70 ${
-                                    activeValidationContent.type === 'ERROR'
-                                        ? 'bg-red-500/10 dark:bg-red-500/20'
-                                        : 'bg-amber-500/10 dark:bg-amber-500/20'
-                                }`}
+                                className="max-w-[55%] flex-row items-center gap-x-1 rounded-xl px-3 py-1.5 active:opacity-70"
+                                style={{
+                                    backgroundColor:
+                                        activeValidationContent.type === 'ERROR'
+                                            ? `${colors.status.error}22`
+                                            : `${colors.status.warning}22`,
+                                }}
                             >
                                 {activeValidationContent.type === 'ERROR' ? (
-                                    <Iconify icon="heroicons:exclamation-circle" size={14} color="#EF4444"/>
+                                    <Iconify
+                                        icon="heroicons:exclamation-circle"
+                                        size={14}
+                                        color={colors.status.error}
+                                    />
                                 ) : (
-                                    <Iconify icon="heroicons:exclamation-triangle" size={14} color="#D97706"/>
+                                    <Iconify
+                                        icon="heroicons:exclamation-triangle"
+                                        size={14}
+                                        color={colors.status.warning}
+                                    />
                                 )}
                                 <AppText
                                     variant="caption-xs"
-                                    className={`font-semibold mr-1 flex-1 ${
-                                        activeValidationContent.type === 'ERROR'
-                                            ? 'text-red-600 dark:text-red-400'
-                                            : 'text-amber-700 dark:text-amber-400'
-                                    }`}
+                                    className="mr-1 flex-1 font-semibold"
+                                    style={{
+                                        color:
+                                            activeValidationContent.type === 'ERROR'
+                                                ? colors.status.error
+                                                : colors.status.warning,
+                                    }}
                                     numberOfLines={1}
                                 >
                                     {activeValidationContent.payload?.message}
@@ -136,24 +139,43 @@ export const TransactionFooter: React.FC<TransactionFooterProps> = ({
                                 <Iconify
                                     icon="heroicons:information-circle"
                                     size={14}
-                                    color={activeValidationContent.type === 'ERROR' ? '#EF4444' : '#D97706'}
+                                    color={
+                                        activeValidationContent.type === 'ERROR'
+                                            ? colors.status.error
+                                            : colors.status.warning
+                                    }
                                 />
                             </Pressable>
                         ) : pendingGroupMemberCount > 0 ? (
-                            <View className="flex-row items-center gap-x-1 bg-accent-sky-bg px-3 py-1.5 rounded-xl max-w-[55%]">
-                                <Iconify icon="heroicons:user-plus" size={14} color="#0284C7"/>
+                            <View
+                                className="max-w-[55%] flex-row items-center gap-x-1 rounded-xl px-3 py-1.5"
+                                style={{backgroundColor: colors.accent.skyBg}}
+                            >
+                                <Iconify
+                                    icon="heroicons:user-plus"
+                                    size={14}
+                                    color={colors.accent.sky}
+                                />
                                 <AppText
                                     variant="caption-xs"
-                                    className="text-accent-sky font-medium"
+                                    className="font-medium"
+                                    style={{color: colors.accent.sky}}
                                     numberOfLines={1}
                                 >
                                     Add {pendingGroupMemberCount} to group on submit
                                 </AppText>
                             </View>
                         ) : (
-                            <View className="flex-row items-center gap-x-1 bg-bg-secondary-lighter px-3 py-1.5 rounded-xl">
-                                <Iconify icon="heroicons:check-circle" size={14} color={brandIconColor}/>
-                                <AppText variant="caption-xs" className="text-green-increase font-medium">
+                            <View
+                                className="flex-row items-center gap-x-1 rounded-xl px-3 py-1.5"
+                                style={{backgroundColor: colors.brand.lighter}}
+                            >
+                                <Iconify icon="heroicons:check-circle" size={14} color={successIconColor}/>
+                                <AppText
+                                    variant="caption-xs"
+                                    className="font-medium"
+                                    style={{color: colors.status.success}}
+                                >
                                     Ready
                                 </AppText>
                             </View>
@@ -162,44 +184,26 @@ export const TransactionFooter: React.FC<TransactionFooterProps> = ({
                 )}
             </View>
 
-            {activeTab === 'expense' ? (
-                <AppButton
-                    variant="primary"
-                    size="lg"
-                    onPress={onSubmit}
-                    disabled={blockSubmit}
-                    loading={isAddingMissingMembers}
-                    loadingText="ADDING…"
-                    renderIcon={(color, size) => (
-                        <Iconify icon="heroicons:check" size={size} color={color}/>
-                    )}
-                >
-                    SUBMIT
-                </AppButton>
-            ) : (
-                <View className="gap-y-3">
-                    <AppButton
-                        variant="primary"
-                        size="lg"
-                        onPress={onInitiatePayment}
-                        disabled={isInitiatingPayment}
-                        loading={isInitiatingPayment}
-                        loadingText="INITIATING..."
-                    >
-                        {`PAY NOW (${transferCurrency} ${transferAmount})`}
-                    </AppButton>
-                    <AppButton variant="secondary" size="md" onPress={onSubmit}>
-                        RECORD ONLY (NO PAYMENT)
-                    </AppButton>
-                </View>
-            )}
+            <AppButton
+                variant="primary"
+                size="md"
+                onPress={onSubmit}
+                disabled={activeTab === 'expense' ? blockSubmit : false}
+                loading={activeTab === 'expense' && isAddingMissingMembers}
+                loadingText="ADDING…"
+                renderIcon={(color, size) => (
+                    <Iconify icon="heroicons:check" size={size} color={color}/>
+                )}
+            >
+                SUBMIT
+            </AppButton>
         </View>
     );
 };
 
 const styles = StyleSheet.create({
     footerShadow: {
-        shadowColor: '#000',
+        shadowColor: COLORS.light.brand.primary, // slate shadow (theme-stable)
         shadowOffset: {width: 0, height: -10},
         shadowOpacity: 0.12,
         shadowRadius: 20,

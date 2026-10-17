@@ -1,6 +1,8 @@
 import React from 'react';
-import {View, Text} from 'react-native';
-import {Feather} from '@expo/vector-icons';
+import {View} from 'react-native';
+import {Iconify} from 'react-native-iconify';
+import {AppText} from '@/src/components/common/AppText';
+import {COLORS} from '@/src/constants/colors';
 import {userStore} from '@/src/store/userStore';
 import {formatCurrency} from '../utils/dashboard.utils';
 
@@ -18,27 +20,45 @@ export const SpendSummary: React.FC<SpendSummaryProps> = ({
 }) => {
     const userCurrency = userStore((s) => s.user?.currency);
     const isUp = HARDCODED_VS_PAST_PERCENT >= 0;
+    const trendColor = COLORS.light.status.success;
 
     return (
-        <View className="mb-1 items-center">
-            <Text className="mb-0.5 text-xs font-semibold uppercase tracking-wider text-white/70">
+        <View className="mb-3 items-center px-1">
+            <AppText
+                variant="body-small"
+                className="mb-1 font-semibold uppercase tracking-wider text-white/70"
+            >
                 Total Spend
-            </Text>
-            <Text className="mb-2 text-4xl font-extrabold tracking-tight text-white">
+            </AppText>
+            <AppText
+                variant="h1"
+                className="mb-3 text-center font-extrabold tracking-tight text-white"
+                style={{fontSize: 40, lineHeight: 46}}
+            >
                 {formatCurrency(totalSpend, userCurrency)}
-            </Text>
+            </AppText>
 
-            {/* Same pill style as former category chip — vs prior equal-length range (hardcoded) */}
-            <View className="flex-row items-center gap-1 rounded-full border border-white/20 bg-white/20 px-3 py-1">
-                <Feather
-                    name={isUp ? 'arrow-up-right' : 'arrow-down-right'}
-                    size={13}
-                    color="white"
-                />
-                <Text className="text-xs font-medium text-white">
+            <View className="flex-row items-center gap-2 rounded-full border border-white/25 bg-white/15 px-4 py-1.5">
+                {isUp ? (
+                    <Iconify
+                        icon="heroicons:arrow-trending-up"
+                        size={16}
+                        color={trendColor}
+                    />
+                ) : (
+                    <Iconify
+                        icon="heroicons:arrow-trending-down"
+                        size={16}
+                        color={trendColor}
+                    />
+                )}
+                <AppText
+                    variant="body-small"
+                    className="font-semibold text-green-increase"
+                >
                     {isUp ? '+' : ''}
-                    {HARDCODED_VS_PAST_PERCENT}% vs past
-                </Text>
+                    {HARDCODED_VS_PAST_PERCENT}% vs past month
+                </AppText>
             </View>
         </View>
     );

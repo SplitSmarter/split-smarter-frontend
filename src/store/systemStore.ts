@@ -10,7 +10,12 @@ interface SystemState {
     defaults: {
         defaultExpenseCategory: { id: number, asset: BasicImage } | null;
         defaultGroupCategory: { id: number, asset: BasicImage };
-        defaultExpenseItem: { id: number, asset: BasicImage },
+        defaultExpenseItem: {
+            id: number;
+            asset: BasicImage;
+            item_ref?: string | null;
+            title?: string | null;
+        };
         placeholderImage: BasicImage | null;
         defaultGroupIconImage: BasicImage;
         defaultGroupCategoryIconImage: BasicImage;
@@ -38,7 +43,7 @@ export const systemStore = create<SystemState>((set) => ({
         defaultExpenseCategory: null,
         placeholderImage: null,
         defaultGroupCategory: { id: 0, asset: emptyAsset },
-        defaultExpenseItem: { id: 0, asset: emptyAsset },
+        defaultExpenseItem: { id: 0, asset: emptyAsset, item_ref: null, title: null },
         defaultGroupIconImage: emptyAsset,
         defaultGroupCategoryIconImage: emptyAsset,
         defaultGroupBackgroundImage: emptyAsset,
@@ -77,7 +82,9 @@ export const systemStore = create<SystemState>((set) => ({
 
                         defaultExpenseItem: {
                             id: data.expense_item && data.expense_item ? data.expense_item.id : 0,
-                            asset: (data.expense_item && data.expense_item?.icon) || firstAvailableIcon
+                            asset: (data.expense_item && data.expense_item?.icon) || firstAvailableIcon,
+                            item_ref: data.expense_item?.item_ref ?? data.expense_item?.category_ref ?? null,
+                            title: data.expense_item?.title ?? null,
                         },
 
                         placeholderImage: firstAvailableIcon.url ? firstAvailableIcon : null,
@@ -108,7 +115,7 @@ export const systemStore = create<SystemState>((set) => ({
             defaultExpenseCategory: null,
             placeholderImage: null,
             defaultGroupCategory: { id: 0, asset: emptyAsset },
-            defaultExpenseItem: { id: 0, asset: emptyAsset },
+            defaultExpenseItem: { id: 0, asset: emptyAsset, item_ref: null, title: null },
             defaultGroupIconImage: emptyAsset,
             defaultGroupCategoryIconImage: emptyAsset,
             defaultGroupBackgroundImage: emptyAsset,

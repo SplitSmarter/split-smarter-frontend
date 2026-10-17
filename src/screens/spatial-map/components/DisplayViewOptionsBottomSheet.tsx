@@ -1,105 +1,258 @@
-import React, {useCallback} from 'react';
+import React, {useCallback, useMemo} from 'react';
 import {Pressable, View} from 'react-native';
+import {
+    BottomSheetModal,
+    BottomSheetBackdrop,
+    BottomSheetBackdropProps,
+    BottomSheetScrollView,
+} from '@gorhom/bottom-sheet';
 import {Iconify} from 'react-native-iconify';
-import {AppBottomSheet} from '@/src/components/common/AppBottomSheet';
 import {AppText} from '@/src/components/common/AppText';
-import {DISPLAY_VIEW_OPTIONS} from '../constants/mapConstants';
-import {DisplayView} from '../types/spatialMap.types';
+import type {MemoryBasicDetails} from '@/src/api/dto/user/memory';
+import {COLORS} from '@/src/constants/colors';
+import {themeStore} from '@/src/store/themeStore';
+import {ScopeMode} from '../types/spatialMap.types';
+import {SectionLabel} from './venue-details/SectionLabel';
+import {VenueSheetHeader} from './venue-details/VenueSheetHeader';
+
+const SNAP_POINTS = ['55%', '78%'] as const;
 
 interface DisplayViewOptionsBottomSheetProps {
     isVisible: boolean;
     onClose: () => void;
-    displayView: DisplayView;
-    onSelectDisplayView: (view: DisplayView) => void;
+    memories: MemoryBasicDetails[];
+    selectedMemoryId: string | null;
+    scopeMode: ScopeMode;
+    onSelectMemory: (memoryId: string) => void;
+    onSelectAllSpend: () => void;
 }
 
-function ViewOptionIcon({view, selected}: {view: DisplayView; selected: boolean}) {
-    const color = selected ? '#FFFFFF' : '#2D8A5B';
-
-    if (view === 'heatmap') {
-        return <Iconify icon="heroicons:fire" size={20} color={color} />;
-    }
-    if (view === 'trail') {
-        return <Iconify icon="heroicons:map" size={20} color={color} />;
-    }
-    return <Iconify icon="heroicons:map-pin" size={20} color={color} />;
+function formatMemoryMeta(memory: MemoryBasicDetails): string {
+    const fmt = (iso?: string) => {
+        if (!iso) return null;
+        const d = new Date(iso);
+        if (Number.isNaN(d.getTime())) return null;
+        return d.toLocaleDateString('en-IN', {day: 'numeric', month: 'short'});
+    };
+    const start = fmt(memory.start_at);
+    const end = fmt(memory.end_at);
+    if (start && end) return `${start} – ${end}`;
+    if (start) return start;
+    return memory.description?.trim() || 'Memory';
 }
 
 export function DisplayViewOptionsBottomSheet({
     isVisible,
     onClose,
-    displayView,
-    onSelectDisplayView,
+    memories,
+    selectedMemoryId,
+    scopeMode,
+    onSelectMemory,
+    onSelectAllSpend,
 }: DisplayViewOptionsBottomSheetProps) {
-    const handleSelect = useCallback(
-        (view: DisplayView) => {
-            onSelectDisplayView(view);
-            onClose();
-        },
-        [onClose, onSelectDisplayView]
+    const isDark = themeStore((state) => state.theme === 'dark');
+    const colors = isDark ? COLORS.dark : COLORS.light;
+    const sheetRef = React.useRef<BottomSheetModal>(null);
+    const snapPoints = useMemo(() => [...SNAP_POINTS], []);
+
+    React.useEffect(() => {
+        if (isVisible) {
+            sheetRef.current?.present();
+        } else {
+            sheetRef.current?.dismiss();
+        }
+    }, [isVisible]);
+
+    const renderBackdrop = useCallback(
+        (props: BottomSheetBackdropProps) => (
+            <BottomSheetBackdrop
+                {...props}
+                disappearsOnIndex={-1}
+                appearsOnIndex={0}
+                pressBehavior="close"
+                opacity={isDark ? 0.72 : 0.38}
+            />
+        ),
+        [isDark]
     );
 
-    return (
-        <AppBottomSheet isVisible={isVisible} onClose={onClose} snapPoints={['34%']}>
-            <View className="p-4">
-                <AppText variant="h3" className="mb-1 font-bold text-text-primary">
-                    Map View
-                </AppText>
-                <AppText variant="body-xs" className="mb-4 text-text-primary-lighter">
-                    Choose how expenses appear on the map
-                </AppText>
+    const handleSelectMemory = useCallback(
+        (id: string) => {
+            onSelectMemory(id);
+            onClose();
+        },
+        [onClose, onSelectMemory]
+    );
 
-                <View className="gap-2">
-                    {DISPLAY_VIEW_OPTIONS.map((option) => {
-                        const isSelected = displayView === option.id;
-                        return (
-                            <Pressable
-                                key={option.id}
-                                onPress={() => handleSelect(option.id)}
-                                accessibilityRole="button"
-                                accessibilityState={{selected: isSelected}}
-                                accessibilityLabel={`Show ${option.label} view`}
-                                className={`flex-row items-center rounded-xl border px-3 py-3 ${
-                                    isSelected
-                                        ? 'border-[#2D8A5B] bg-[#2D8A5B]'
-                                        : 'border-foreground/15 bg-transparent'
+    const handleAllSpend = useCallback(() => {
+        onSelectAllSpend();
+        onClose();
+    }, [onClose, onSelectAllSpend]);
+
+    const allSpendSelected = scopeMode === 'general';
+
+    return (
+        <BottomSheetModal
+            ref={sheetRef}
+            snapPoints={snapPoints}
+            enableDynamicSizing={false}
+            enablePanDownToClose
+            enableContentPanningGesture
+            onDismiss={onClose}
+            backdropComponent={renderBackdrop}
+            backgroundStyle={{
+                backgroundColor: colors.bg.overlay,
+                borderRadius: 40,
+            }}
+            handleIndicatorStyle={{
+                backgroundColor: colors.icon.lighter,
+                width: 40,
+                height: 5,
+            }}
+        >
+            <View className="flex-1">
+                <VenueSheetHeader
+                    title="Memories"
+                    subtitle="Filter the map to a trip"
+                    showBack={false}
+                    onBack={() => {}}
+                    onClose={onClose}
+                />
+                <View className="mx-6 h-px bg-border-input" />
+
+                <BottomSheetScrollView
+                    contentContainerStyle={{
+                        paddingHorizontal: 24,
+                        paddingTop: 20,
+                        paddingBottom: 40,
+                    }}
+                    showsVerticalScrollIndicator={false}
+                >
+                    <SectionLabel>Scope</SectionLabel>
+                    <AppText
+                        variant="body-xs"
+                        className="mb-3 text-text-primary-lighter"
+                    >
+                        Filter the map to a trip, or show all non-memory spend
+                    </AppText>
+
+                    <View className="gap-2">
+                        <Pressable
+                            onPress={handleAllSpend}
+                            accessibilityRole="button"
+                            accessibilityState={{selected: allSpendSelected}}
+                            accessibilityLabel="Show all spend"
+                            className={`flex-row items-center rounded-2xl border px-3 py-3 ${
+                                allSpendSelected
+                                    ? 'border-accent-sky bg-accent-sky-bg'
+                                    : 'border-border-input bg-bg-canvas'
+                            }`}
+                        >
+                            <View
+                                className={`mr-3 h-10 w-10 items-center justify-center rounded-xl ${
+                                    allSpendSelected
+                                        ? 'bg-accent-sky/20'
+                                        : 'bg-bg-primary'
                                 }`}
                             >
-                                <View
-                                    className={`mr-3 h-9 w-9 items-center justify-center rounded-full ${
-                                        isSelected ? 'bg-white/20' : 'bg-[#2D8A5B]/15'
-                                    }`}
+                                <Iconify
+                                    icon="heroicons:globe-alt"
+                                    size={20}
+                                    color={colors.accent.sky}
+                                />
+                            </View>
+                            <View className="min-w-0 flex-1">
+                                <AppText
+                                    variant="body-base"
+                                    className="font-semibold text-text-primary"
                                 >
-                                    <ViewOptionIcon view={option.id} selected={isSelected} />
-                                </View>
-                                <View className="flex-1">
-                                    <AppText
-                                        variant="body-base"
-                                        className={
+                                    All spend
+                                </AppText>
+                                <AppText
+                                    variant="body-xs"
+                                    className="text-text-primary-lighter"
+                                >
+                                    Everyday expenses outside memories
+                                </AppText>
+                            </View>
+                            {allSpendSelected ? (
+                                <Iconify
+                                    icon="heroicons:check"
+                                    size={18}
+                                    color={colors.accent.sky}
+                                />
+                            ) : null}
+                        </Pressable>
+
+                        {memories.length === 0 ? (
+                            <AppText
+                                variant="body-xs"
+                                className="py-3 text-center text-text-primary-lighter"
+                            >
+                                No memories yet
+                            </AppText>
+                        ) : (
+                            memories.map((memory) => {
+                                const idStr = String(memory.id);
+                                const isSelected =
+                                    scopeMode === 'trip' &&
+                                    selectedMemoryId === idStr;
+                                return (
+                                    <Pressable
+                                        key={`memory-option-${memory.id}`}
+                                        onPress={() => handleSelectMemory(idStr)}
+                                        accessibilityRole="button"
+                                        accessibilityState={{selected: isSelected}}
+                                        accessibilityLabel={`Show ${memory.title}`}
+                                        className={`flex-row items-center rounded-2xl border px-3 py-3 ${
                                             isSelected
-                                                ? 'font-semibold text-white'
-                                                : 'font-semibold text-text-primary'
-                                        }
+                                                ? 'border-accent-sky bg-accent-sky-bg'
+                                                : 'border-border-input bg-bg-canvas'
+                                        }`}
                                     >
-                                        {option.label}
-                                    </AppText>
-                                    <AppText
-                                        variant="body-xs"
-                                        className={
-                                            isSelected ? 'text-white/80' : 'text-text-primary-lighter'
-                                        }
-                                    >
-                                        {option.description}
-                                    </AppText>
-                                </View>
-                                {isSelected && (
-                                    <Iconify icon="heroicons:check" size={18} color="#FFFFFF" />
-                                )}
-                            </Pressable>
-                        );
-                    })}
-                </View>
+                                        <View
+                                            className={`mr-3 h-10 w-10 items-center justify-center rounded-xl ${
+                                                isSelected
+                                                    ? 'bg-accent-sky/20'
+                                                    : 'bg-bg-primary'
+                                            }`}
+                                        >
+                                            <Iconify
+                                                icon="heroicons:photo"
+                                                size={20}
+                                                color={colors.accent.sky}
+                                            />
+                                        </View>
+                                        <View className="min-w-0 flex-1">
+                                            <AppText
+                                                variant="body-base"
+                                                className="font-semibold text-text-primary"
+                                                numberOfLines={1}
+                                            >
+                                                {memory.title}
+                                            </AppText>
+                                            <AppText
+                                                variant="body-xs"
+                                                className="text-text-primary-lighter"
+                                                numberOfLines={1}
+                                            >
+                                                {formatMemoryMeta(memory)}
+                                            </AppText>
+                                        </View>
+                                        {isSelected ? (
+                                            <Iconify
+                                                icon="heroicons:check"
+                                                size={18}
+                                                color={colors.accent.sky}
+                                            />
+                                        ) : null}
+                                    </Pressable>
+                                );
+                            })
+                        )}
+                    </View>
+                </BottomSheetScrollView>
             </View>
-        </AppBottomSheet>
+        </BottomSheetModal>
     );
 }

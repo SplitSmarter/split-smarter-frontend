@@ -17,6 +17,8 @@ import {PaymentRailProviderBasicDetails} from "@/src/api/dto/user_payments/base_
 import {GetPaymentAccountAddOptionsApi} from "@/src/api/user_payment/accounts";
 import {UserAccountType} from "@/src/api/dto/user_payments/constant";
 import {userStore} from "@/src/store/userStore";
+import { themeStore } from '@/src/store/themeStore';
+import { COLORS } from '@/src/constants/colors';
 
 type Step = 1 | 2 | 3;
 
@@ -33,6 +35,8 @@ export default function AccountLinkingScreen({
                                              }: AccountLinkingScreenProps) {
     // Fall back to userStore user ID if propUserId is omitted or undefined
     const loggedInUser = userStore((state) => state.user);
+    const isDark = themeStore((state) => state.theme === 'dark');
+    const colors = isDark ? COLORS.dark : COLORS.light;
     const targetUserId = propUserId ?? loggedInUser?.id;
 
     // Fall back to 'user' if propUserType is omitted or undefined
@@ -180,7 +184,7 @@ export default function AccountLinkingScreen({
                             >
                                 {currentStep > 1 ? (
                                     <View className="w-7 h-7 rounded-full bg-bg-secondary justify-center items-center">
-                                        <Ionicons name="checkmark" size={16} color="#FFFFFF"/>
+                                        <Ionicons name="checkmark" size={16} color={colors.text.contrast}/>
                                     </View>
                                 ) : (
                                     <View
@@ -229,7 +233,7 @@ export default function AccountLinkingScreen({
                             >
                                 {currentStep > 2 ? (
                                     <View className="w-7 h-7 rounded-full bg-bg-secondary justify-center items-center">
-                                        <Ionicons name="checkmark" size={16} color="#FFFFFF"/>
+                                        <Ionicons name="checkmark" size={16} color={colors.text.contrast}/>
                                     </View>
                                 ) : currentStep === 2 ? (
                                     <View

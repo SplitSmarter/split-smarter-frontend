@@ -112,14 +112,15 @@ Owns `SafeAreaView` + `StatusBar` + optional horizontal padding. Use for **stand
 | :--- | :--- | :--- |
 | `withPadding` | `true` | `px-6`; set `false` for full-bleed (maps, custom headers) |
 | `backgroundColor` | Theme canvas (`COLORS.*.bg.primary`) | **Must be camelCase** `backgroundColor` — `backgroundcolor` is ignored and you get a white strip |
-| `statusBarStyle` | Theme-aware (`dark-content` light / `light-content` dark) | Icons/text in the status bar; use `light-content` on green/dark headers |
+| `statusBarStyle` | Theme-aware (`dark-content` light / `light-content` dark) | Icons/text in the status bar; use `light-content` on dark/metallic headers |
 | `className` | `""` | Inner content `View` only — **does not** fill the status-bar strip |
 
 **Pairing rules:**
 
 1. Neutral screens → omit props (theme defaults) or pass `COLORS.*.bg.primary` + matching `statusBarStyle`.
-2. Brand-green header chrome (`bg-bg-secondary`) → pass `COLORS.*.brand.primary` + `statusBarStyle="light-content"` so the notification row is green, not white/canvas.
-3. Never rely on `className="bg-…"` alone for the status bar — that only styles the inner padded view.
+2. Metallic slate hero chrome → pass a **dark slate** stop (e.g. `#0F172A` / `#1E293B`) + `statusBarStyle="light-content"`. Do **not** use `COLORS.*.brand.primary` for full-screen chrome in dark mode — that token is the light CTA fill.
+3. Primary CTAs use `bg-bg-secondary` + `text-text-secondary` (platinum invert). Emerald = status only.
+4. Never rely on `className="bg-…"` alone for the status bar — that only styles the inner padded view.
 
 **Do not wrap:** bottom sheets, modals, nested list/content that already sits inside tab or stack chrome.
 
@@ -133,13 +134,13 @@ Owns `SafeAreaView` + `StatusBar` + optional horizontal padding. Use for **stand
   {children}
 </ScreenWrapper>
 
-// Green header screens (Expenses chat/group list, group details)
+// Metallic slate hero (dashboard) — status bar matches dark chrome
 <ScreenWrapper
   withPadding={false}
-  backgroundColor={isDark ? COLORS.dark.brand.primary : COLORS.light.brand.primary}
+  backgroundColor={isDark ? '#0F172A' : '#1E293B'}
   statusBarStyle="light-content"
 >
-  <View className="bg-bg-secondary …">…header…</View>
+  {children}
 </ScreenWrapper>
 ```
 
@@ -152,7 +153,30 @@ Owns `SafeAreaView` + `StatusBar` + optional horizontal padding. Use for **stand
 | `AppInput` | Labeled form fields; use `renderLeftIcon` / `renderRightIcon` with literal Iconify at call site |
 | `AppBottomSheet` | Standard modal sheets (`isVisible` / `onClose` / snap points). Sheet body ≈ canvas pairing; avoid `shadow-*` / `active:*` on sheet chrome (see exceptions) |
 | `AppImage` / `AppImageV2` | Same direct-import rule as text/buttons; pick the concrete file |
+| `EntityFallbackIcon` | Entity-specific Iconify for image fallbacks — pass explicitly as `fallbackIcon` / `fallbackComponent` |
 | `MediaPickerBottomSheet`, `DurationSelectionBottomSheet`, `SelectDateBottomSheet` | Shared pickers — reuse before inventing a one-off |
+
+### AppImage / AppImageV2 fallbacks
+
+Two layers:
+
+1. **Component default** — when the image is missing/fails and the caller did **not** pass a fallback, both primitives show built-in `heroicons:photo`.
+2. **Explicit entity fallback** — known surfaces pass `<EntityFallbackIcon kind="…" size={…} color={…} />` as `fallbackIcon` (AppImage) or `fallbackComponent` (AppImageV2). Do **not** add an `entityKind` prop on the image primitives.
+
+```tsx
+import { AppImageV2 } from '@/src/components/common/AppImageV2';
+import { EntityFallbackIcon } from '@/src/components/common/EntityFallbackIcon';
+
+<AppImageV2
+  id={user.avatar.id}
+  url={user.avatar.url}
+  fallbackComponent={
+    <EntityFallbackIcon kind="user" size={20} color={colors.icon.lighter} />
+  }
+/>
+```
+
+Kinds: `user`, `group`, `groupCategory`, `expenseCategory`, `expenseItem`, `expense`, `transfer`, `merchant`, `place`, `placePhoto`, `memory`, `relationship`, `paymentProvider`, `paymentCategory`, `currencyFlag`, `attachment`.
 
 Promote to `src/components/` only on a **second** consumer (folder hygiene). Screen-private UI stays under `src/screens/{domain}/…/components/`.
 

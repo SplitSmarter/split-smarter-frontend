@@ -12,6 +12,10 @@ import {DateComponentPayload} from '@/src/constants/expense/schedule';
 import {TransactionTabType} from '../constants/addTransaction.constants';
 import {DateSelectionResult} from '@/src/components/common/types/selectDateBottomSheet.types';
 import {mapDateSelectionToRecurringDetails} from '@/src/utils/expense/recurringDateMapper';
+import {
+    formatExpenseScheduleLabel,
+    getExpenseScheduleChipMode,
+} from '@/src/utils/expense/formatExpenseScheduleLabel';
 import {GetTransactionStatusApi, InitiateTransactionApi} from '@/src/api/user_payment/transaction';
 
 export const useAddTransaction = () => {
@@ -81,6 +85,13 @@ export const useAddTransaction = () => {
                 payload: errors[DraftValidationErrorKey.AMOUNT_INVALID],
             };
         }
+        if (errors[DraftValidationErrorKey.ALLOCATION_MISMATCH]) {
+            return {
+                type: 'ERROR',
+                key: DraftValidationErrorKey.ALLOCATION_MISMATCH,
+                payload: errors[DraftValidationErrorKey.ALLOCATION_MISMATCH],
+            };
+        }
         if (errors[DraftValidationErrorKey.GROUP_MISMATCH]) {
             const denial = expenseDraft.groupAddPermissionDeniedReason;
             const mismatchPayload = errors[DraftValidationErrorKey.GROUP_MISMATCH];
@@ -106,10 +117,20 @@ export const useAddTransaction = () => {
         }
     }, [activeValidationContent?.key, expenseDraft.validationErrors[DraftValidationErrorKey.GROUP_MISMATCH]]);
 
-    const readableDate = useMemo(() => {
-        const d = new Date(expenseDraft.expenseDate);
-        return d.toLocaleDateString('en-US', {weekday: 'short', day: 'numeric', month: 'short'});
-    }, [expenseDraft.expenseDate]);
+    const readableDate = useMemo(
+        () =>
+            formatExpenseScheduleLabel(
+                expenseDraft.expenseDate,
+                expenseDraft.isRecurring,
+                expenseDraft.recurringDetails,
+            ),
+        [expenseDraft.expenseDate, expenseDraft.isRecurring, expenseDraft.recurringDetails],
+    );
+
+    const dateChipMode = useMemo(
+        () => getExpenseScheduleChipMode(expenseDraft.isRecurring, expenseDraft.recurringDetails),
+        [expenseDraft.isRecurring, expenseDraft.recurringDetails],
+    );
 
     const handleTabChange = (tab: TransactionTabType) => {
         setActiveTab(tab);
@@ -168,16 +189,22 @@ export const useAddTransaction = () => {
 
     const handleDateConfirm = (result: DateSelectionResult) => {
         if (!result.isRecurring) {
+            const iso = new Date(result.selectedDate).toISOString();
+            if (activeTab === 'transfer') {
+                transferDraft.setTransferDate(iso);
+                return;
+            }
             expenseDraft.setIsRecurring(false);
-            expenseDraft.setExpenseDate(new Date(result.selectedDate).toISOString());
+            expenseDraft.setExpenseDate(iso);
             expenseDraft.setRecurringDetails(null);
-        } else {
-            const recurringDetails = mapDateSelectionToRecurringDetails(result);
-            expenseDraft.setIsRecurring(true);
-            // Keep a display date in the draft; Mapper nulls expense_date on the API payload.
-            expenseDraft.setExpenseDate(new Date(result.startDate).toISOString());
-            expenseDraft.setRecurringDetails(recurringDetails);
+            return;
         }
+
+        const recurringDetails = mapDateSelectionToRecurringDetails(result);
+        expenseDraft.setIsRecurring(true);
+        // Keep a display date in the draft; Mapper nulls expense_date on the API payload.
+        expenseDraft.setExpenseDate(new Date(result.startDate).toISOString());
+        expenseDraft.setRecurringDetails(recurringDetails);
     };
 
     const handleClearForm = () => {
@@ -288,6 +315,7 @@ export const useAddTransaction = () => {
         isDark,
         activeTab,
         readableDate,
+        dateChipMode,
         expenseDraft,
         transferDraft,
         pickerVisible,

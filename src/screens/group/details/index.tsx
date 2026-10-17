@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { COLORS } from '@/src/constants/colors';
+import { COLORS, PLATINUM_HEADER } from '@/src/constants/colors';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, View, Platform, BackHandler } from 'react-native';
 import { Iconify } from "react-native-iconify";
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -19,6 +19,7 @@ import { TransferDetailsBasicResponse } from "@/src/api/dto/expense/transfer";
 import { BaseSettlementDetails } from "@/src/api/dto/expense/settlement";
 import { GroupInfoView } from "./components/GroupInfoView";
 import {logStore} from "@/src/store/logStore";
+import {expenseDetailsSheetStore} from '@/src/store/expenseDetailsSheetStore';
 
 type GroupTab = 'Overview' | 'Transactions' | 'Settlements' | 'Members';
 
@@ -26,6 +27,8 @@ const GroupDetailsScreen = () => {
     const { theme } = themeStore();
     const router = useRouter();
     const isDark = theme === 'dark';
+    const colors = isDark ? COLORS.dark : COLORS.light;
+    const headerIconColor = COLORS.light.text.contrast;
     const { id } = useLocalSearchParams<{ id: string }>();
     const groupId = Number(id);
 
@@ -145,28 +148,31 @@ const GroupDetailsScreen = () => {
 
     return (
         <ScreenWrapper
-            backgroundColor={isDark ? COLORS.dark.brand.primary : COLORS.light.brand.primary}
+            backgroundColor={isDark ? PLATINUM_HEADER.dark : PLATINUM_HEADER.light}
             statusBarStyle="light-content"
             withPadding={false}
         >
-            {/* --- FIXED HEADER CONTAINER --- */}
-            <View className="bg-bg-secondary pt-4 pb-6 w-full">
-                <View className="flex-row items-center justify-between w-full px-4 mb-6">
+            {/* --- FIXED HEADER — metallic slate (always dark) --- */}
+            <View
+                className="w-full pb-6 pt-4"
+                style={{backgroundColor: isDark ? PLATINUM_HEADER.dark : PLATINUM_HEADER.light}}
+            >
+                <View className="mb-6 w-full flex-row items-center justify-between px-4">
 
                     {/* 👈 FIXED BACK BUTTON: Moved completely out of the inner touch target container */}
-                    <Pressable onPress={() => router.back()} className="p-2 mr-1 active:opacity-70 z-50">
-                        <Iconify icon="heroicons:arrow-left" size={24} color="white"/>
+                    <Pressable onPress={() => router.back()} className="z-50 mr-1 p-2 active:opacity-70">
+                        <Iconify icon="heroicons:arrow-left" size={24} color={headerIconColor}/>
                     </Pressable>
 
                     {/* TOUCH TARGET INTERCEPTOR LAYER */}
                     <Pressable
                         onPress={() => setShowGroupInfo(true)}
-                        className="flex-row items-center flex-1 mr-4 active:opacity-80"
+                        className="mr-4 flex-1 flex-row items-center active:opacity-80"
                     >
                         <View
-                            className="w-12 h-12 rounded-full bg-white/20 items-center justify-center border border-white/30 overflow-hidden mr-3">
+                            className="mr-3 h-12 w-12 items-center justify-center overflow-hidden rounded-full border border-white/30 bg-white/20">
                             {groupLoading ? (
-                                <ActivityIndicator color="white" size="small"/>
+                                <ActivityIndicator color={headerIconColor} size="small"/>
                             ) : (
                                 <Image source={{ uri: group?.icon?.url }} style={{ width: 30, height: 30 }}
                                        contentFit="contain"/>
@@ -174,10 +180,10 @@ const GroupDetailsScreen = () => {
                         </View>
 
                         <View className="flex-1">
-                            <AppText variant="h3" className="text-white font-bold leading-tight" numberOfLines={1}>
+                            <AppText variant="h3" className="font-bold leading-tight text-white" numberOfLines={1}>
                                 {groupLoading ? 'Loading metadata...' : (group?.title || 'Group Details')}
                             </AppText>
-                            <AppText variant="body-small" className="text-white/70 mt-0.5" numberOfLines={1}>
+                            <AppText variant="body-small" className="mt-0.5 text-white/70" numberOfLines={1}>
                                 {groupLoading ? '--' : group?.no_of_members} Members
                             </AppText>
                         </View>
@@ -185,10 +191,10 @@ const GroupDetailsScreen = () => {
 
                     <View className="flex-row items-center space-x-1">
                         <Pressable className="p-2">
-                            <Iconify icon="heroicons:camera" size={24} color="white"/>
+                            <Iconify icon="heroicons:camera" size={24} color={headerIconColor}/>
                         </Pressable>
                         <Pressable className="p-2">
-                            <Iconify icon="heroicons:ellipsis-vertical" size={24} color="white"/>
+                            <Iconify icon="heroicons:ellipsis-vertical" size={24} color={headerIconColor}/>
                         </Pressable>
                     </View>
                 </View>
@@ -201,10 +207,10 @@ const GroupDetailsScreen = () => {
                             <Pressable
                                 key={tab}
                                 onPress={() => setActiveTab(tab)}
-                                className={`px-8 h-12 justify-center rounded-[20px] mr-3 ${isActive ? 'bg-white' : 'bg-white/10'}`}
+                                className={`mr-3 h-12 justify-center rounded-[20px] px-8 ${isActive ? 'bg-white' : 'bg-white/10'}`}
                             >
                                 <AppText variant="body-base"
-                                         className={`font-bold ${isActive ? 'text-bg-secondary' : 'text-white'}`}>
+                                         className={`font-bold ${isActive ? 'text-slate-900' : 'text-white'}`}>
                                     {tab}
                                 </AppText>
                             </Pressable>
@@ -219,7 +225,7 @@ const GroupDetailsScreen = () => {
                     {activeTab === 'Transactions' ? (
                         transactionsLoading ? (
                             <View className="flex-1 justify-center items-center">
-                                <ActivityIndicator color={COLORS.light.brand.primary} size="large"/>
+                                <ActivityIndicator color={COLORS.light.icon.primary} size="large"/>
                             </View>
                         ) : (
                             <ScrollView
@@ -227,10 +233,21 @@ const GroupDetailsScreen = () => {
                                 showsVerticalScrollIndicator={false}
                                 refreshControl={
                                     <RefreshControl refreshing={transactionsLoading} onRefresh={handleTabRefresh}
-                                                    tintColor={isDark ? "white" : COLORS.light.brand.primary}/>
+                                                    tintColor={isDark ? headerIconColor : COLORS.light.icon.primary}/>
                                 }
                             >
-                                <GroupTransactionsTab expenses={expenses} transfers={transfers} isDark={isDark}/>
+                                <GroupTransactionsTab
+                                    expenses={expenses}
+                                    transfers={transfers}
+                                    isDark={isDark}
+                                    onTransactionPress={(tx) => {
+                                        if (tx.type !== 'EXPENSE') return;
+                                        expenseDetailsSheetStore.getState().open(
+                                            tx.originalId,
+                                            {seed: tx.expenseRaw ?? null}
+                                        );
+                                    }}
+                                />
                             </ScrollView>
                         )
                     ) : (
@@ -241,13 +258,13 @@ const GroupDetailsScreen = () => {
                                 <RefreshControl
                                     refreshing={activeTab === 'Settlements' ? settlementsLoading : groupLoading}
                                     onRefresh={handleTabRefresh}
-                                    tintColor={isDark ? "white" : COLORS.light.brand.primary}
+                                    tintColor={isDark ? headerIconColor : COLORS.light.icon.primary}
                                 />
                             }
                         >
                             {activeTab === 'Overview' && (
                                 groupLoading ? (
-                                    <ActivityIndicator color={COLORS.light.brand.primary} size="large" className="mt-8"/>
+                                    <ActivityIndicator color={COLORS.light.icon.primary} size="large" className="mt-8"/>
                                 ) : (
                                     <GroupOverviewTab group={group} isDark={isDark}/>
                                 )
@@ -255,7 +272,7 @@ const GroupDetailsScreen = () => {
 
                             {activeTab === 'Settlements' && (
                                 settlementsLoading ? (
-                                    <ActivityIndicator color={COLORS.light.brand.primary} size="large" className="mt-8"/>
+                                    <ActivityIndicator color={COLORS.light.icon.primary} size="large" className="mt-8"/>
                                 ) : (
                                     <GroupSettlementsTab
                                         groupId={groupId}
@@ -280,7 +297,7 @@ const GroupDetailsScreen = () => {
                             transform: [{ scale: pressed ? 0.95 : 1 }],
                             ...Platform.select({
                                 ios: {
-                                    shadowColor: '#000',
+                                    shadowColor: COLORS.light.brand.primary,
                                     shadowOffset: { width: 0, height: 4 },
                                     shadowOpacity: 0.3,
                                     shadowRadius: 4.65,
@@ -292,7 +309,7 @@ const GroupDetailsScreen = () => {
                         }
                     ]}
                 >
-                    <Iconify icon="heroicons:plus" size={30} color="white"/>
+                    <Iconify icon="heroicons:plus" size={30} color={colors.text.contrast}/>
                 </Pressable>
             )}
         </ScreenWrapper>

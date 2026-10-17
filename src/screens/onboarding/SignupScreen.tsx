@@ -5,9 +5,11 @@ import {AppText} from '@/src/components/common/AppText';
 import {AppButton} from '@/src/components/common/AppButton';
 import {AppInput} from '@/src/components/common/AppInput';
 import {AppImage} from '@/src/components/common/AppImage';
+import {EntityFallbackIcon} from '@/src/components/common/EntityFallbackIcon';
 import {ScreenWrapper} from "@/src/components/common/ScreenWrapper";
 import {i18n as i18nInstance} from "@/src/i18n/index";
 import {themeStore} from "@/src/store/themeStore";
+import { COLORS } from '@/src/constants/colors';
 import {Iconify} from "react-native-iconify";
 import {deviceStore} from "@/src/store/deviceStore";
 import {Currency} from '@/src/constants/expense/currency';
@@ -44,6 +46,7 @@ const SignupScreen = () => {
     const {login: authLogin} = authStore();
     const setUser = userStore((state) => state.setUser);
     const isDark = theme === 'dark';
+    const colors = isDark ? COLORS.dark : COLORS.light;
     const {showAlert} = useAlert();
 
     const [name, setName] = useState(initialName || "");
@@ -244,10 +247,23 @@ const SignupScreen = () => {
                                     label="Currency"
                                     value={`${t(selectedCurrency.name)} (${selectedCurrency.symbol})`}
                                     editable={false}
-                                    renderLeftIcon={() => <AppImage id={`flag_${selectedCurrency.countryTag}`}
-                                                                    url={flagUrl} size="sm" variant="rounded"/>}
+                                    renderLeftIcon={() => (
+                                        <AppImage
+                                            id={`flag_${selectedCurrency.countryTag}`}
+                                            url={flagUrl}
+                                            size="sm"
+                                            variant="rounded"
+                                            fallbackIcon={
+                                                <EntityFallbackIcon
+                                                    kind="currencyFlag"
+                                                    size={18}
+                                                    color={colors.icon.lighter}
+                                                />
+                                            }
+                                        />
+                                    )}
                                     renderRightIcon={() => <Iconify icon="heroicons:chevron-down" size={20}
-                                                                    color={isDark ? "#FFF" : "#000"}/>}
+                                                                    color={colors.icon.primary}/>}
                                 />
                             </View>
                         </Pressable>

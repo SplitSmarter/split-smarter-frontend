@@ -17,6 +17,13 @@ export default function UserLayout() {
                     presentation: 'modal'
                 }}
             />
+            <Stack.Screen
+                name="memory/add"
+                options={{
+                    headerShown: false,
+                    presentation: 'modal'
+                }}
+            />
         </Stack>
     );
 }

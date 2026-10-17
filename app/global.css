@@ -4,7 +4,7 @@
 @tailwind utilities;
 
 @layer base {
-    /* LIGHT THEME (Default) */
+    /* LIGHT THEME (Default) — Platinum */
     :root {
         --color-cat-purple: 139 92 246;
         --color-cat-purple-bg: 243 232 255;
@@ -13,16 +13,16 @@
         --color-cat-amber: 245 158 11;
         --color-cat-amber-bg: 254 243 199;
 
-        /* Backgrounds (Clean Slate / Ice Gray) */
-        --color-bg-primary: 248 250 252; /* #F8FAFC - Main App Background */
+        /* Backgrounds (Platinum Light) */
+        --color-bg-primary: 241 244 248; /* #F1F4F8 - Main App Background */
         --color-bg-primary-lighter: 255 255 255; /* #FFFFFF - Pure White Surface */
         --color-bg-primary-darker: 226 232 240; /* #E2E8F0 - Dividers & Subtle Borders */
         --color-bg-canvas: 255 255 255; /* #FFFFFF - Card Surface */
 
-        /* Brand Secondary (Emerald CTA / Success Accent) */
-        --color-bg-secondary: 16 185 129; /* #10B981 - Primary Green CTA */
-        --color-bg-secondary-lighter: 209 250 229; /* #D1FAE5 - Soft Emerald Tint Box */
-        --color-bg-secondary-darker: 5 150 105; /* #059669 - Pressed / Active State */
+        /* Primary CTA (Inverted Slate) — emerald reserved for status only */
+        --color-bg-secondary: 15 23 42; /* #0F172A - Primary CTA fill */
+        --color-bg-secondary-lighter: 209 250 229; /* #D1FAE5 - Soft Emerald Success Tint */
+        --color-bg-secondary-darker: 30 41 59; /* #1E293B - Pressed / Active CTA */
         --color-bg-overlay: 255 255 255;
 
         /* Accent Highlight (Sky Blue / Indigo Interactive) */
@@ -37,7 +37,7 @@
         --color-text-primary-darker: 2 6 23; /* #020617 - Deepest Black Text */
 
         --color-text-canvas: 15 23 42;
-        --color-text-secondary: 255 255 255; /* #FFFFFF - White Text on Primary Buttons */
+        --color-text-secondary: 255 255 255; /* #FFFFFF - Contrast on dark CTA */
         --color-text-secondary-lighter: 241 245 249;
         --color-text-secondary-darker: 203 213 225;
         --color-text-overlay: 15 23 42;
@@ -48,7 +48,7 @@
         --color-icon-primary-lighter: 148 163 184;
         --color-icon-primary-darker: 30 41 59;
 
-        --color-icon-secondary: 16 185 129; /* Emerald Icon */
+        --color-icon-secondary: 16 185 129; /* Emerald Success Icon */
         --color-icon-secondary-lighter: 52 211 153;
         --color-icon-secondary-darker: 5 150 105;
 
@@ -59,14 +59,14 @@
         --color-golden: 217 119 6;
 
         /* Form Controls Specific Mappings */
-        --color-border-input: 226 232 240;
+        --color-border-input: 203 213 225; /* #CBD5E1 */
 
         /* Standard Tailwind Mapping Targets */
         --bg-background: var(--color-bg-primary);
         --text-foreground: var(--color-text-primary);
     }
 
-    /* DARK THEME (Activated by .dark class) */
+    /* DARK THEME (Activated by .dark class) — Platinum */
     .dark {
         --color-cat-purple: 167 139 250;
         --color-cat-purple-bg: 53 35 80;
@@ -75,17 +75,17 @@
         --color-cat-amber: 251 191 36;
         --color-cat-amber-bg: 70 50 20;
 
-        /* Backgrounds (Midnight Slate & Deep Canvas) */
-        --color-bg-primary: 17 24 39; /* #111827 - Midnight Deep Slate */
-        --color-bg-primary-lighter: 31 41 55; /* #1F2937 - Card / Elevator Surface */
-        --color-bg-primary-darker: 9 13 22; /* #090D16 - Deepest Canvas Background */
-        --color-bg-canvas: 15 23 42; /* #0F172A - Soft Dark Glass Panel Surface */
+        /* Backgrounds (Platinum Dark) */
+        --color-bg-primary: 7 9 14; /* #07090E - Deepest Body */
+        --color-bg-primary-lighter: 30 41 59; /* #1E293B - Elevated Surface */
+        --color-bg-primary-darker: 11 15 23; /* #0B0F17 - Deep Canvas */
+        --color-bg-canvas: 15 23 42; /* #0F172A - Card / Glass Panel */
 
-        /* Brand Secondary (Emerald CTA / Success Accent) */
-        --color-bg-secondary: 16 185 129; /* #10B981 - Vibrant Emerald Green */
-        --color-bg-secondary-lighter: 6 78 59; /* #064E3B - Deep Emerald Glow / Tint Box */
-        --color-bg-secondary-darker: 5 150 105;
-        --color-bg-overlay: 31 41 55;
+        /* Primary CTA (Inverted Slate) — light fill on dark canvas */
+        --color-bg-secondary: 248 250 252; /* #F8FAFC - Primary CTA fill */
+        --color-bg-secondary-lighter: 6 78 59; /* #064E3B - Deep Emerald Success Tint */
+        --color-bg-secondary-darker: 226 232 240; /* #E2E8F0 - Pressed / Active CTA */
+        --color-bg-overlay: 30 41 59;
 
         /* Accent Highlight (Sky Blue / Indigo Interactive) */
         --color-accent-sky: 56 189 248; /* #38BDF8 - Bright Sky Blue Highlight */
@@ -93,22 +93,22 @@
         --color-orb-indigo: 99 102 241; /* #6366F1 - Ambient Indigo Orb */
 
         /* Text Mappings */
-        --color-text-primary: 249 250 251; /* #F9FAFB - Crisp Off-White */
-        --color-text-primary-placeholder: 107 114 128;
-        --color-text-primary-lighter: 156 163 175; /* Muted Gray Text */
+        --color-text-primary: 248 250 252; /* #F8FAFC - Crisp Platinum White */
+        --color-text-primary-placeholder: 100 116 139;
+        --color-text-primary-lighter: 148 163 184; /* #94A3B8 - Muted Body */
         --color-text-primary-darker: 255 255 255;
 
-        --color-text-canvas: 249 250 251;
-        --color-text-secondary: 255 255 255;
-        --color-text-secondary-lighter: 229 231 235;
-        --color-text-secondary-darker: 156 163 175;
-        --color-text-overlay: 249 250 251;
+        --color-text-canvas: 248 250 252;
+        --color-text-secondary: 15 23 42; /* #0F172A - Contrast on light CTA */
+        --color-text-secondary-lighter: 30 41 59;
+        --color-text-secondary-darker: 71 85 105;
+        --color-text-overlay: 248 250 252;
         --color-text-link: 56 189 248; /* Vibrant Sky Blue Links */
 
         /* Icons */
-        --color-icon-primary: 156 163 175;
-        --color-icon-primary-lighter: 209 213 219;
-        --color-icon-primary-darker: 107 114 128;
+        --color-icon-primary: 148 163 184;
+        --color-icon-primary-lighter: 203 213 225;
+        --color-icon-primary-darker: 100 116 139;
 
         --color-icon-secondary: 16 185 129;
         --color-icon-secondary-lighter: 52 211 153;
@@ -118,10 +118,10 @@
         --color-status-error: 248 113 113; /* #F87171 - Softer red for dark mode contrast */
 
         /* Form Controls Specific Mappings */
-        --color-border-input: 55 65 81;
+        --color-border-input: 51 65 85; /* #334155 */
 
         /* Standard Tailwind Mapping Targets */
-        --bg-background: var(--color-bg-primary-darker);
+        --bg-background: var(--color-bg-primary);
         --text-foreground: var(--color-text-primary);
     }
 }

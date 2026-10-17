@@ -43,6 +43,11 @@ export type DateSelectionResult = z.infer<typeof DateSelectionSchema>;
 export interface SelectDateBottomSheetProps {
     visible: boolean;
     initialDate?: string;
+    /**
+     * When false (default), the Single Date calendar cannot go past today.
+     * Recurring start / until dates are unaffected.
+     */
+    allowFutureDates?: boolean;
     onClose: () => void;
     onConfirm: (result: DateSelectionResult) => void;
 }

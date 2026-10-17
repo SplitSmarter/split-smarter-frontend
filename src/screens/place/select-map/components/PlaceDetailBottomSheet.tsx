@@ -13,6 +13,7 @@ import {AppButton} from "@/src/components/common/AppButton";
 import {AppInput} from "@/src/components/common/AppInput";
 import {ImageGrid} from "@/src/utils/place/ImageGrid";
 import {themeStore} from '@/src/store/themeStore';
+import {COLORS} from '@/src/constants/colors';
 import {usePlaceDetails} from "@/src/hooks/usePlaceDetails";
 import {CreatePlaceApi} from "@/src/api/user/place/location";
 import {MapPlaceItem} from "../types/selectMap.types";
@@ -36,6 +37,7 @@ export const PlaceDetailBottomSheet = React.memo(({
 }: PlaceDetailBottomSheetProps) => {
     const theme = themeStore((state) => state.theme);
     const isDark = theme === 'dark';
+    const colors = isDark ? COLORS.dark : COLORS.light;
 
     const bottomSheetModalRef = useRef<BottomSheetModal>(null);
 
@@ -88,6 +90,7 @@ export const PlaceDetailBottomSheet = React.memo(({
                         geo: displayData.geo || {latitude: place.coordinate[1], longitude: place.coordinate[0]},
                         country: displayData.country || "",
                         city: displayData.city || "",
+                        state: displayData.state || "",
                         country_code: displayData.country_code || "",
                     },
                 };
@@ -133,11 +136,11 @@ export const PlaceDetailBottomSheet = React.memo(({
             backdropComponent={renderBackdrop}
             enablePanDownToClose={!isEditing && !isProcessing}
             backgroundStyle={{
-                backgroundColor: isDark ? '#121212' : '#FFFFFF',
+                backgroundColor: colors.bg.overlay,
                 borderRadius: 32,
             }}
             handleIndicatorStyle={{
-                backgroundColor: isDark ? '#333333' : '#E5E5E5',
+                backgroundColor: colors.icon.lighter,
             }}
             keyboardBehavior="fillParent"
             keyboardBlurBehavior="restore"
@@ -149,8 +152,12 @@ export const PlaceDetailBottomSheet = React.memo(({
                             <View className="flex-1 px-5 pt-2 pb-8">
                                 <View className="flex-row justify-between items-center mb-6">
                                     <AppText variant="h3" className="text-text-primary">Edit Details</AppText>
-                                    <Pressable onPress={() => setIsEditing(false)} className="p-2 bg-bg-secondary rounded-full active:opacity-70">
-                                        <Iconify icon="heroicons:arrow-uturn-left" size={20} className="text-text-primary"/>
+                                    <Pressable
+                                        onPress={() => setIsEditing(false)}
+                                        className="p-2 rounded-full active:opacity-70"
+                                        style={{ backgroundColor: colors.bg.darker }}
+                                    >
+                                        <Iconify icon="heroicons:arrow-uturn-left" size={20} color={colors.icon.primary} />
                                     </Pressable>
                                 </View>
 
@@ -186,9 +193,9 @@ export const PlaceDetailBottomSheet = React.memo(({
                                                 setIsEditing(false);
                                             }}
                                             variant="primary"
-                                            className="bg-green-increase mt-4 rounded-2xl h-14"
+                                            className="mt-4 rounded-2xl h-14"
                                         >
-                                            <AppText className="text-text-canvas font-bold">Done</AppText>
+                                            Done
                                         </AppButton>
                                     </View>
                                 </BottomSheetScrollView>
@@ -205,10 +212,10 @@ export const PlaceDetailBottomSheet = React.memo(({
                                             <Iconify
                                                 icon="heroicons:map-pin"
                                                 size={14}
-                                                color={isDark ? "rgba(255, 255, 255, 0.6)" : "#71717A"}
+                                                color={colors.icon.lighter}
                                             />
                                             {isAddressLoading && !place?.address ? (
-                                                <ActivityIndicator size="small" className="text-green-increase ml-2"/>
+                                                <ActivityIndicator size="small" color={colors.icon.brand} className="ml-2"/>
                                             ) : (
                                                 <AppText variant="caption-xs" className="text-text-primary ml-1" numberOfLines={1}>
                                                     {displayData.address || place?.address || "Fetching address coordinates..."}
@@ -222,13 +229,18 @@ export const PlaceDetailBottomSheet = React.memo(({
                                             <Pressable
                                                 disabled={isEnriching}
                                                 onPress={() => setIsEditing(true)}
-                                                className={`p-2 bg-bg-secondary rounded-full active:opacity-70 ${isEnriching ? 'opacity-30' : ''}`}
+                                                className={`p-2 rounded-full active:opacity-70 ${isEnriching ? 'opacity-30' : ''}`}
+                                                style={{ backgroundColor: colors.bg.darker }}
                                             >
-                                                <Iconify icon="heroicons:pencil-square" size={20} className="text-text-primary"/>
+                                                <Iconify icon="heroicons:pencil-square" size={20} color={colors.icon.primary} />
                                             </Pressable>
                                         )}
-                                        <Pressable onPress={onClose} className="p-2 bg-bg-secondary rounded-full active:opacity-70">
-                                            <Iconify icon="heroicons:x-mark" size={20} className="text-text-primary"/>
+                                        <Pressable
+                                            onPress={onClose}
+                                            className="p-2 rounded-full active:opacity-70"
+                                            style={{ backgroundColor: colors.bg.darker }}
+                                        >
+                                            <Iconify icon="heroicons:x-mark" size={20} color={colors.icon.primary} />
                                         </Pressable>
                                     </View>
                                 </View>
@@ -249,11 +261,9 @@ export const PlaceDetailBottomSheet = React.memo(({
                                         onPress={handleSelectAction}
                                         loading={isProcessing}
                                         disabled={isEnriching || isProcessing}
-                                        className="bg-green-increase rounded-2xl h-14"
+                                        className="rounded-2xl h-14"
                                     >
-                                        <AppText className="text-text-canvas font-bold">
-                                            {isEnriching ? 'Loading Details...' : (isSaved ? 'Select Place' : 'Save & Select Place')}
-                                        </AppText>
+                                        {isEnriching ? 'Loading Details...' : (isSaved ? 'Select Place' : 'Save & Select Place')}
                                     </AppButton>
                                 </View>
                             </View>

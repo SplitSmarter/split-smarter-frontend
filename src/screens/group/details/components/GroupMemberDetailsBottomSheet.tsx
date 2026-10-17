@@ -9,6 +9,7 @@ import {
 import { Iconify } from 'react-native-iconify';
 import { AppText } from "@/src/components/common/AppText";
 import { AppImageV2 } from "@/src/components/common/AppImageV2";
+import { EntityFallbackIcon } from "@/src/components/common/EntityFallbackIcon";
 import { themeStore } from '@/src/store/themeStore';
 import { GroupMemberDetails } from "@/src/api/dto/user/group";
 
@@ -31,6 +32,7 @@ export const GroupMemberDetailsBottomSheet = ({
                                               }: GroupMemberDetailsBottomSheetProps) => {
     const theme = themeStore((state) => state.theme);
     const isDark = theme === 'dark';
+    const colors = isDark ? COLORS.dark : COLORS.light;
 
     const bottomSheetModalRef = useRef<BottomSheetModal>(null);
 
@@ -117,20 +119,20 @@ export const GroupMemberDetailsBottomSheet = ({
                 onDismiss={onClose}
                 backdropComponent={renderBackdrop}
                 backgroundStyle={{
-                    backgroundColor: isDark ? '#121212' : '#F8F8F8',
+                    backgroundColor: colors.bg.overlay,
                     borderRadius: 40,
                 }}
                 handleIndicatorStyle={{
-                    backgroundColor: isDark ? '#3F3F46' : '#D4D4D8',
+                    backgroundColor: colors.icon.lighter,
                     width: 48,
                     height: 6,
                 }}
             >
                 <BottomSheetView className="flex-1 px-6">
                     {/* Custom Header Layout */}
-                    <View className="flex-row items-center justify-between pb-4 border-b border-gray-500/10">
+                    <View className="flex-row items-center justify-between pb-4 border-b border-border-input">
                         <Pressable onPress={onClose} className="p-2 rounded-full active:opacity-60">
-                            <Iconify icon="heroicons:x-mark" size={24} color={isDark ? "#FFF" : "#000"} />
+                            <Iconify icon="heroicons:x-mark" size={24} color={colors.icon.primary} />
                         </Pressable>
                         <AppText variant="h4" className="font-bold text-text-primary text-center">
                             Member Options
@@ -140,23 +142,25 @@ export const GroupMemberDetailsBottomSheet = ({
 
                     {/* Main Hero Summary Card */}
                     <View className="items-center my-5">
-                        <View className="w-20 h-20 rounded-full bg-zinc-800 overflow-hidden items-center justify-center mb-3 border-2 border-zinc-200 dark:border-zinc-800">
-                            {member.avatar?.url ? (
-                                <AppImageV2
-                                    id={`sheet_member_${member.id}`}
-                                    url={member.avatar.url}
-                                    style={{ width: '100%', height: '100%', borderRadius: 9999 }}
-                                    contentFit="cover"
-                                />
-                            ) : (
-                                <Iconify icon="heroicons:user" size={36} color="#FFFFFF" />
-                            )}
+                        <View
+                            className="w-20 h-20 rounded-full overflow-hidden items-center justify-center mb-3 border-2 border-border-input"
+                            style={{ backgroundColor: colors.bg.darker }}
+                        >
+                            <AppImageV2
+                                id={`sheet_member_${member.id}`}
+                                url={member.avatar?.url}
+                                style={{ width: '100%', height: '100%', borderRadius: 9999 }}
+                                contentFit="cover"
+                                fallbackComponent={
+                                    <EntityFallbackIcon kind="user" size={36} color={colors.icon.lighter} />
+                                }
+                            />
                         </View>
                         <AppText className="text-2xl font-extrabold text-text-primary tracking-tight text-center">
                             {member.name}
                         </AppText>
-                        <View className="mt-1.5 px-3 py-0.5 rounded-full bg-bg-secondary/10 border border-bg-secondary/20">
-                            <AppText className="text-xs font-semibold capitalize text-bg-secondary">
+                        <View className="mt-1.5 px-3 py-0.5 rounded-full bg-accent-sky-bg border border-accent-sky/30">
+                            <AppText className="text-xs font-semibold capitalize text-accent-sky">
                                 {member.role?.toLowerCase() || 'member'}
                             </AppText>
                         </View>
@@ -170,36 +174,44 @@ export const GroupMemberDetailsBottomSheet = ({
                                 onClose();
                                 onNavigateToProfile(member.id, member.user_type);
                             }}
-                            className="flex-1 items-center justify-center py-4 px-2 mx-1 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 active:opacity-60"
+                            className="flex-1 items-center justify-center py-4 px-2 mx-1 rounded-2xl border border-border-input active:opacity-60"
+                            style={{ backgroundColor: colors.bg.lighter }}
                         >
-                            <Iconify icon="heroicons:user-circle" size={26} color={COLORS.light.brand.primary} />
+                            <Iconify icon="heroicons:user-circle" size={26} color={colors.icon.primary} />
                             <AppText className="text-xs font-bold text-text-primary mt-2 text-center">Profile</AppText>
                         </Pressable>
 
                         {/* 2. CHANGE ROLE TRIGGER */}
                         <Pressable
                             onPress={() => setIsRoleModalVisible(true)}
-                            className="flex-1 items-center justify-center py-4 px-2 mx-1 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 active:opacity-60"
+                            className="flex-1 items-center justify-center py-4 px-2 mx-1 rounded-2xl border border-border-input active:opacity-60"
+                            style={{ backgroundColor: colors.bg.lighter }}
                         >
-                            <Iconify icon="heroicons:shield-check" size={26} color={COLORS.light.brand.primary} />
+                            <Iconify icon="heroicons:shield-check" size={26} color={colors.icon.primary} />
                             <AppText className="text-xs font-bold text-text-primary mt-2 text-center">Role</AppText>
                         </Pressable>
 
                         {/* 3. REMOVE MEMBERSHIP ENGINE */}
                         <Pressable
                             onPress={() => setIsRemoveModalVisible(true)}
-                            className="flex-1 items-center justify-center py-4 px-2 mx-1 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 active:opacity-60"
+                            className="flex-1 items-center justify-center py-4 px-2 mx-1 rounded-2xl border border-border-input active:opacity-60"
+                            style={{ backgroundColor: colors.bg.lighter }}
                         >
-                            <Iconify icon="heroicons:user-minus" size={26} color="#DC2626" />
-                            <AppText className="text-xs font-bold text-[#DC2626] mt-2 text-center">Remove</AppText>
+                            <Iconify icon="heroicons:user-minus" size={26} color={colors.status.error} />
+                            <AppText className="text-xs font-bold mt-2 text-center" style={{ color: colors.status.error }}>
+                                Remove
+                            </AppText>
                         </Pressable>
                     </View>
 
                     {/* Detailed Metrics Substructure */}
-                    <View className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-3xl p-4 space-y-4">
+                    <View
+                        className="border border-border-input rounded-3xl p-4 space-y-4"
+                        style={{ backgroundColor: colors.bg.lighter }}
+                    >
                         <View className="flex-row items-center justify-between">
                             <View className="flex-row items-center">
-                                <Iconify icon="heroicons:calendar" size={20} color={isDark ? '#A1A1AA' : '#71717A'} />
+                                <Iconify icon="heroicons:calendar" size={20} color={colors.icon.lighter} />
                                 <AppText className="ml-2.5 font-medium text-text-primary-lighter">Joined Group</AppText>
                             </View>
                             <AppText className="font-medium text-text-primary-lighter text-sm">
@@ -218,7 +230,7 @@ export const GroupMemberDetailsBottomSheet = ({
                 onRequestClose={() => setIsRoleModalVisible(false)}
             >
                 <View className="flex-1 justify-center items-center bg-black/60 px-6">
-                    <View className="bg-background w-full rounded-3xl p-6 border border-zinc-200 dark:border-zinc-800">
+                    <View className="bg-background w-full rounded-3xl p-6 border border-border-input">
                         <AppText variant="h3" className="font-black text-foreground mb-2 text-xl">
                             Change Group Role
                         </AppText>
@@ -230,7 +242,7 @@ export const GroupMemberDetailsBottomSheet = ({
                             onPress={() => handleChangeRoleSubmit("ADMIN")}
                             className="flex-row items-center p-4 mb-3 rounded-xl bg-bg-primary border border-bg-primary-darker active:opacity-70"
                         >
-                            <Iconify icon="heroicons:key" size={20} color={COLORS.light.brand.primary} />
+                            <Iconify icon="heroicons:key" size={20} color={colors.icon.primary} />
                             <View className="ml-3">
                                 <AppText className="font-bold text-foreground">Group Admin</AppText>
                                 <AppText className="text-xs text-text-primary-lighter">Can modify parameters and add members</AppText>
@@ -241,7 +253,7 @@ export const GroupMemberDetailsBottomSheet = ({
                             onPress={() => handleChangeRoleSubmit("MEMBER")}
                             className="flex-row items-center p-4 mb-6 rounded-xl bg-bg-primary border border-bg-primary-darker active:opacity-70"
                         >
-                            <Iconify icon="heroicons:user" size={20} color="#71717A" />
+                            <Iconify icon="heroicons:user" size={20} color={colors.icon.primary} />
                             <View className="ml-3">
                                 <AppText className="font-bold text-foreground">Standard Member</AppText>
                                 <AppText className="text-xs text-text-primary-lighter">Can read logs and log general splitting operations</AppText>
@@ -250,7 +262,8 @@ export const GroupMemberDetailsBottomSheet = ({
 
                         <Pressable
                             onPress={() => setIsRoleModalVisible(false)}
-                            className="w-full py-3 items-center justify-center rounded-xl bg-zinc-200 dark:bg-zinc-800"
+                            className="w-full py-3 items-center justify-center rounded-xl"
+                            style={{ backgroundColor: colors.bg.darker }}
                         >
                             <AppText className="font-bold text-foreground">Cancel</AppText>
                         </Pressable>
@@ -266,10 +279,13 @@ export const GroupMemberDetailsBottomSheet = ({
                 onRequestClose={() => setIsRemoveModalVisible(false)}
             >
                 <View className="flex-1 justify-center items-center bg-black/60 px-6">
-                    <View className="bg-background w-full rounded-3xl p-6 border border-zinc-200 dark:border-zinc-800">
+                    <View className="bg-background w-full rounded-3xl p-6 border border-border-input">
                         <View className="items-center mb-4">
-                            <View className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-950 items-center justify-center mb-2">
-                                <Iconify icon="heroicons:exclamation-triangle" size={28} color="#DC2626" />
+                            <View
+                                className="w-12 h-12 rounded-full items-center justify-center mb-2"
+                                style={{ backgroundColor: `${colors.status.error}22` }}
+                            >
+                                <Iconify icon="heroicons:exclamation-triangle" size={28} color={colors.status.error} />
                             </View>
                             <AppText variant="h3" className="font-black text-foreground text-center text-xl">
                                 Remove Group Member
@@ -284,33 +300,44 @@ export const GroupMemberDetailsBottomSheet = ({
                                 <View className="flex-row space-x-3">
                                     <Pressable
                                         onPress={() => setIsRemoveModalVisible(false)}
-                                        className="flex-1 py-3 items-center justify-center rounded-xl bg-zinc-200 dark:bg-zinc-800"
+                                        className="flex-1 py-3 items-center justify-center rounded-xl"
+                                        style={{ backgroundColor: colors.bg.darker }}
                                     >
                                         <AppText className="font-bold text-foreground">Cancel</AppText>
                                     </Pressable>
                                     <Pressable
                                         onPress={handleRemoveUserSubmit}
                                         disabled={isRemovingUser}
-                                        className="flex-1 py-3 items-center justify-center rounded-xl bg-red-600 active:opacity-80"
+                                        className="flex-1 py-3 items-center justify-center rounded-xl active:opacity-80"
+                                        style={{ backgroundColor: colors.status.error }}
                                     >
                                         {isRemovingUser ? (
-                                            <ActivityIndicator size="small" color="#FFF" />
+                                            <ActivityIndicator size="small" color={colors.text.contrast} />
                                         ) : (
-                                            <AppText className="font-bold text-white">Confirm Remove</AppText>
+                                            <AppText className="font-bold" style={{ color: colors.text.contrast }}>
+                                                Confirm Remove
+                                            </AppText>
                                         )}
                                     </Pressable>
                                 </View>
                             </>
                         ) : (
                             <>
-                                <View className="p-4 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 mb-6">
-                                    <AppText className="text-center text-[#DC2626] font-semibold text-sm">
+                                <View
+                                    className="p-4 rounded-xl border mb-6"
+                                    style={{
+                                        backgroundColor: `${colors.status.error}18`,
+                                        borderColor: `${colors.status.error}44`,
+                                    }}
+                                >
+                                    <AppText className="text-center font-semibold text-sm" style={{ color: colors.status.error }}>
                                         Action Blocked: This user has active open debt metrics or unsettled records inside this workspace ledger.
                                     </AppText>
                                 </View>
                                 <Pressable
                                     onPress={() => setIsRemoveModalVisible(false)}
-                                    className="w-full py-3 items-center justify-center rounded-xl bg-zinc-200 dark:bg-zinc-800"
+                                    className="w-full py-3 items-center justify-center rounded-xl"
+                                    style={{ backgroundColor: colors.bg.darker }}
                                 >
                                     <AppText className="font-bold text-foreground">Close</AppText>
                                 </Pressable>

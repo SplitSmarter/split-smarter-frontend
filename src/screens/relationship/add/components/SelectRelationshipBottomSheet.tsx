@@ -12,6 +12,7 @@ import { useRouter } from 'expo-router';
 import { AppText } from "@/src/components/common/AppText";
 import { AppButton } from "@/src/components/common/AppButton";
 import { AppImage } from "@/src/components/common/AppImage";
+import { EntityFallbackIcon } from "@/src/components/common/EntityFallbackIcon";
 import { AppInput } from "@/src/components/common/AppInput";
 import { themeStore } from '@/src/store/themeStore';
 import { COLORS } from "@/src/constants/colors";
@@ -33,6 +34,7 @@ export const SelectRelationshipBottomSheet = ({
                                               }: SelectRelationshipBottomSheetProps) => {
     const theme = themeStore((state) => state.theme);
     const isDark = theme === 'dark';
+    const colors = isDark ? COLORS.dark : COLORS.light;
     const router = useRouter();
 
     const bottomSheetModalRef = useRef<BottomSheetModal>(null);
@@ -100,8 +102,8 @@ export const SelectRelationshipBottomSheet = ({
             onDismiss={onClose}
             backdropComponent={renderBackdrop}
             enablePanDownToClose={true}
-            backgroundStyle={{ backgroundColor: isDark ? '#121212' : '#FFFFFF', borderRadius: 40 }}
-            handleIndicatorStyle={{ backgroundColor: isDark ? '#333' : '#E5E5E5' }}
+            backgroundStyle={{ backgroundColor: colors.bg.overlay, borderRadius: 40 }}
+            handleIndicatorStyle={{ backgroundColor: colors.icon.lighter }}
             keyboardBehavior="interactive"
             keyboardBlurBehavior="restore"
         >
@@ -111,7 +113,7 @@ export const SelectRelationshipBottomSheet = ({
                     {/* Header Controls */}
                     <View className="flex-row items-center justify-between mb-6">
                         <Pressable onPress={onClose} className="p-2 rounded-full">
-                            <Iconify icon="heroicons:chevron-left" size={24} color={isDark ? "#FFF" : "#000"} />
+                            <Iconify icon="heroicons:chevron-left" size={24} color={colors.icon.primary} />
                         </Pressable>
                         <AppText variant="h4" className="font-bold text-text-primary">Select Relation</AppText>
                         <View className="w-10" />
@@ -131,7 +133,7 @@ export const SelectRelationshipBottomSheet = ({
 
                     {loading ? (
                         <View className="flex-1 justify-center">
-                            <ActivityIndicator size="large" color={COLORS.light.brand.primary} />
+                            <ActivityIndicator size="large" color={colors.icon.primary} />
                         </View>
                     ) : (
                         <BottomSheetScrollView
@@ -153,15 +155,19 @@ export const SelectRelationshipBottomSheet = ({
                                                         onSelect(item);
                                                         bottomSheetModalRef.current?.dismiss();
                                                     }}
-                                                    className={`flex-row items-center p-3 rounded-2xl ${
-                                                        isSelected ? 'bg-accent-sky-bg border border-accent-sky' : 'bg-white dark:bg-zinc-900 border border-transparent'
+                                                    className={`flex-row items-center p-3 rounded-2xl border ${
+                                                        isSelected ? 'bg-accent-sky-bg border-accent-sky' : 'border-transparent'
                                                     }`}
+                                                    style={isSelected ? undefined : { backgroundColor: colors.bg.lighter }}
                                                 >
                                                     <AppImage
                                                         url={item.with_user.avatar?.url}
                                                         id={item.with_user.avatar?.id}
                                                         size="sm"
                                                         variant="circular"
+                                                        fallbackIcon={
+                                                            <EntityFallbackIcon kind="user" size={18} color={colors.icon.lighter} />
+                                                        }
                                                     />
                                                     <View className="flex-1 ml-3">
                                                         <AppText className="font-semibold text-text-primary">
@@ -174,7 +180,7 @@ export const SelectRelationshipBottomSheet = ({
                                                     <Iconify
                                                         icon={isSelected ? "heroicons:check-circle-solid" : "heroicons:circle"}
                                                         size={24}
-                                                        color={isSelected ? COLORS.icon_primary_darker_light : COLORS.icon_secondary_light}
+                                                        color={isSelected ? colors.accent.sky : colors.icon.primary}
                                                     />
                                                 </Pressable>
                                             );
@@ -183,7 +189,7 @@ export const SelectRelationshipBottomSheet = ({
                                 </View>
                             ) : (
                                 <View className="items-center py-10">
-                                    <Iconify icon="heroicons:face-frown" size={40} color={COLORS.icon_secondary_light} />
+                                    <Iconify icon="heroicons:face-frown" size={40} color={colors.icon.primary} />
                                     <AppText className="text-text-primary-lighter mt-2">No matching relations found</AppText>
                                 </View>
                             )}

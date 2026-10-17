@@ -14,6 +14,7 @@ import { AppInput } from "@/src/components/common/AppInput";
 import { Iconify } from "react-native-iconify";
 import { COLORS } from "@/src/constants/colors";
 import { AppImageV2 } from "@/src/components/common/AppImageV2";
+import { EntityFallbackIcon } from "@/src/components/common/EntityFallbackIcon";
 import { AppButton } from "@/src/components/common/AppButton";
 import { AddRelationApi } from "@/src/api/relations/relation";
 
@@ -28,6 +29,7 @@ interface RelationshipFormProps {
 }
 
 export function RelationshipForm({ isDark, defaultAvatarAssetId, onSuccess }: RelationshipFormProps) {
+    const colors = isDark ? COLORS.dark : COLORS.light;
     const router = useRouter();
     const [searchQuery, setSearchQuery] = useState('');
     const [globalResults, setGlobalResults] = useState<UserSearchResponse[]>([]);
@@ -160,10 +162,10 @@ export function RelationshipForm({ isDark, defaultAvatarAssetId, onSuccess }: Re
                         />
 
                         {searchQuery.trim().length > 0 && (
-                            <View className="mt-2 rounded-2xl overflow-hidden border border-border-input bg-white dark:bg-zinc-900 shadow-sm">
+                            <View className="mt-2 rounded-2xl overflow-hidden border border-border-input bg-bg-canvas shadow-sm">
                                 <Pressable
                                     onPress={() => setSelectedPerson({ type: 'CUSTOM', name: searchQuery.trim() })}
-                                    className="flex-row items-center p-4 border-b border-gray-100 dark:border-zinc-800 bg-bg-secondary/5"
+                                    className="flex-row items-center p-4 border-b border-border-input bg-bg-secondary/5"
                                 >
                                     <Iconify icon="heroicons:user-plus-solid" size={22} color={COLORS.icon_primary_darker_light} />
                                     <AppText className="ml-3 font-semibold text-text-primary flex-1">
@@ -186,15 +188,18 @@ export function RelationshipForm({ isDark, defaultAvatarAssetId, onSuccess }: Re
                                                 avatarId: user.avatar?.id,
                                                 avatarUrl: user.avatar?.url
                                             })}
-                                            className={`flex-row items-center p-4 border-b border-gray-100 dark:border-zinc-800 ${
-                                                hasExistingRelation ? 'opacity-40 bg-gray-50/50 dark:bg-zinc-900/50' : ''
+                                            className={`flex-row items-center p-4 border-b border-border-input ${
+                                                hasExistingRelation ? 'opacity-40 bg-bg-primary/50' : ''
                                             }`}
                                         >
-                                            <View className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 dark:bg-zinc-800">
+                                            <View className="w-10 h-10 rounded-full overflow-hidden bg-bg-primary-darker">
                                                 <AppImageV2
                                                     id={user.avatar?.id || `${user.id}-search-img`}
                                                     url={user.avatar?.url}
                                                     style={{ width: '100%', height: '100%' }}
+                                                    fallbackComponent={
+                                                        <EntityFallbackIcon kind="user" size={20} color={colors.icon.lighter} />
+                                                    }
                                                 />
                                             </View>
 
@@ -209,14 +214,14 @@ export function RelationshipForm({ isDark, defaultAvatarAssetId, onSuccess }: Re
                                             </View>
 
                                             {hasExistingRelation ? (
-                                                <View className="flex-row items-center bg-gray-200/60 dark:bg-zinc-800 px-2.5 py-1 rounded-full">
-                                                    <Iconify icon="heroicons:lock-closed-solid" size={12} color={isDark ? "#A1A1AA" : "#71717A"} />
+                                                <View className="flex-row items-center bg-bg-primary-darker px-2.5 py-1 rounded-full">
+                                                    <Iconify icon="heroicons:lock-closed-solid" size={12} color={colors.icon.lighter} />
                                                     <AppText className="text-[10px] font-bold text-text-primary-lighter ml-1 uppercase tracking-wider">
                                                         Added
                                                     </AppText>
                                                 </View>
                                             ) : (
-                                                <Iconify icon="heroicons:check-badge" size={20} color="#3B82F6" />
+                                                <Iconify icon="heroicons:check-badge" size={20} color={colors.accent.sky} />
                                             )}
                                         </Pressable>
                                     );
@@ -227,11 +232,14 @@ export function RelationshipForm({ isDark, defaultAvatarAssetId, onSuccess }: Re
                 ) : (
                     <View className="flex-row items-center p-4 rounded-2xl bg-bg-primary-lighter border border-border-input justify-between">
                         <View className="flex-row items-center flex-1">
-                            <View className="w-12 h-12 rounded-full overflow-hidden bg-gray-100 dark:bg-zinc-800">
+                            <View className="w-12 h-12 rounded-full overflow-hidden bg-bg-primary-darker">
                                 <AppImageV2
                                     id={selectedPerson.type === 'VERIFIED' ? (selectedPerson.avatarId || `${selectedPerson.id}-ribbon-img`) : defaultAvatarAssetId}
                                     url={selectedPerson.type === 'VERIFIED' ? selectedPerson.avatarUrl : undefined}
                                     style={{ width: '100%', height: '100%' }}
+                                    fallbackComponent={
+                                        <EntityFallbackIcon kind="user" size={24} color={colors.icon.lighter} />
+                                    }
                                 />
                             </View>
                             <View className="ml-3 flex-1">
@@ -246,9 +254,9 @@ export function RelationshipForm({ isDark, defaultAvatarAssetId, onSuccess }: Re
                                 setSelectedPerson(null);
                                 setSelectedRelationshipId(null);
                             }}
-                            className="p-2 bg-gray-200 dark:bg-zinc-800 rounded-full"
+                            className="p-2 bg-bg-primary-darker rounded-full"
                         >
-                            <Iconify icon="heroicons:x-mark" size={16} color={isDark ? "#FFF" : "#000"} />
+                            <Iconify icon="heroicons:x-mark" size={16} color={colors.icon.primary} />
                         </Pressable>
                     </View>
                 )}
@@ -290,9 +298,11 @@ export function RelationshipForm({ isDark, defaultAvatarAssetId, onSuccess }: Re
                                             className="rounded-full"
                                             contentFit="cover"
                                             fallbackComponent={
-                                                <View style={{ width: 32, height: 32 }} className="bg-gray-200 dark:bg-zinc-800 rounded-full items-center justify-center">
-                                                    <Iconify icon="heroicons:heart" size={16} color={isSelected ? "#0284C7" : "#9CA3AF"} />
-                                                </View>
+                                                <EntityFallbackIcon
+                                                    kind="relationship"
+                                                    size={16}
+                                                    color={isSelected ? colors.accent.sky : colors.icon.lighter}
+                                                />
                                             }
                                         />
                                         <AppText

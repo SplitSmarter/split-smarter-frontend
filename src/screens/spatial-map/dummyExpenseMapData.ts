@@ -7,9 +7,6 @@ import {ExpenseCategoryBasicResponse, ExpenseDetailsBasicResponse} from "@/src/a
 import {MemoryBasicDetails, MemoryScope, MemorySource, MemoryStatus} from "@/src/api/dto/user/memory";
 import {LocationDetails} from "@/src/api/dto/user/place";
 
-export const HOME_GEO = {latitude: 12.9352, longitude: 77.6245};
-export const HABIT_RADIUS_M = 2200;
-
 export const BANGALORE_REGION = {
     latitude: 12.96,
     longitude: 77.63,
@@ -57,6 +54,9 @@ export const MEMORIES: Record<string, MemoryBasicDetails> = {
     },
 };
 
+/** Mock location may carry a Google Places ID for external maps deep-links. */
+type MockLocationDetails = LocationDetails & {google_place_id?: string | null};
+
 // --- Helper for Mock LocationDetails ---
 const createLocation = (
     id: number,
@@ -68,10 +68,13 @@ const createLocation = (
     state: string,
     country: string,
     country_code: string,
-    rating: number | null = 4.5
-): LocationDetails => ({
+    rating: number | null = 4.5,
+    /** Omit / null → directions CTA disabled (not a Google place id). */
+    googlePlaceId: string | null = `ChIJ_mock_place_${id}`,
+    provider: PlaceSource = PlaceSource.GOOGLE
+): MockLocationDetails => ({
     id,
-    provider: "GOOGLE" as PlaceSource,
+    provider,
     provider_id: id + 1000,
     name,
     address,
@@ -84,10 +87,11 @@ const createLocation = (
         longitude,
     },
     rating,
+    google_place_id: googlePlaceId,
 });
 
 // --- Mock Places (Updated LocationDetails schema) ---
-const PLACES: Record<string, LocationDetails> = {
+const PLACES: Record<string, MockLocationDetails> = {
     thirdWave: createLocation(
         1,
         "Third Wave Coffee",
@@ -130,7 +134,10 @@ const PLACES: Record<string, LocationDetails> = {
         "Bengaluru",
         "Karnataka",
         "India",
-        "IN"
+        "IN",
+        4.2,
+        null,
+        PlaceSource.CUSTOM // app place id deep-link; Directions disabled
     ),
     bluPetal: createLocation(
         5,
@@ -306,7 +313,10 @@ const PLACES: Record<string, LocationDetails> = {
         "Tokyo",
         "Tokyo",
         "Japan",
-        "JP"
+        "JP",
+        4.0,
+        null,
+        PlaceSource.CUSTOM
     ),
     anjuna: createLocation(
         21,
@@ -637,14 +647,3 @@ export const DUMMY_EXPENSES: ExpenseDetailsBasicResponse[] = [
     buildExpense(PLACES.brewery, 1920, "dining", "2026-09-18T21:30:00.000Z", {isSplit: true}),
     buildExpense(PLACES.thirdWave, 305, "dining", "2026-09-22T08:50:00.000Z"),
 ];
-
-export const MONTH_FILTERS = [
-    {id: "all", label: "All time"},
-    {id: "2026-03", label: "Mar"},
-    {id: "2026-04", label: "Apr"},
-    {id: "2026-05", label: "May"},
-    {id: "2026-06", label: "Jun"},
-    {id: "2026-07", label: "Jul"},
-    {id: "2026-08", label: "Aug"},
-    {id: "2026-09", label: "Sep"},
-] as const;

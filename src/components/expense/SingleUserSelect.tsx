@@ -125,8 +125,10 @@ const SingleUserSelect = ({ selectedUser, onSelectUser, title }: SingleUserSelec
         onSelectUser(user);
     };
 
+    const colors = isDark ? COLORS.dark : COLORS.light;
+
     return (
-        <SafeAreaView className="flex-1" style={{ backgroundColor: isDark ? "#121212" : "#F8F9FA" }}>
+        <SafeAreaView className="flex-1" style={{ backgroundColor: colors.bg.primary }}>
             <View className="flex-1">
 
                 {/* Profile Suggestion Section Grid */}
@@ -150,7 +152,7 @@ const SingleUserSelect = ({ selectedUser, onSelectUser, title }: SingleUserSelec
                     </AppText>
                     {selectedUser && (
                         <View className="flex-row items-center gap-x-1">
-                            <Iconify icon="heroicons:check-circle-20-solid" size={14} color={COLORS.light.brand.primary} />
+                            <Iconify icon="heroicons:check-circle-20-solid" size={14} color={colors.icon.brand} />
                             <AppText variant="caption-xs" className="text-green-increase font-medium">Ready</AppText>
                         </View>
                     )}
@@ -160,7 +162,7 @@ const SingleUserSelect = ({ selectedUser, onSelectUser, title }: SingleUserSelec
                 <View className="flex-1 px-4 mt-3">
                     {loading ? (
                         <View className="flex-1 items-center justify-center pt-8">
-                            <ActivityIndicator size="small" color={COLORS.light.brand.primary} />
+                            <ActivityIndicator size="small" color={colors.icon.primary} />
                         </View>
                     ) : selectedUser ? (
                         <FlatList
@@ -182,10 +184,8 @@ const SingleUserSelect = ({ selectedUser, onSelectUser, title }: SingleUserSelec
                             )}
                         />
                     ) : (
-                        <View className={`items-center justify-center p-8 rounded-2xl border border-dashed border-border-input/20 ${
-                            isDark ? 'bg-gray-900/30' : 'bg-gray-50/50'
-                        }`}>
-                            <Iconify icon="heroicons:user" size={28} color={isDark ? '#4B5563' : '#9CA3AF'} className="opacity-60 mb-2" />
+                        <View className="items-center justify-center p-8 rounded-2xl border border-dashed border-border-input/20 bg-bg-primary/30">
+                            <Iconify icon="heroicons:user" size={28} color={colors.icon.lighter} className="opacity-60 mb-2" />
                             <AppText variant="body-small" className="text-text-primary-lighter text-center opacity-60">
                                 {t('transfer.no_recipient_selected', 'Tap a suggestion above to designate this participant field.')}
                             </AppText>

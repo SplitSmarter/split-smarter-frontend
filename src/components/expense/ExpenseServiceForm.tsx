@@ -12,7 +12,7 @@ export default function ExpenseServiceForm({ serviceDetail, setServiceDetail }: 
         <View className="mb-4">
             <Text className="font-medium">Service Details</Text>
             <TextInput
-                className="border border-gray-300 rounded-lg p-2"
+                className="border border-border-input rounded-lg p-2"
                 placeholder="Enter service description"
                 value={serviceDetail}
                 onChangeText={setServiceDetail}

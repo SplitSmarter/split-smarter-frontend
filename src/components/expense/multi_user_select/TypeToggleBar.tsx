@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import { Pressable, View } from 'react-native';
 import { AppText } from '@/src/components/common/AppText';
+import { COLORS } from '@/src/constants/colors';
 
 export type SplitSelectType = 'split' | 'paidBy';
 
@@ -16,10 +17,11 @@ const TABS: { type: SplitSelectType; label: string }[] = [
 ];
 
 const TypeToggleBar = memo(({ activeType, isDark, onChangeType }: TypeToggleBarProps) => {
-    const trackBg = isDark ? '#1F2937' : '#E2E8F0';
-    const activeBg = isDark ? '#374151' : '#FFFFFF';
-    const activeText = isDark ? '#F9FAFB' : '#0F172A';
-    const inactiveText = isDark ? '#9CA3AF' : '#64748B';
+    const colors = isDark ? COLORS.dark : COLORS.light;
+    const trackBg = colors.bg.darker;
+    const activeBg = colors.bg.lighter;
+    const activeText = colors.text.primary;
+    const inactiveText = colors.text.lighter;
 
     return (
         <View className="px-4 pt-3 pb-2">
@@ -38,7 +40,7 @@ const TypeToggleBar = memo(({ activeType, isDark, onChangeType }: TypeToggleBarP
                                 isActive
                                     ? {
                                           backgroundColor: activeBg,
-                                          shadowColor: '#000',
+                                          shadowColor: colors.text.darker,
                                           shadowOffset: { width: 0, height: 2 },
                                           shadowOpacity: 0.1,
                                           shadowRadius: 4,

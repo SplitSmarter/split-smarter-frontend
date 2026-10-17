@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Pressable, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Pressable, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Iconify } from 'react-native-iconify';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,12 +8,14 @@ import { AppInput } from "@/src/components/common/AppInput";
 import { AppButton } from "@/src/components/common/AppButton";
 import { AppImage } from "@/src/components/common/AppImage";
 import { themeStore } from "@/src/store/themeStore";
+import { COLORS } from '@/src/constants/colors';
 import { systemStore } from "@/src/store/systemStore";
 import { CreateGroupCategoryApi } from "@/src/api/group/categories";
 import { useAlert } from "@/src/context/alertContext";
 
 export default function AddGroupCategoryScreen() {
     const isDark = themeStore((state) => state.theme === 'dark');
+    const colors = isDark ? COLORS.dark : COLORS.light;
     const { defaults } = systemStore();
     const { showAlert } = useAlert();
     const router = useRouter();
@@ -80,7 +82,7 @@ export default function AddGroupCategoryScreen() {
             {/* Header Area */}
             <View className="px-6 pt-2 pb-4 flex-row items-center justify-between">
                 <Pressable onPress={handleBack} className="p-2 rounded-full" disabled={isSaving}>
-                    <Iconify icon="heroicons:chevron-left" size={24} color={isDark ? "#FFF" : "#000"} />
+                    <Iconify icon="heroicons:chevron-left" size={24} color={colors.icon.primary} />
                 </Pressable>
                 <AppText variant="h4" className="font-bold text-text-primary">New Group Category</AppText>
                 <View className="w-10" />
@@ -95,7 +97,7 @@ export default function AddGroupCategoryScreen() {
                 {/* Avatar Display Section */}
                 <View className="items-center mb-8 mt-4">
                     <View className="relative">
-                        <View className={`w-24 h-24 rounded-3xl overflow-hidden border-2 ${isDark ? 'border-white/10' : 'border-gray-100'}`}>
+                        <View className="w-24 h-24 rounded-3xl overflow-hidden border-2 border-border-input">
                             <AppImage
                                 url={defaultIcon?.url}
                                 id={defaultIcon?.id}
@@ -104,7 +106,7 @@ export default function AddGroupCategoryScreen() {
                             />
                         </View>
                         <Pressable
-                            className="absolute bottom-[-8] right-[-8] bg-bg-secondary p-2 rounded-full border-2 border-white"
+                            className="absolute bottom-[-8] right-[-8] bg-bg-secondary p-2 rounded-full border-2 border-bg-canvas"
                             onPress={() => console.log("Image picker workflow placeholder")}
                         >
                             <Iconify icon="heroicons:pencil-square" size={14} color="white" />
@@ -132,19 +134,21 @@ export default function AddGroupCategoryScreen() {
 
                 {/* Metadata Context Sections */}
                 <View className="mt-8 gap-y-4">
-                    <SectionBox title="Suggestions" message="No Suggestions" isDark={isDark} />
-                    <SectionBox title="Similar Categories" message="No similar categories found" isDark={isDark} />
+                    <SectionBox title="Suggestions" message="No Suggestions" />
+                    <SectionBox title="Similar Categories" message="No similar categories found" />
                 </View>
 
                 {/* Form Submission Action */}
                 <View className="mt-10">
                     <AppButton
                         variant="primary"
-                        className="w-full h-14 rounded-2xl bg-green-increase"
+                        className="w-full h-14 rounded-2xl"
                         onPress={handleSave}
                         disabled={isSaving}
+                        loading={isSaving}
+                        loadingText="Saving..."
                     >
-                        {isSaving ? <ActivityIndicator color="white" /> : "Save Category"}
+                        Save Category
                     </AppButton>
                 </View>
             </ScrollView>
@@ -152,8 +156,8 @@ export default function AddGroupCategoryScreen() {
     );
 }
 
-const SectionBox = ({ title, message, isDark }: { title: string, message: string, isDark: boolean }) => (
-    <View className={`p-4 rounded-3xl border ${isDark ? 'bg-white/5 border-white/10' : 'bg-gray-50 border-gray-100'}`}>
+const SectionBox = ({ title, message }: { title: string; message: string }) => (
+    <View className="p-4 rounded-3xl border bg-bg-canvas border-border-input">
         <AppText variant="body-base" className="font-bold mb-4 text-text-primary">{title}</AppText>
         <View className="items-center py-4">
             <AppText variant="caption-xs" className="text-text-primary-lighter italic text-center">{message}</AppText>

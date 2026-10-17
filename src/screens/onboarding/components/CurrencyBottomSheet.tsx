@@ -1,20 +1,26 @@
-import React, { useCallback, useMemo, useRef, useEffect } from 'react';
-import { View, Pressable } from 'react-native';
+import React, {useCallback, useMemo, useRef, useEffect, useLayoutEffect, useState} from 'react';
+import {View, Pressable} from 'react-native';
 import {
     BottomSheetModal,
     BottomSheetFlatList,
     BottomSheetBackdrop,
-    BottomSheetBackdropProps
+    BottomSheetBackdropProps,
 } from '@gorhom/bottom-sheet';
-import { useTranslation } from 'react-i18next';
-import { themeStore } from '@/src/store/themeStore';
-import { Iconify } from 'react-native-iconify';
-import { AppText } from "@/src/components/common/AppText";
-import { AppButton } from "@/src/components/common/AppButton";
-import { AppImage } from "@/src/components/common/AppImage"; // Import AppImage
-import { Currency } from "@/src/constants/expense/currency";
-import { COLORS } from "@/src/constants/colors";
-import { i18n as i18nInstance } from "@/src/i18n/index";
+import {useTranslation} from 'react-i18next';
+import {themeStore} from '@/src/store/themeStore';
+import {Iconify} from 'react-native-iconify';
+import {AppText} from '@/src/components/common/AppText';
+import {AppInput} from '@/src/components/common/AppInput';
+import {AppImage} from '@/src/components/common/AppImage';
+import {EntityFallbackIcon} from '@/src/components/common/EntityFallbackIcon';
+import {Currency} from '@/src/constants/expense/currency';
+import {COLORS} from '@/src/constants/colors';
+import {i18n as i18nInstance} from '@/src/i18n/index';
+
+type CurrencyItem = (typeof Currency)[keyof typeof Currency];
+
+const ALL_CURRENCIES = Object.values(Currency);
+const SEARCH_DEBOUNCE_MS = 320;
 
 interface CurrencyBottomSheetProps {
     isVisible: boolean;
@@ -24,111 +30,229 @@ interface CurrencyBottomSheetProps {
 }
 
 export const CurrencyBottomSheet = React.memo(({
-                                                   isVisible,
-                                                   onClose,
-                                                   currentCurrency,
-                                                   onSelect
-                                               }: CurrencyBottomSheetProps) => {
-    const { t } = useTranslation('translation', { i18n: i18nInstance });
-    const { theme } = themeStore();
+    isVisible,
+    onClose,
+    currentCurrency,
+    onSelect,
+}: CurrencyBottomSheetProps) => {
+    const {t, i18n} = useTranslation('translation', {i18n: i18nInstance});
+    const {theme} = themeStore();
     const bottomSheetModalRef = useRef<BottomSheetModal>(null);
 
     const isDark = theme === 'dark';
-    const iconColor = isDark ? COLORS.icon_primary_dark : COLORS.icon_primary_light;
-    const brandGreen = isDark ? COLORS.icon_secondary_dark : COLORS.icon_secondary_light;
+    const colors = isDark ? COLORS.dark : COLORS.light;
+    const iconColor = colors.icon.primary;
     const snapPoints = useMemo(() => ['70%'], []);
 
+    /** Immediate input value — keeps typing fluent. */
+    const [search, setSearch] = useState('');
+    /** Applied filter query — updates after typing pauses. */
+    const [debouncedQuery, setDebouncedQuery] = useState('');
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Build search haystacks lazily / once per language — not on every open.
+    const currencySearchIndex = useMemo(
+        () =>
+            ALL_CURRENCIES.map((item) => ({
+                item,
+                haystack: `${item.code} ${item.symbol} ${item.countryTag} ${t(item.name)}`.toLowerCase(),
+            })),
+        // i18n.language keeps index in sync if locale changes without rebuilding on open.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [i18n.language],
+    );
+
     useEffect(() => {
-        if (isVisible) bottomSheetModalRef.current?.present();
-        else bottomSheetModalRef.current?.dismiss();
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+
+        const trimmed = search.trim();
+        if (!trimmed) {
+            setDebouncedQuery('');
+            return;
+        }
+
+        debounceRef.current = setTimeout(() => {
+            setDebouncedQuery(trimmed.toLowerCase());
+        }, SEARCH_DEBOUNCE_MS);
+
+        return () => {
+            if (debounceRef.current) clearTimeout(debounceRef.current);
+        };
+    }, [search]);
+
+    const filteredCurrencies = useMemo(() => {
+        if (!debouncedQuery) return ALL_CURRENCIES;
+        return currencySearchIndex
+            .filter(({haystack}) => haystack.includes(debouncedQuery))
+            .map(({item}) => item);
+    }, [currencySearchIndex, debouncedQuery]);
+
+    // Present/dismiss as early as possible (before paint) so open feels instant.
+    useLayoutEffect(() => {
+        if (isVisible) {
+            bottomSheetModalRef.current?.present();
+        } else {
+            bottomSheetModalRef.current?.dismiss();
+        }
     }, [isVisible]);
 
-    const renderBackdrop = useCallback((props: BottomSheetBackdropProps) => (
-        <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} opacity={0.5} pressBehavior="close" />
-    ), []);
+    // Reset search after visibility settles — don't block present().
+    useEffect(() => {
+        if (!isVisible) return;
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        setSearch('');
+        setDebouncedQuery('');
+    }, [isVisible]);
 
-    const renderCurrencyItem = useCallback(({ item }: { item: typeof Currency[keyof typeof Currency] }) => {
-        const isSelected = currentCurrency === item.code;
-        // Using the 4:3 ratio URL as discussed for better circular fit
-        const flagUrl = `https://flagcdn.com/256x192/${item.countryTag.toLowerCase()}.png`;
+    const renderBackdrop = useCallback(
+        (props: BottomSheetBackdropProps) => (
+            <BottomSheetBackdrop
+                {...props}
+                appearsOnIndex={0}
+                disappearsOnIndex={-1}
+                opacity={0.5}
+                pressBehavior="close"
+            />
+        ),
+        [],
+    );
 
-        return (
-            <Pressable
-                onPress={() => onSelect(item.code)}
-                className={`flex-row items-center p-4 rounded-2xl border ${
-                    isSelected ? 'border-accent-sky bg-accent-sky-bg' : 'border-bg-primary-darker'
-                }`}
-            >
-                {/* Using AppImage here:
-                    - id: provides unique cache key
-                    - url: the flag cdn link
-                    - size: 'md' (48px)
-                    - variant: 'circular' handles the rounding and overflow
-                */}
-                <AppImage
-                    id={`flag_${item.countryTag}`}
-                    url={flagUrl}
-                    size="md"
-                    variant="circular"
-                    borderEnabled={true}
-                    borderColor={isSelected ? 'rgba(40, 159, 50, 0.2)' : 'rgba(0,0,0,0.05)'}
-                    fallbackIcon={<Iconify icon="heroicons:flag" size={24} color="gray" />}
-                />
+    const handleClearSearch = useCallback(() => {
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        setSearch('');
+        setDebouncedQuery('');
+    }, []);
 
-                {/* Currency Details */}
-                <View className="flex-1 ml-4">
-                    <View className="flex-row items-center gap-x-2">
-                        <AppText variant="body-base" className={`font-bold ${isSelected ? 'text-accent-sky' : 'text-text-primary'}`}>
-                            {item.code}
-                        </AppText>
-                        <AppText variant="caption-xs" className="opacity-40 text-text-primary">
-                            ({item.symbol})
+    const renderCurrencyItem = useCallback(
+        ({item}: {item: CurrencyItem}) => {
+            const isSelected = currentCurrency === item.code;
+            const flagUrl = `https://flagcdn.com/256x192/${item.countryTag.toLowerCase()}.png`;
+
+            return (
+                <Pressable
+                    onPress={() => onSelect(item.code)}
+                    className={`flex-row items-center p-4 rounded-2xl border ${
+                        isSelected
+                            ? 'border-accent-sky bg-accent-sky-bg'
+                            : 'border-bg-primary-darker'
+                    }`}
+                >
+                    <AppImage
+                        id={`flag_${item.countryTag}`}
+                        url={flagUrl}
+                        size="md"
+                        variant="circular"
+                        borderEnabled={true}
+                        borderColor={
+                            isSelected ? `${colors.accent.sky}33` : `${colors.text.primary}0D`
+                        }
+                        fallbackIcon={
+                            <EntityFallbackIcon
+                                kind="currencyFlag"
+                                size={24}
+                                color={colors.icon.lighter}
+                            />
+                        }
+                    />
+
+                    <View className="flex-1 ml-4">
+                        <View className="flex-row items-center gap-x-2">
+                            <AppText
+                                variant="body-base"
+                                className={`font-bold ${isSelected ? 'text-accent-sky' : 'text-text-primary'}`}
+                            >
+                                {item.code}
+                            </AppText>
+                            <AppText variant="caption-xs" className="opacity-40 text-text-primary">
+                                ({item.symbol})
+                            </AppText>
+                        </View>
+                        <AppText variant="caption-xs" className="opacity-60 text-text-primary">
+                            {t(item.name)}
                         </AppText>
                     </View>
-                    <AppText variant="caption-xs" className="opacity-60 text-text-primary">
-                        {t(item.name)}
-                    </AppText>
-                </View>
 
-                {isSelected && (
-                    <Iconify icon="heroicons:check-circle-20-solid" size={24} color={brandGreen} />
-                )}
-            </Pressable>
-        );
-    }, [currentCurrency, brandGreen]);
+                    {isSelected && (
+                        <Iconify
+                            icon="heroicons:check-circle-20-solid"
+                            size={24}
+                            color={colors.accent.sky}
+                        />
+                    )}
+                </Pressable>
+            );
+        },
+        [currentCurrency, colors, onSelect, t],
+    );
 
     return (
         <BottomSheetModal
             ref={bottomSheetModalRef}
+            index={0}
             snapPoints={snapPoints}
+            enableDynamicSizing={false}
             onDismiss={onClose}
             backdropComponent={renderBackdrop}
             enablePanDownToClose={true}
-            backgroundStyle={{ backgroundColor: isDark ? '#121212' : '#FFFFFF' }}
-            handleIndicatorStyle={{ backgroundColor: isDark ? '#333' : '#E5E5E5', width: 40 }}
+            enableOverDrag={false}
+            backgroundStyle={{backgroundColor: colors.bg.overlay}}
+            handleIndicatorStyle={{backgroundColor: colors.icon.lighter, width: 40}}
+            keyboardBehavior="interactive"
+            keyboardBlurBehavior="restore"
+            android_keyboardInputMode="adjustResize"
         >
             <View className="flex-1 px-6 pt-2 pb-10">
-                <View className="relative items-center mb-6">
-                    <Pressable onPress={onClose} className="absolute right-0 top-0 p-2 bg-bg-primary-darker/10 rounded-full" style={{ zIndex: 10 }}>
-                        <Iconify icon="heroicons:x-mark" size={20} color={iconColor} />
+                <View className="relative mb-4 items-center justify-center py-1">
+                    <AppText variant="h4" className="font-bold text-text-primary text-center">
+                        {t('common.currency.select', 'Select Currency')}
+                    </AppText>
+                    <Pressable
+                        onPress={onClose}
+                        hitSlop={8}
+                        className="absolute right-0 top-0 p-2 bg-bg-primary-darker/10 rounded-full"
+                    >
+                        <Iconify icon="heroicons:x-mark" size={18} color={iconColor} />
                     </Pressable>
+                </View>
 
-                    <View className="w-16 h-16 bg-bg-secondary/10 rounded-full items-center justify-center mb-4">
-                        <Iconify icon="heroicons:banknotes" size={32} color={brandGreen} />
-                    </View>
-                    <AppText variant="h3">{t('common.currency.select', 'Select Currency')}</AppText>
+                <View className="mb-4">
+                    <AppInput
+                        placeholder={t('common.currency.search', 'Search currency...')}
+                        value={search}
+                        onChangeText={setSearch}
+                        autoCorrect={false}
+                        autoCapitalize="none"
+                        renderLeftIcon={(color) => (
+                            <Iconify icon="heroicons:magnifying-glass" size={20} color={color} />
+                        )}
+                        renderRightIcon={(color) =>
+                            search.length > 0 ? (
+                                <Pressable onPress={handleClearSearch} hitSlop={8}>
+                                    <Iconify icon="heroicons:x-mark" size={20} color={color} />
+                                </Pressable>
+                            ) : null
+                        }
+                    />
                 </View>
 
                 <BottomSheetFlatList
-                    data={Object.values(Currency)}
+                    data={filteredCurrencies}
                     keyExtractor={(item) => item.code}
-                    contentContainerStyle={{ gap: 12, paddingBottom: 20 }}
+                    contentContainerStyle={{gap: 12, paddingBottom: 20}}
                     renderItem={renderCurrencyItem}
+                    keyboardShouldPersistTaps="handled"
+                    initialNumToRender={10}
+                    maxToRenderPerBatch={8}
+                    windowSize={5}
+                    removeClippedSubviews
+                    ListEmptyComponent={
+                        <View className="items-center py-10">
+                            <AppText className="text-text-primary-lighter">
+                                {t('common.currency.no_results', 'No currencies found')}
+                            </AppText>
+                        </View>
+                    }
                 />
-
-                <AppButton onPress={onClose} variant="primary" size="lg" className="mt-4">
-                    {t('common.done', 'Done')}
-                </AppButton>
             </View>
         </BottomSheetModal>
     );

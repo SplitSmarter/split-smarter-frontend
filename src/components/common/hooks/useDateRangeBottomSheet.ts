@@ -54,31 +54,28 @@ export const useDateRangeBottomSheet = (
 
     const palette = useMemo(
         () => ({
-            // Match dashboard dark canvas (#0C0C0C); cards sit slightly elevated
             background: isDark ? colors.bg.canvas : colors.bg.primary,
             cardBg: isDark ? colors.bg.overlay : colors.bg.lighter,
-            // Keep in sync with cardBg — calendar inners historically used this token
             canvasBg: isDark ? colors.bg.overlay : colors.bg.lighter,
             handle: colors.status.border,
             textPrimary: colors.text.primary,
             textLighter: colors.text.lighter,
             border: colors.status.border,
-            borderSoft: isDark ? '#1A1A1A' : colors.status.border,
+            borderSoft: colors.bg.darker,
             iconPrimary: colors.icon.primary,
-            // Warm range accents (dashboard filter chrome)
-            range: isDark ? '#F08A3A' : '#E07A2F',
-            rangeMiddle: isDark ? '#3D2918' : '#FDEAD7',
-            textOnMiddle: isDark ? '#FED7AA' : '#9A3412',
-            todayRing: isDark ? '#F08A3A' : '#E07A2F',
-            todayText: isDark ? '#FDBA74' : '#C2410C',
-            chipBg: isDark ? colors.bg.darker : colors.bg.darker,
-            chipActiveBg: isDark ? '#3D2918' : '#FDEAD7',
-            chipActiveBorder: isDark ? '#F08A3A' : '#E07A2F',
-            ctaBg: isDark ? '#E07A2F' : '#D2691E',
-            ctaDisabled: isDark ? '#4A3420' : '#F6C9A3',
+            range: colors.accent.sky,
+            rangeMiddle: colors.accent.skyBg,
+            textOnMiddle: colors.accent.sky,
+            todayRing: colors.accent.sky,
+            todayText: colors.accent.sky,
+            chipBg: colors.bg.darker,
+            chipActiveBg: colors.accent.skyBg,
+            chipActiveBorder: colors.accent.sky,
+            ctaBg: colors.brand.primary,
+            ctaDisabled: colors.status.border,
             ctaLabel: colors.text.contrast,
-            ctaLabelDisabled: isDark ? 'rgba(255,255,255,0.45)' : 'rgba(122, 54, 18, 0.45)',
-            textDisabled: isDark ? '#525252' : '#A1A1AA',
+            ctaLabelDisabled: isDark ? `${colors.text.contrast}73` : `${colors.text.contrast}73`,
+            textDisabled: colors.text.placeholder,
         }),
         [colors, isDark]
     );
@@ -88,7 +85,7 @@ export const useDateRangeBottomSheet = (
             buildDateRangeMarks(startDate, endDate, {
                 range: palette.range,
                 rangeMiddle: palette.rangeMiddle,
-                textOnRange: '#FFFFFF',
+                textOnRange: COLORS.light.text.contrast,
                 textOnMiddle: palette.textOnMiddle,
             }),
         [startDate, endDate, palette.range, palette.rangeMiddle, palette.textOnMiddle]

@@ -3,6 +3,7 @@ import axiosUserInstance from '@/src/api/axiosUserServiceInstance';
 import {SuccessResponse} from '@/src/api/dto/ApiResponse';
 import {AnalyticsBucket} from '@/src/api/dto/expense/constant';
 import {
+    MultiPlaceAnalyticsBundleQueryParams,
     PlaceAnalyticsBundle,
     PlaceAnalyticsBundleQueryParams,
     PlaceAnalyticsQueryParams,
@@ -23,6 +24,71 @@ function buildCommonParams(params: PlaceAnalyticsQueryParams) {
         activity_limit: params.activity_limit ?? 5,
     };
 }
+
+/**
+ * GET /expense/v1/places/analytics
+ * Combined analytics across one or more place IDs.
+ */
+export const getMultiPlaceAnalyticsBundleApi = async (
+    placeIds: number[],
+    params: PlaceAnalyticsBundleQueryParams | MultiPlaceAnalyticsBundleQueryParams,
+) => {
+    try {
+        const res = await axiosUserInstance.get<SuccessResponse<PlaceAnalyticsBundle>>(
+            `${BASE_PATH}/places/analytics`,
+            {
+                params: {
+                    ...buildCommonParams(params),
+                    place_ids: placeIds,
+                    include: params.include,
+                },
+                paramsSerializer: (query) => qs.stringify(query, {arrayFormat: 'repeat'}),
+            }
+        );
+
+        if (res.data && res.data.success) {
+            return {
+                message: res.data.message,
+                data: res.data.data,
+            };
+        }
+        throw new Error('Invalid Response Schema');
+    } catch (error: any) {
+        return handleApiError(error);
+    }
+};
+
+/**
+ * GET /expense/v1/places/analytics/{section}
+ * Single analytics section combined across place IDs.
+ */
+export const getMultiPlaceAnalyticsSectionApi = async <S extends PlaceAnalyticsSection>(
+    placeIds: number[],
+    section: S,
+    params: PlaceAnalyticsQueryParams,
+) => {
+    try {
+        const res = await axiosUserInstance.get<
+            SuccessResponse<PlaceAnalyticsSectionData<S>>
+        >(`${BASE_PATH}/places/analytics/${section}`, {
+            params: {
+                ...buildCommonParams(params),
+                place_ids: placeIds,
+            },
+            paramsSerializer: (query) => qs.stringify(query, {arrayFormat: 'repeat'}),
+        });
+
+        if (res.data && res.data.success) {
+            return {
+                message: res.data.message,
+                data: res.data.data,
+            };
+        }
+        throw new Error('Invalid Response Schema');
+    } catch (error: any) {
+        return handleApiError(error);
+    }
+};
 
 /**
  * GET /expense/v1/places/{place_id}/analytics

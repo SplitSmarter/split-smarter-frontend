@@ -10,6 +10,7 @@ export interface EnrichedPlaceDetails {
         longitude: number;
     };
     city: string;
+    state: string;
     country: string;
     country_code: string;
     provider: PlaceSource;
@@ -43,6 +44,7 @@ export const fetchEnrichedPlaceDetails = async (ctx: FetchPlaceContext): Promise
         provider_id: ctx.provider_id,
         geo: { latitude: ctx.coordinate[1], longitude: ctx.coordinate[0] },
         city: p.city || p.town || p.county || p.district || "Unknown",
+        state: p.state || "",
         country: p.country || "Unknown",
         country_code: p.countrycode?.toUpperCase() || "UN",
         photos: [],
@@ -68,6 +70,7 @@ export const fetchEnrichedPlaceDetails = async (ctx: FetchPlaceContext): Promise
                 ...premiumData,
                 // Lock geo/location keys to guarantee they stay structured
                 city: details.city,
+                state: details.state || premiumData.state || "",
                 country: details.country,
                 country_code: details.country_code,
                 geo: details.geo

@@ -2,12 +2,13 @@ import React from 'react';
 import { View, TouchableOpacity, Animated, StyleSheet } from 'react-native';
 import { themeStore } from '@/src/store/themeStore';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { COLORS } from '@/src/constants/colors';
 
 const ThemeToggle = () => {
     const { theme, toggleTheme } = themeStore();
     const isDarkMode = theme === 'dark';
+    const colors = isDarkMode ? COLORS.dark : COLORS.light;
 
-    // Animation for sliding the ball
     const animatedValue = React.useRef(new Animated.Value(isDarkMode ? 1 : 0)).current;
 
     React.useEffect(() => {
@@ -18,20 +19,19 @@ const ThemeToggle = () => {
         }).start();
     }, [isDarkMode]);
 
-    // Interpolate the animated value for horizontal movement
     const translateX = animatedValue.interpolate({
         inputRange: [0, 1],
-        outputRange: [2, 26], // Adjust values to match your design
+        outputRange: [2, 26],
     });
 
     return (
         <TouchableOpacity onPress={toggleTheme} activeOpacity={0.8}>
-            <View style={[styles.toggleContainer, { backgroundColor: isDarkMode ? '#333' : '#00BCD4' }]}>
-                <Animated.View style={[styles.circle, { transform: [{ translateX }] }]}>
+            <View style={[styles.toggleContainer, { backgroundColor: isDarkMode ? colors.bg.lighter : colors.accent.sky }]}>
+                <Animated.View style={[styles.circle, { transform: [{ translateX }], backgroundColor: colors.bg.canvas }]}>
                     {isDarkMode ? (
-                        <MaterialCommunityIcons name="moon-waning-crescent" size={20} color="#fff" />
+                        <MaterialCommunityIcons name="moon-waning-crescent" size={20} color={colors.text.primary} />
                     ) : (
-                        <MaterialCommunityIcons name="white-balance-sunny" size={20} color="#FFA726" />
+                        <MaterialCommunityIcons name="white-balance-sunny" size={20} color={colors.status.warning} />
                     )}
                 </Animated.View>
             </View>
@@ -46,13 +46,11 @@ const styles = StyleSheet.create({
         borderRadius: 15,
         padding: 2,
         justifyContent: 'center',
-        backgroundColor: '#ccc',
     },
     circle: {
         width: 26,
         height: 26,
         borderRadius: 13,
-        backgroundColor: '#fff',
         justifyContent: 'center',
         alignItems: 'center',
         position: 'absolute',

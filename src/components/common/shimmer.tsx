@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Animated, Easing, StyleSheet, LayoutChangeEvent } from 'react-native';
 import { themeStore } from '@/src/store/themeStore';
+import { COLORS } from '@/src/constants/colors';
 
 export const Shimmer = ({ height, borderRadius = 20, className = "" }: { height: any, borderRadius?: number, className?: string }) => {
     const isDark = themeStore((state) => state.theme === 'dark');
+    const colors = isDark ? COLORS.dark : COLORS.light;
     const [viewWidth, setViewWidth] = useState(0);
     const shimmerAttr = useRef(new Animated.Value(0)).current;
 
@@ -36,7 +38,7 @@ export const Shimmer = ({ height, borderRadius = 20, className = "" }: { height:
             className={className}
             style={[
                 { height, borderRadius, overflow: 'hidden' },
-                { backgroundColor: isDark ? '#1E1E1E' : '#E5E7EB' }
+                { backgroundColor: colors.bg.darker }
             ]}
         >
             {viewWidth > 0 && (
@@ -45,7 +47,7 @@ export const Shimmer = ({ height, borderRadius = 20, className = "" }: { height:
                         StyleSheet.absoluteFill,
                         {
                             transform: [{ translateX }],
-                            backgroundColor: isDark ? '#2D2D2D' : '#F3F4F6',
+                            backgroundColor: colors.bg.lighter,
                             opacity: 0.6,
                             width: viewWidth * 0.5, // 50% of the container width
                         },

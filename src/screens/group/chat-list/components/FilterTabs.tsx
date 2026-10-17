@@ -1,7 +1,7 @@
 import React from 'react';
 import { ScrollView, Pressable } from 'react-native';
 import { AppText } from '@/src/components/common/AppText';
-import { FilterTab } from '..';
+import { FilterTab } from '../types';
 
 interface FilterTabsProps {
     activeTab: FilterTab;
@@ -25,7 +25,7 @@ export const FilterTabs = ({ activeTab, onTabSelect }: FilterTabsProps) => {
                     >
                         <AppText
                             className={`font-medium ${
-                                isActive ? 'text-bg-secondary' : 'text-text-secondary'
+                                isActive ? 'text-slate-900' : 'text-white/80'
                             }`}
                         >
                             {tab}

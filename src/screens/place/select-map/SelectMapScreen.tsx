@@ -2,6 +2,7 @@ import React from 'react';
 import {View, StyleSheet} from 'react-native';
 import MapView, {Marker, PROVIDER_GOOGLE} from 'react-native-maps';
 import {themeStore} from '@/src/store/themeStore';
+import {COLORS} from '@/src/constants/colors';
 import {darkMapStyle} from '@/src/constants/darkMapStyle';
 import {PlaceDetailBottomSheet} from './components/PlaceDetailBottomSheet';
 import {MapSearchOverlay} from './components/MapSearchOverlay';
@@ -15,6 +16,7 @@ import {
 
 const SelectMapScreen = () => {
     const isDark = themeStore((state) => state.theme === 'dark');
+    const colors = isDark ? COLORS.dark : COLORS.light;
     const {
         mapRef,
         selectedPlace,
@@ -64,14 +66,14 @@ const SelectMapScreen = () => {
                     <Marker
                         key={p.id}
                         coordinate={{latitude: p.geo.latitude, longitude: p.geo.longitude}}
-                        pinColor="#2D8A5B"
+                        pinColor={colors.accent.sky}
                         onPress={(e) => {
                             e.stopPropagation();
                             handleSavedMarkerPress(p);
                         }}
                     />
                 ))}
-                {tempMarker && <Marker coordinate={tempMarker} pinColor="#EA4335"/>}
+                {tempMarker && <Marker coordinate={tempMarker} pinColor={colors.status.error} />}
             </MapView>
 
             {!isSheetVisible && (

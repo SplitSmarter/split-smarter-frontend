@@ -55,7 +55,22 @@ const buildLineItems = (draftState: ExpenseDraftState): ItemComponent[] => {
             quantity: Math.max(1, Number(itemDraft.quantity || 1)),
             unit_cost: Number(itemDraft.cost),
             currency: draftState.currency,
-            shared_between: null,
+            shared_between:
+                itemDraft.sharedBetween && itemDraft.sharedBetween.length > 0
+                    ? itemDraft.sharedBetween.map((s) => ({
+                          user_id: Number(s.user_id),
+                          user_type: s.user_type || RelationWithUserType.USER,
+                          amount: Number(s.amount),
+                      }))
+                    : null,
+            paid_between:
+                itemDraft.paidBetween && itemDraft.paidBetween.length > 0
+                    ? itemDraft.paidBetween.map((s) => ({
+                          user_id: Number(s.user_id),
+                          user_type: s.user_type || RelationWithUserType.USER,
+                          amount: Number(s.amount),
+                      }))
+                    : null,
         }));
     }
 
@@ -73,6 +88,7 @@ const buildLineItems = (draftState: ExpenseDraftState): ItemComponent[] => {
             unit_cost: Number(draftState.totalAmount),
             currency: draftState.currency,
             shared_between: null,
+            paid_between: null,
         },
     ];
 };

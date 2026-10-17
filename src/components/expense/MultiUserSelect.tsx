@@ -11,6 +11,21 @@ import {userStore} from "@/src/store/userStore";
 import { COLORS } from '@/src/constants/colors';
 import {useExpenseDraftStore, PayerUser as StorePayerUser} from "@/src/store/draft/expenseDraftStore";
 import {DraftValidationErrorKey} from "@/src/interfaces/expense/draft_validation";
+import {
+    allocateEqualAmounts,
+    computePoolTotal,
+    distributeProportionalAmounts,
+    hasUnlockTotalDependents,
+    itemAttrByUser,
+    sumAllItemAttributions,
+    toPoolAmount,
+    toSettlementAmount,
+} from "@/src/utils/expense/expenseCalculations";
+import {
+    getDefaultExpenseItemDraft,
+    isSoleDefaultExpenseItem,
+} from "@/src/utils/expense/defaultExpenseItem";
+import {AppButton} from '@/src/components/common/AppButton';
 import React, {useCallback, useEffect, useMemo, useState, useRef} from 'react';
 import {
     FlatList,
@@ -55,13 +70,52 @@ const MultiUserSplitSelect = ({type, onSave}: MultiUserSplitSelectProps) => {
     const router = useRouter();
     const {user: currentUser} = userStore();
     const isDark = theme === 'dark';
+    const colors = isDark ? COLORS.dark : COLORS.light;
 
     const draft = useExpenseDraftStore();
-    const totalExpense = draft.totalAmount;
     const selectedGroupId = draft.groupId;
+    const itemAttrMap = useMemo(
+        () => itemAttrByUser(draft.expenseItems),
+        [draft.expenseItems]
+    );
+    const itemAttrSum = useMemo(
+        () => sumAllItemAttributions(draft.expenseItems),
+        [draft.expenseItems]
+    );
+    const itemAttrMapRef = useRef(itemAttrMap);
+    const itemAttrSumRef = useRef(itemAttrSum);
+    useEffect(() => {
+        itemAttrMapRef.current = itemAttrMap;
+    }, [itemAttrMap]);
+    useEffect(() => {
+        itemAttrSumRef.current = itemAttrSum;
+    }, [itemAttrSum]);
+
+    const paidBySplitMode = useExpenseDraftStore((s) => s.paidBySplitMode);
+    const splitBetweenSplitMode = useExpenseDraftStore((s) => s.splitBetweenSplitMode);
+    const setPaidBySplitMode = useExpenseDraftStore((s) => s.setPaidBySplitMode);
+    const setSplitBetweenSplitMode = useExpenseDraftStore((s) => s.setSplitBetweenSplitMode);
+
+    const resolveStoredMode = useCallback(
+        (side: SplitSelectType): SplitMode =>
+            side === 'paidBy' ? paidBySplitMode : splitBetweenSplitMode,
+        [paidBySplitMode, splitBetweenSplitMode],
+    );
+
+    const persistMode = useCallback(
+        (side: SplitSelectType, mode: SplitMode) => {
+            if (side === 'paidBy') setPaidBySplitMode(mode);
+            else setSplitBetweenSplitMode(mode);
+        },
+        [setPaidBySplitMode, setSplitBetweenSplitMode],
+    );
 
     const [activeType, setActiveType] = useState<SplitSelectType>(type);
-    const [splitMode, setSplitMode] = useState<SplitMode>('equal');
+    const [splitMode, setSplitMode] = useState<SplitMode>(() =>
+        type === 'paidBy'
+            ? useExpenseDraftStore.getState().paidBySplitMode
+            : useExpenseDraftStore.getState().splitBetweenSplitMode,
+    );
     const [availableUsers, setAvailableUsers] = useState<ToggleUserPayload[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -70,10 +124,26 @@ const MultiUserSplitSelect = ({type, onSave}: MultiUserSplitSelectProps) => {
         visible: false,
         msg: ''
     });
+    /** Deferred expense total when dependents exist — applied on Confirm */
+    const [pendingNextTotal, setPendingNextTotal] = useState<number | null>(null);
+    const [totalDriftModalVisible, setTotalDriftModalVisible] = useState(false);
+    const [confirmNextTotal, setConfirmNextTotal] = useState<number | null>(null);
 
-    const splitModeRef = useRef<SplitMode>('equal');
+    const entryTotalRef = useRef(draft.totalAmount);
+    const splitModeRef = useRef<SplitMode>(
+        type === 'paidBy'
+            ? useExpenseDraftStore.getState().paidBySplitMode
+            : useExpenseDraftStore.getState().splitBetweenSplitMode,
+    );
     const isTotalLockedRef = useRef<boolean>(true);
     const activeTypeRef = useRef<SplitSelectType>(type);
+
+    useEffect(() => {
+        entryTotalRef.current = draft.totalAmount;
+        setPendingNextTotal(null);
+        setTotalDriftModalVisible(false);
+        setConfirmNextTotal(null);
+    }, [activeType]);
 
     useEffect(() => {
         splitModeRef.current = splitMode;
@@ -96,8 +166,30 @@ const MultiUserSplitSelect = ({type, onSave}: MultiUserSplitSelectProps) => {
     const handleChangeActiveType = useCallback((nextType: SplitSelectType) => {
         if (nextType === activeTypeRef.current) return;
         manualAmountsRef.current = {};
+        const restoredMode = resolveStoredMode(nextType);
+        setSplitMode(restoredMode);
+        splitModeRef.current = restoredMode;
         setActiveType(nextType);
-    }, []);
+    }, [resolveStoredMode]);
+
+    // Keep local mode in sync if draft is reset while this screen is mounted.
+    useEffect(() => {
+        const stored = resolveStoredMode(activeType);
+        if (stored !== splitModeRef.current) {
+            setSplitMode(stored);
+            splitModeRef.current = stored;
+        }
+    }, [resolveStoredMode, activeType]);
+
+    const resolvedExpenseTotal = pendingNextTotal ?? draft.totalAmount;
+
+    /** Split edits the pool only; Paid By uses full expense total. */
+    const totalExpense = useMemo(() => {
+        if (activeType === 'split') {
+            return computePoolTotal(resolvedExpenseTotal, draft.expenseItems);
+        }
+        return resolvedExpenseTotal;
+    }, [activeType, resolvedExpenseTotal, draft.expenseItems]);
 
     const selectedUsers = useMemo<UserItem[]>(() => {
         const targetingStoreList = activeType === 'paidBy' ? draft.payers : draft.splitParticipants;
@@ -108,8 +200,13 @@ const MultiUserSplitSelect = ({type, onSave}: MultiUserSplitSelectProps) => {
                 u.user_type === RelationWithUserType.USER;
 
             const key = getUserItemKey(u.id, u.user_type);
+            const itemAttr = itemAttrMap.get(key) || 0;
 
             let cleanAmount = u.amount;
+            if (activeType === 'split') {
+                // Store holds settlement (pool + items); UI edits pool only
+                cleanAmount = toPoolAmount(u.amount, itemAttr);
+            }
             if (!isTotalLockedRef.current && splitModeRef.current === 'amount' && manualAmountsRef.current[key] !== undefined) {
                 cleanAmount = manualAmountsRef.current[key];
             }
@@ -124,7 +221,17 @@ const MultiUserSplitSelect = ({type, onSave}: MultiUserSplitSelectProps) => {
                 user_type: u.user_type
             };
         });
-    }, [draft.payers, draft.splitParticipants, activeType, currentUser, totalExpense, splitMode, isTotalLocked]);
+    }, [draft.payers, draft.splitParticipants, activeType, currentUser, totalExpense, splitMode, isTotalLocked, itemAttrMap]);
+
+    const equalShareLabel = useMemo(() => {
+        if (splitMode !== 'equal' || selectedUsers.length === 0) return null;
+        const chunks = allocateEqualAmounts(totalExpense, selectedUsers.length);
+        const min = Math.min(...chunks);
+        const max = Math.max(...chunks);
+        return min === max
+            ? `₹${min.toFixed(2)} each`
+            : `₹${min.toFixed(2)}–₹${max.toFixed(2)}`;
+    }, [splitMode, selectedUsers.length, totalExpense]);
 
     const selectedUsersRef = useRef<UserItem[]>([]);
 
@@ -132,25 +239,62 @@ const MultiUserSplitSelect = ({type, onSave}: MultiUserSplitSelectProps) => {
         selectedUsersRef.current = selectedUsers;
     }, [selectedUsers]);
 
-    const dispatchStoreUpdate = (updatedUsers: UserItem[], forceTotalUpdate?: number) => {
-        const serializedStoreList: StorePayerUser[] = updatedUsers.map(u => ({
-            id: u.id,
-            name: u.name,
-            avatar: u.avatarUrl ? {id: `avatar-${u.id}`, name: '', url: u.avatarUrl, extension: ''} : null,
-            amount: u.amount,
-            shares: u.shares ?? 1,
-            isLocked: u.isLocked,
-            user_type: u.user_type
-        }));
+    const sideHasUnlockDependents = useCallback(() => {
+        const side = activeTypeRef.current === 'split' ? 'split' : 'paidBy';
+        return hasUnlockTotalDependents(
+            side,
+            draft.payers,
+            draft.splitParticipants,
+            draft.expenseItems,
+            currentUser?.id,
+            entryTotalRef.current
+        );
+    }, [draft.payers, draft.splitParticipants, draft.expenseItems, currentUser?.id]);
 
-        if (activeTypeRef.current === 'paidBy') {
-            draft.setPayers(serializedStoreList);
-        } else {
+    const dispatchStoreUpdate = (updatedUsers: UserItem[], forceTotalUpdate?: number) => {
+        const isSplit = activeTypeRef.current === 'split';
+        const attrs = itemAttrMapRef.current;
+        const attrSum = itemAttrSumRef.current;
+
+        const serializedStoreList: StorePayerUser[] = updatedUsers.map(u => {
+            const key = getUserItemKey(u.id, u.user_type);
+            const itemAttr = attrs.get(key) || 0;
+            return {
+                id: u.id,
+                name: u.name,
+                avatar: u.avatarUrl ? {id: `avatar-${u.id}`, name: '', url: u.avatarUrl, extension: ''} : null,
+                // Persist settlement = pool UI amount + item attributions
+                amount: isSplit ? toSettlementAmount(u.amount, itemAttr) : u.amount,
+                shares: u.shares ?? 1,
+                isLocked: u.isLocked,
+                user_type: u.user_type
+            };
+        });
+
+        if (isSplit) {
             draft.setSplitParticipants(serializedStoreList);
+        } else {
+            draft.setPayers(serializedStoreList);
         }
 
         if (forceTotalUpdate !== undefined) {
-            draft.setTotalAmount(forceTotalUpdate);
+            // Keep pool+items for live UI math; Confirm Selection clears items and
+            // commits the edited pool/paid sum as the new expense total.
+            const nextExpenseTotal = isSplit
+                ? forceTotalUpdate + attrSum
+                : forceTotalUpdate;
+            const drifted = Math.abs(nextExpenseTotal - entryTotalRef.current) > 0.009;
+            if (drifted && sideHasUnlockDependents()) {
+                // Defer expense total write until Confirm Selection
+                setPendingNextTotal(nextExpenseTotal);
+            } else {
+                draft.setTotalAmount(nextExpenseTotal);
+                const defaultItem = getDefaultExpenseItemDraft(nextExpenseTotal);
+                if (defaultItem && (draft.expenseItems.length === 0 || isSoleDefaultExpenseItem(draft.expenseItems))) {
+                    draft.setExpenseItems([defaultItem]);
+                }
+                setPendingNextTotal(null);
+            }
         }
     };
 
@@ -453,13 +597,18 @@ const MultiUserSplitSelect = ({type, onSave}: MultiUserSplitSelectProps) => {
 
     const changeModeSetup = (mode: SplitMode) => {
         setSplitMode(mode);
+        splitModeRef.current = mode;
+        persistMode(activeTypeRef.current, mode);
         manualAmountsRef.current = {};
 
         const baselineUsers = selectedUsersRef.current.map(u => ({...u, isLocked: false}));
 
         if (mode === 'equal') {
-            const chunk = totalExpense / Math.max(1, baselineUsers.length);
-            dispatchStoreUpdate(baselineUsers.map(u => ({...u, amount: chunk})), totalExpense);
+            const chunks = allocateEqualAmounts(totalExpense, Math.max(1, baselineUsers.length));
+            dispatchStoreUpdate(
+                baselineUsers.map((u, i) => ({...u, amount: chunks[i] ?? 0})),
+                totalExpense,
+            );
         } else if (mode === 'shares') {
             const minAmount = Math.min(...baselineUsers.map(u => u.amount).filter(a => a > 0), totalExpense);
             const next = baselineUsers.map(u => ({
@@ -511,14 +660,15 @@ const MultiUserSplitSelect = ({type, onSave}: MultiUserSplitSelectProps) => {
                 updateBalances(next, splitModeRef.current, totalExpense);
             } else {
                 if (currentSelected.length === 1) {
+                    const halves = allocateEqualAmounts(totalExpense, 2);
                     next = [
                         {
                             ...currentSelected[0],
-                            amount: totalExpense / 2,
+                            amount: halves[0] ?? 0,
                             isLocked: false,
                             shares: currentSelected[0].shares ?? 1
                         },
-                        {...userToAdd, amount: totalExpense / 2}
+                        {...userToAdd, amount: halves[1] ?? 0}
                     ];
                 } else {
                     next = [...currentSelected, userToAdd];
@@ -565,8 +715,8 @@ const MultiUserSplitSelect = ({type, onSave}: MultiUserSplitSelectProps) => {
         }
 
         if (currentMode === 'equal') {
-            const equalAmount = targetGlobalExpense / users.length;
-            return users.map(u => ({...u, amount: equalAmount, isLocked: false}));
+            const chunks = allocateEqualAmounts(targetGlobalExpense, users.length);
+            return users.map((u, i) => ({...u, amount: chunks[i] ?? 0, isLocked: false}));
         }
 
         if (users.length === 1) {
@@ -585,8 +735,13 @@ const MultiUserSplitSelect = ({type, onSave}: MultiUserSplitSelectProps) => {
         if (users.length === 2) {
             const anyLocked = users.some(u => u.isLocked);
             if (!anyLocked) {
-                const half = targetGlobalExpense / 2;
-                return users.map(u => ({...u, amount: half, isLocked: false, shares: u.shares ?? 1}));
+                const halves = allocateEqualAmounts(targetGlobalExpense, 2);
+                return users.map((u, i) => ({
+                    ...u,
+                    amount: halves[i] ?? 0,
+                    isLocked: false,
+                    shares: u.shares ?? 1,
+                }));
             }
         }
 
@@ -614,7 +769,7 @@ const MultiUserSplitSelect = ({type, onSave}: MultiUserSplitSelectProps) => {
     return (
         <ScreenWrapper
             withPadding={false}
-            backgroundColor={isDark ? COLORS.dark.bg.primary : COLORS.light.bg.primary}
+            backgroundColor={colors.bg.primary}
             statusBarStyle={isDark ? "light-content" : "dark-content"}
             className="bg-bg-primary"
         >
@@ -669,34 +824,41 @@ const MultiUserSplitSelect = ({type, onSave}: MultiUserSplitSelectProps) => {
 
                 {/* Fixed Summary & Confirmation Dock */}
                 <View
-                    className={`p-5 border-t ${
-                        isDark ? 'bg-bg-primary-lighter border-gray-800' : 'bg-white border-gray-100'
-                    }`}
+                    className="p-5 border-t border-border-input"
+                    style={{ backgroundColor: colors.bg.lighter }}
                 >
                     <View
-                        className={`flex-row justify-between items-center mb-4 px-4 py-3.5 rounded-2xl ${isDark ? 'bg-gray-800/50' : 'bg-gray-50'}`}>
+                        className="flex-row justify-between items-center mb-4 px-4 py-3.5 rounded-2xl"
+                        style={{ backgroundColor: colors.bg.darker }}
+                    >
                         <View className="space-y-0.5">
                             <View className="flex-row items-center gap-x-1.5">
                                 <AppText variant="body-small"
-                                         className="opacity-50 uppercase tracking-wider font-semibold">Total
-                                    Expense</AppText>
+                                         className="opacity-50 uppercase tracking-wider font-semibold">
+                                    {activeType === 'split' && itemAttrSum > 0
+                                        ? 'Remaining to split'
+                                        : 'Total Expense'}
+                                </AppText>
 
                                 <Pressable
                                     onPress={() => {
                                         setIsTotalLocked(!isTotalLocked);
                                     }}
-                                    className="p-1 rounded-md active:bg-gray-500/10"
+                                    className="p-1 rounded-md"
                                 >
                                     {isTotalLocked ? (
-                                        <Iconify icon="heroicons:lock-closed" size={14} color="#F59E0B"/>
+                                        <Iconify icon="heroicons:lock-closed" size={14} color={colors.status.warning}/>
                                     ) : (
-                                        <Iconify icon="heroicons:lock-open" size={14} color={COLORS.light.brand.primary}/>
+                                        <Iconify icon="heroicons:lock-open" size={14} color={colors.icon.primary}/>
                                     )}
                                 </Pressable>
                             </View>
                             <AppText variant="body-small" className="text-green-increase font-medium">
                                 {activeType === 'paidBy' ? 'Paid by' : 'Splitting with'}{' '}
                                 {selectedUsers.length} {selectedUsers.length === 1 ? 'person' : 'people'}
+                                {activeType === 'split' && itemAttrSum > 0
+                                    ? ` · ₹${itemAttrSum.toFixed(2)} on items`
+                                    : ''}
                             </AppText>
                         </View>
                         <View className="items-end">
@@ -704,34 +866,181 @@ const MultiUserSplitSelect = ({type, onSave}: MultiUserSplitSelectProps) => {
                                      className="font-black tracking-tight text-green-increase">
                                 ₹{totalExpense.toFixed(2)}
                             </AppText>
-                            {splitMode === 'equal' && selectedUsers.length > 0 && (
+                            {equalShareLabel != null && (
                                 <AppText variant="caption-xs" className="opacity-40 font-medium mt-0.5">
-                                    ₹{(totalExpense / selectedUsers.length).toFixed(2)} each
+                                    {equalShareLabel}
                                 </AppText>
                             )}
                         </View>
                     </View>
 
                     <Pressable
-                        onPress={() => onSave?.(selectedUsers)}
+                        onPress={() => {
+                            const poolOrPaidSum = selectedUsers.reduce(
+                                (sum, u) => sum + (u.amount || 0),
+                                0
+                            );
+                            // Drift vs current expense (split still counts item floors).
+                            const expenseIfKeepingItems =
+                                activeType === 'split'
+                                    ? poolOrPaidSum + itemAttrSum
+                                    : poolOrPaidSum;
+                            const drifted =
+                                Math.abs(expenseIfKeepingItems - entryTotalRef.current) > 0.009;
+                            if (drifted && sideHasUnlockDependents()) {
+                                // Custom items / other side → confirm before replacing
+                                setConfirmNextTotal(poolOrPaidSum);
+                                setTotalDriftModalVisible(true);
+                                return;
+                            }
+                            if (pendingNextTotal != null) {
+                                draft.setTotalAmount(pendingNextTotal);
+                                const defaultItem = getDefaultExpenseItemDraft(pendingNextTotal);
+                                if (
+                                    defaultItem &&
+                                    (draft.expenseItems.length === 0 ||
+                                        isSoleDefaultExpenseItem(draft.expenseItems))
+                                ) {
+                                    draft.setExpenseItems([defaultItem]);
+                                }
+                                setPendingNextTotal(null);
+                            } else if (drifted) {
+                                draft.setTotalAmount(poolOrPaidSum);
+                                const defaultItem = getDefaultExpenseItemDraft(poolOrPaidSum);
+                                if (
+                                    defaultItem &&
+                                    (draft.expenseItems.length === 0 ||
+                                        isSoleDefaultExpenseItem(draft.expenseItems))
+                                ) {
+                                    draft.setExpenseItems([defaultItem]);
+                                }
+                                entryTotalRef.current = poolOrPaidSum;
+                            }
+                            onSave?.(selectedUsers);
+                        }}
                         style={({pressed}) => [{transform: [{scale: pressed ? 0.98 : 1}]}]}
                         className="h-14 bg-bg-secondary rounded-2xl flex-row items-center justify-center active:opacity-95 shadow-sm"
                     >
-                        <AppText className="text-white font-bold text-lg tracking-wide mr-2">Confirm Selection</AppText>
-                        <Iconify icon="heroicons:arrow-right-20-solid" size={20} color="white"/>
+                        <AppText className="text-text-secondary font-bold text-lg tracking-wide mr-2">Confirm Selection</AppText>
+                        <Iconify icon="heroicons:arrow-right-20-solid" size={20} color={colors.text.contrast}/>
                     </Pressable>
                 </View>
             </View>
 
+            <Modal visible={totalDriftModalVisible} animationType="fade" transparent>
+                <View className="flex-1 items-center justify-center bg-black/60 px-6">
+                    <View className="w-full rounded-3xl border border-border-input bg-bg-primary p-6">
+                        <View className="mb-4 items-center">
+                            <View className="mb-2 rounded-full bg-amber-500/10 p-3">
+                                <Iconify
+                                    icon="heroicons:exclamation-triangle"
+                                    size={32}
+                                    color={colors.status.warning}
+                                />
+                            </View>
+                            <AppText variant="h3" className="text-center font-bold text-text-primary">
+                                Update expense total?
+                            </AppText>
+                        </View>
+                        <AppText className="mb-2 text-center text-text-primary-lighter">
+                            Expense total would change from ₹{entryTotalRef.current.toFixed(2)} to ₹
+                            {(confirmNextTotal ?? 0).toFixed(2)}. The other side (
+                            {activeType === 'paidBy' ? 'Split Between' : 'Paid By'}) will be
+                            redistributed.
+                        </AppText>
+                        {draft.expenseItems.length > 0 &&
+                            !isSoleDefaultExpenseItem(draft.expenseItems) && (
+                            <AppText
+                                variant="caption-xs"
+                                className="mb-2 text-center text-text-primary-lighter"
+                            >
+                                Selected items will be replaced by the default item at the new
+                                total.
+                            </AppText>
+                        )}
+                        <AppText
+                            variant="caption-xs"
+                            className="mb-6 text-center text-text-primary-lighter"
+                        >
+                            Locked shares stay fixed when possible.
+                        </AppText>
+
+                        <AppButton
+                            variant="primary"
+                            size="md"
+                            onPress={() => {
+                                const nextTotal = confirmNextTotal ?? entryTotalRef.current;
+                                const defaultItem = getDefaultExpenseItemDraft(nextTotal);
+                                draft.setExpenseItems(defaultItem ? [defaultItem] : []);
+                                draft.setTotalAmount(nextTotal);
+
+                                // Keep the side the user just confirmed; redistribute the other
+                                const currentSide: StorePayerUser[] =
+                                    selectedUsersRef.current.map((u) => ({
+                                        id: u.id,
+                                        name: u.name,
+                                        avatar: u.avatarUrl
+                                            ? {
+                                                  id: `avatar-${u.id}`,
+                                                  name: '',
+                                                  url: u.avatarUrl,
+                                                  extension: '',
+                                              }
+                                            : null,
+                                        amount: u.amount,
+                                        shares: u.shares ?? 1,
+                                        isLocked: u.isLocked,
+                                        user_type: u.user_type,
+                                    }));
+
+                                if (activeType === 'paidBy') {
+                                    draft.setPayers(currentSide);
+                                    draft.setSplitParticipants(
+                                        distributeProportionalAmounts(
+                                            draft.splitParticipants,
+                                            nextTotal
+                                        )
+                                    );
+                                } else {
+                                    draft.setSplitParticipants(currentSide);
+                                    draft.setPayers(
+                                        distributeProportionalAmounts(draft.payers, nextTotal)
+                                    );
+                                }
+
+                                setPendingNextTotal(null);
+                                setTotalDriftModalVisible(false);
+                                setConfirmNextTotal(null);
+                                entryTotalRef.current = nextTotal;
+                                onSave?.(selectedUsersRef.current);
+                            }}
+                        >
+                            Update total & redistribute other side
+                        </AppButton>
+
+                        <Pressable
+                            onPress={() => {
+                                setTotalDriftModalVisible(false);
+                                setConfirmNextTotal(null);
+                                setPendingNextTotal(null);
+                            }}
+                            className="mt-3 items-center py-3"
+                        >
+                            <AppText className="font-bold text-text-link">Cancel</AppText>
+                        </Pressable>
+                    </View>
+                </View>
+            </Modal>
+
             {/* Validation Modal */}
             <Modal visible={validationErrorModal.visible} animationType="fade" transparent>
                 <View className="flex-1 items-center justify-center bg-black/60 px-6">
-                    <View className={`w-full p-6 rounded-3xl ${isDark ? 'bg-gray-900' : 'bg-white'}`}>
+                    <View className="w-full p-6 rounded-3xl" style={{ backgroundColor: colors.bg.overlay }}>
                         <View className="items-center mb-4">
-                            <View className="p-3 bg-red-500/10 rounded-full mb-2">
-                                <Iconify icon="heroicons:exclamation-triangle" size={32} color="#EF4444"/>
+                            <View className="p-3 rounded-full mb-2" style={{ backgroundColor: `${colors.status.error}1A` }}>
+                                <Iconify icon="heroicons:exclamation-triangle" size={32} color={colors.status.error}/>
                             </View>
-                            <AppText variant="h3" className="font-bold text-center text-red-500">Invalid Split
+                            <AppText variant="h3" className="font-bold text-center" style={{ color: colors.status.error }}>Invalid Split
                                 Allocation</AppText>
                         </View>
 
@@ -741,7 +1050,8 @@ const MultiUserSplitSelect = ({type, onSave}: MultiUserSplitSelectProps) => {
 
                         <Pressable
                             onPress={() => setValidationErrorModal({visible: false, msg: ''})}
-                            className="w-full h-12 bg-gray-200 dark:bg-gray-800 rounded-xl items-center justify-center active:opacity-80"
+                            className="w-full h-12 rounded-xl items-center justify-center active:opacity-80"
+                            style={{ backgroundColor: colors.bg.darker }}
                         >
                             <AppText className="font-bold text-text-primary">Dismiss and Adjust</AppText>
                         </Pressable>

@@ -3,9 +3,9 @@ import { View, Pressable } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from "expo-router";
 import { useTranslation } from 'react-i18next';
-import { Iconify } from "react-native-iconify";
 import { format, isToday, isYesterday } from 'date-fns';
 import { AppText } from '@/src/components/common/AppText';
+import { EntityFallbackIcon } from '@/src/components/common/EntityFallbackIcon';
 import { COLORS } from '@/src/constants/colors';
 import { GroupActivityHelper } from "@/src/utils/GroupActivityHelper";
 
@@ -68,9 +68,9 @@ export const ActivityListItem = React.memo(({ item, isDark }: ActivityListItemPr
                 {item.avatarUrl ? (
                     <Image source={{ uri: item.avatarUrl }} style={{ width: 40, height: 40 }} contentFit="contain" />
                 ) : item.type === 'group' ? (
-                    <Iconify icon="heroicons:users-solid" size={24} color={iconColor} />
+                    <EntityFallbackIcon kind="group" size={24} color={iconColor} />
                 ) : (
-                    <Iconify icon="heroicons:credit-card-solid" size={24} color={iconColor} />
+                    <EntityFallbackIcon kind="expense" size={24} color={iconColor} />
                 )}
             </View>
 
