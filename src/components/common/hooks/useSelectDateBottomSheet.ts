@@ -49,9 +49,28 @@ export const useSelectDateBottomSheet = (
     const [occurrenceCount, setOccurrenceCount] = useState<number>(10);
     const [untilDate, setUntilDate] = useState<string>(initialDate);
 
+    const selectUntilDate = useCallback(
+        (ymd: string) => {
+            setUntilDate(ymd < selectedDate ? selectedDate : ymd);
+        },
+        [selectedDate],
+    );
+
+    const selectEndType = useCallback(
+        (next: EndType) => {
+            setEndType(next);
+            if (next === EndType.UNTIL && untilDate < selectedDate) {
+                setUntilDate(selectedDate);
+            }
+        },
+        [untilDate, selectedDate],
+    );
+
     useEffect(() => {
         if (visible) {
-            setSelectedDate(clampToTodayIfNeeded(initialDate, allowFutureDates));
+            const safeStart = clampToTodayIfNeeded(initialDate, allowFutureDates);
+            setSelectedDate(safeStart);
+            setUntilDate((prev) => (prev < safeStart ? safeStart : prev));
             bottomSheetModalRef.current?.present();
         } else {
             bottomSheetModalRef.current?.dismiss();
@@ -170,9 +189,9 @@ export const useSelectDateBottomSheet = (
         setInterval,
         setMonthlyOption,
         setYearlyOption,
-        setEndType,
+        setEndType: selectEndType,
         setOccurrenceCount,
-        setUntilDate,
+        setUntilDate: selectUntilDate,
         toggleWeekday,
         handleSave,
     };

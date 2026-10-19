@@ -1,11 +1,15 @@
 import React, {useEffect, useState} from 'react';
-import {View, Pressable, ActivityIndicator, StyleSheet, Keyboard, Platform} from 'react-native';
+import {View, Pressable, ActivityIndicator, Keyboard, Platform} from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {Iconify} from 'react-native-iconify';
 import {AppText} from '@/src/components/common/AppText';
 import {AppButton} from '@/src/components/common/AppButton';
+import {ApplicableBudgetItem} from '@/src/api/dto/expense/budget';
+import {MemoryResponse} from '@/src/api/dto/user/memory';
 import {COLORS} from '@/src/constants/colors';
+import {CurrencyCode} from '@/src/constants/expense/currency';
 import {TransactionTabType} from '../constants/addTransaction.constants';
+import {ExpenseContextHintsRow} from '@/src/screens/expense/add-transaction/components/ExpenseContextHintsRow';
 
 interface TransactionFooterProps {
     activeTab: TransactionTabType;
@@ -15,6 +19,10 @@ interface TransactionFooterProps {
     submitDisabled?: boolean;
     activeValidationContent: any;
     pendingGroupMemberCount?: number;
+    contextMemories?: MemoryResponse[];
+    contextBudgets?: ApplicableBudgetItem[];
+    contextHintsLoading?: boolean;
+    currencyCode?: CurrencyCode | string | null;
     onOpenPicker: () => void;
     onOpenValidationModal: () => void;
     onSubmit: () => void;
@@ -28,6 +36,10 @@ export const TransactionFooter: React.FC<TransactionFooterProps> = ({
     submitDisabled = false,
     activeValidationContent,
     pendingGroupMemberCount = 0,
+    contextMemories = [],
+    contextBudgets = [],
+    contextHintsLoading = false,
+    currencyCode,
     onOpenPicker,
     onOpenValidationModal,
     onSubmit,
@@ -61,18 +73,15 @@ export const TransactionFooter: React.FC<TransactionFooterProps> = ({
 
     return (
         <View
-            className="w-full rounded-t-[40px] border-t px-6 pt-4"
-            style={[
-                styles.footerShadow,
-                {
-                    paddingBottom: bottomPad,
-                    backgroundColor: colors.bg.primary,
-                    borderTopColor: colors.status.border,
-                },
-            ]}
+            className="w-full border-t px-6 pt-4"
+            style={{
+                paddingBottom: bottomPad,
+                backgroundColor: colors.bg.primary,
+                borderTopColor: colors.status.border,
+            }}
         >
-            <View className="mb-6 flex-row items-center justify-between">
-                <View className="flex-row items-center gap-x-2">
+            <View className="mb-6 flex-row items-center justify-between gap-x-2">
+                <View className="min-w-0 flex-1 flex-row items-center">
                     <Pressable
                         onPress={onOpenPicker}
                         className="rounded-full border p-2.5 active:opacity-80"
@@ -81,6 +90,16 @@ export const TransactionFooter: React.FC<TransactionFooterProps> = ({
                     >
                         <Iconify icon="heroicons:viewfinder-circle" size={20} color={cameraIconColor}/>
                     </Pressable>
+                    {activeTab === 'expense' ? (
+                        <ExpenseContextHintsRow
+                            isDark={isDark}
+                            memories={contextMemories}
+                            budgets={contextBudgets}
+                            loading={contextHintsLoading}
+                            currencyCode={currencyCode}
+                            compact
+                        />
+                    ) : null}
                 </View>
 
                 {activeTab === 'expense' && (
@@ -200,13 +219,3 @@ export const TransactionFooter: React.FC<TransactionFooterProps> = ({
         </View>
     );
 };
-
-const styles = StyleSheet.create({
-    footerShadow: {
-        shadowColor: COLORS.light.brand.primary, // slate shadow (theme-stable)
-        shadowOffset: {width: 0, height: -10},
-        shadowOpacity: 0.12,
-        shadowRadius: 20,
-        elevation: 16,
-    },
-});

@@ -26,17 +26,23 @@ import {AppButton} from '@/src/components/common/AppButton';
 import {SheetEmptyState} from '@/src/components/empty-states/SheetEmptyState';
 import {themeStore} from '@/src/store/themeStore';
 import {COLORS} from '@/src/constants/colors';
-import {ListUserExpenseItemsApi} from '@/src/api/expense/item';
-import {ExpenseItemResponse} from '@/src/api/dto/expense/item';
+import {ListUserExpenseItemsApi, SearchExpenseItemsApi} from '@/src/api/expense/item';
+import {
+    ExpenseItemResponse,
+    SearchExpenseItemResult,
+} from '@/src/api/dto/expense/item';
 import {ExpenseItemSource} from '@/src/api/dto/constants';
+import {SearchScope} from '@/src/api/dto/expense/constant';
 import {PaginationResponse} from '@/src/api/dto/ApiResponse';
 import type {
     ExpenseItem as DraftExpenseItem,
     PayerUser,
 } from '@/src/store/draft/expenseDraftStore';
 import {applyItemAttributionToSettlements} from '@/src/utils/expense/expenseCalculations';
+import {getDefaultExpenseItemDraft} from '@/src/utils/expense/defaultExpenseItem';
 
 const PAGE_SIZE = 40;
+const SEARCH_DEBOUNCE_MS = 350;
 const ITEM_SOURCES = [ExpenseItemSource.SYSTEM, ExpenseItemSource.CUSTOM];
 
 type FilterTab = 'All' | 'System' | 'Custom';
@@ -84,6 +90,34 @@ function toDraftItem(item: ExpenseItemResponse): DraftExpenseItem {
     };
 }
 
+function scopeForTab(tab: FilterTab): SearchScope {
+    if (tab === 'System') return SearchScope.GLOBAL;
+    if (tab === 'Custom') return SearchScope.CUSTOM;
+    return SearchScope.ALL;
+}
+
+/** Map search hits that already have a local id (attachable to an expense). */
+function searchResultToListItem(
+    result: SearchExpenseItemResult,
+): ExpenseItemResponse | null {
+    if (result.id == null) return null;
+    return {
+        id: result.id,
+        item_ref: result.item_ref,
+        category_ref: result.category_ref,
+        title: result.title,
+        description: result.description ?? null,
+        cost: result.cost,
+        currency: result.currency,
+        is_quantifiable: true,
+        unit_of_measure: result.unit_of_measure ?? null,
+        item_type: result.source_type,
+        owner: null,
+        icon: result.icon ?? null,
+        created_on: '',
+    };
+}
+
 export const SelectExpenseItemBottomSheet: React.FC<SelectExpenseItemBottomSheetProps> = ({
     visible,
     selectedItems,
@@ -103,6 +137,8 @@ export const SelectExpenseItemBottomSheet: React.FC<SelectExpenseItemBottomSheet
 
     const bottomSheetModalRef = useRef<BottomSheetModal>(null);
     const loadingRef = useRef(false);
+    const searchReqIdRef = useRef(0);
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const snapPoints = useMemo(() => ['88%'], []);
     const footerPad = Math.max(insets.bottom, 12) + 8;
 
@@ -113,12 +149,18 @@ export const SelectExpenseItemBottomSheet: React.FC<SelectExpenseItemBottomSheet
     const [loadingMore, setLoadingMore] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedQuery, setDebouncedQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<ExpenseItemResponse[]>([]);
+    const [searchLoading, setSearchLoading] = useState(false);
+    const [searchError, setSearchError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<FilterTab>('All');
     const [pending, setPending] = useState<DraftExpenseItem[]>([]);
     const [mismatchVisible, setMismatchVisible] = useState(false);
     const [overLimitVisible, setOverLimitVisible] = useState(false);
     const [overLimitMsg, setOverLimitMsg] = useState('');
     const pendingSaveOptsRef = useRef<ItemSheetSaveOpts | undefined>(undefined);
+
+    const isSearching = debouncedQuery.length > 0;
 
     const fetchItems = useCallback(async (nextOffset: number, append: boolean) => {
         if (loadingRef.current) return;
@@ -171,9 +213,83 @@ export const SelectExpenseItemBottomSheet: React.FC<SelectExpenseItemBottomSheet
         fetchItems(0, false);
     }, [fetchItems]);
 
+    // Apply search only after typing settles (same pattern as classification / MCC pickers).
+    useEffect(() => {
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => {
+            setDebouncedQuery(searchQuery.trim());
+        }, SEARCH_DEBOUNCE_MS);
+        return () => {
+            if (debounceRef.current) clearTimeout(debounceRef.current);
+        };
+    }, [searchQuery]);
+
+    const runSearch = useCallback(async (query: string, tab: FilterTab) => {
+        if (!query) {
+            searchReqIdRef.current += 1;
+            setSearchResults([]);
+            setSearchError(null);
+            setSearchLoading(false);
+            return;
+        }
+
+        const reqId = ++searchReqIdRef.current;
+        setSearchLoading(true);
+        setSearchError(null);
+
+        try {
+            const response = await SearchExpenseItemsApi({
+                query,
+                scope: scopeForTab(tab),
+                limit: PAGE_SIZE,
+                offset: 0,
+            });
+            if (reqId !== searchReqIdRef.current) return;
+
+            const payload = response.data;
+            const combined = [
+                ...(payload?.custom_items ?? []),
+                ...(payload?.master_items ?? []),
+            ];
+            const mapped = combined
+                .map(searchResultToListItem)
+                .filter((item): item is ExpenseItemResponse => item != null);
+
+            // Dedupe by id (custom + master can overlap after materialization)
+            const seen = new Set<number>();
+            setSearchResults(
+                mapped.filter((item) => {
+                    if (seen.has(item.id)) return false;
+                    seen.add(item.id);
+                    return true;
+                }),
+            );
+
+            if (!payload && response.message) {
+                setSearchError(response.message);
+            }
+        } catch (err: any) {
+            if (reqId !== searchReqIdRef.current) return;
+            setSearchResults([]);
+            setSearchError(err?.message || "Couldn't search items. Try again.");
+        } finally {
+            if (reqId === searchReqIdRef.current) {
+                setSearchLoading(false);
+            }
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!visible) return;
+        void runSearch(debouncedQuery, activeTab);
+    }, [visible, debouncedQuery, activeTab, runSearch]);
+
     useEffect(() => {
         if (visible) {
             setSearchQuery('');
+            setDebouncedQuery('');
+            setSearchResults([]);
+            setSearchError(null);
             setActiveTab('All');
             setPending(
                 selectedItems.map((i) => ({
@@ -194,18 +310,16 @@ export const SelectExpenseItemBottomSheet: React.FC<SelectExpenseItemBottomSheet
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [visible, resetAndLoad]);
 
-    const trimmedQuery = searchQuery.trim().toLowerCase();
     const displayed = useMemo(() => {
+        if (isSearching) return searchResults;
         return catalog.filter((item) => {
-            const matchesSearch =
-                !trimmedQuery || item.title.toLowerCase().includes(trimmedQuery);
             const matchesTab =
                 activeTab === 'All' ||
                 (activeTab === 'System' && item.item_type === ExpenseItemSource.SYSTEM) ||
                 (activeTab === 'Custom' && item.item_type === ExpenseItemSource.CUSTOM);
-            return matchesSearch && matchesTab;
+            return matchesTab;
         });
-    }, [catalog, trimmedQuery, activeTab]);
+    }, [isSearching, searchResults, catalog, activeTab]);
 
     const selectedTotal = useMemo(
         () => pending.reduce((sum, item) => sum + item.cost * item.quantity, 0),
@@ -311,10 +425,19 @@ export const SelectExpenseItemBottomSheet: React.FC<SelectExpenseItemBottomSheet
         });
     }, [finalizeSave, selectedTotal]);
 
+    /**
+     * Keep the expense amount: catalog lines cannot disagree with total_cost on the
+     * backend, so replace selection with a single default line priced to that amount.
+     */
     const handleKeepAmountAndSave = useCallback(() => {
         setMismatchVisible(false);
-        finalizeSave();
-    }, [finalizeSave]);
+        const fallback = getDefaultExpenseItemDraft(expenseTotalAmount);
+        onSave(fallback ? [fallback] : [], {
+            syncTotalAmount: expenseTotalAmount,
+            redistributeParticipants: true,
+        });
+        onClose();
+    }, [expenseTotalAmount, onClose, onSave]);
 
     const handleAcceptOverLimit = useCallback(() => {
         setOverLimitVisible(false);
@@ -322,9 +445,17 @@ export const SelectExpenseItemBottomSheet: React.FC<SelectExpenseItemBottomSheet
     }, [finalizeSave]);
 
     const handleLoadMore = useCallback(() => {
+        if (isSearching) return;
         if (!hasMore || loadingRef.current || loading || loadingMore) return;
         fetchItems(offset, true);
-    }, [hasMore, loading, loadingMore, offset, fetchItems]);
+    }, [isSearching, hasMore, loading, loadingMore, offset, fetchItems]);
+
+    const handleClearSearch = useCallback(() => {
+        setSearchQuery('');
+        setDebouncedQuery('');
+        setSearchResults([]);
+        setSearchError(null);
+    }, []);
 
     const renderBackdrop = useCallback(
         (props: BottomSheetBackdropProps) => (
@@ -527,7 +658,7 @@ export const SelectExpenseItemBottomSheet: React.FC<SelectExpenseItemBottomSheet
     );
 
     const listFooter = useMemo(() => {
-        if (!loadingMore) return <View style={{height: 96}} />;
+        if (isSearching || !loadingMore) return <View style={{height: 96}} />;
         return (
             <View className="items-center py-4">
                 <ActivityIndicator size="small" color={colors.icon.primary} />
@@ -536,63 +667,115 @@ export const SelectExpenseItemBottomSheet: React.FC<SelectExpenseItemBottomSheet
                 </AppText>
             </View>
         );
-    }, [loadingMore, colors.icon.primary]);
+    }, [isSearching, loadingMore, colors.icon.primary]);
 
     const renderBody = () => {
-        if (loading && catalog.length === 0) {
-            return (
-                <View style={styles.centered}>
-                    <ActivityIndicator size="large" color={colors.icon.primary} />
-                    <AppText variant="caption-xs" className="mt-3 text-text-primary-lighter">
-                        Loading items...
-                    </AppText>
-                </View>
-            );
-        }
+        if (isSearching) {
+            if (searchLoading && searchResults.length === 0) {
+                return (
+                    <View style={styles.centered}>
+                        <ActivityIndicator size="large" color={colors.icon.primary} />
+                        <AppText variant="caption-xs" className="mt-3 text-text-primary-lighter">
+                            Searching…
+                        </AppText>
+                    </View>
+                );
+            }
 
-        if (error && catalog.length === 0) {
-            return (
-                <View style={styles.centered}>
-                    <SheetEmptyState
-                        icon={
-                            <Iconify icon="heroicons:exclamation-triangle" size={32} color={emptyIconColor} />
-                        }
-                        title="Unable to load items"
-                        description={error}
-                        primaryAction={{
-                            label: 'Try Again',
-                            onPress: resetAndLoad,
-                            renderIcon: (c) => <Iconify icon="heroicons:arrow-path" size={18} color={c} />,
-                        }}
-                    />
-                </View>
-            );
-        }
+            if (searchError && searchResults.length === 0) {
+                return (
+                    <View style={styles.centered}>
+                        <SheetEmptyState
+                            icon={
+                                <Iconify
+                                    icon="heroicons:exclamation-triangle"
+                                    size={32}
+                                    color={emptyIconColor}
+                                />
+                            }
+                            title="Search failed"
+                            description={searchError}
+                            primaryAction={{
+                                label: 'Try Again',
+                                onPress: () => void runSearch(debouncedQuery, activeTab),
+                                renderIcon: (c) => (
+                                    <Iconify icon="heroicons:arrow-path" size={18} color={c} />
+                                ),
+                            }}
+                            secondaryAction={{
+                                label: 'Clear Search',
+                                onPress: handleClearSearch,
+                            }}
+                        />
+                    </View>
+                );
+            }
+        } else {
+            if (loading && catalog.length === 0) {
+                return (
+                    <View style={styles.centered}>
+                        <ActivityIndicator size="large" color={colors.icon.primary} />
+                        <AppText variant="caption-xs" className="mt-3 text-text-primary-lighter">
+                            Loading items...
+                        </AppText>
+                    </View>
+                );
+            }
 
-        if (catalog.length === 0) {
-            return (
-                <View style={styles.centered}>
-                    <SheetEmptyState
-                        icon={<Iconify icon="heroicons:cube" size={32} color={emptyIconColor} />}
-                        title="No items yet"
-                        description="You can still submit — the system default item will be attached automatically."
-                        primaryAction={
-                            onAddNew
-                                ? {
-                                      label: 'Add New Item',
-                                      onPress: () => {
-                                          onClose();
-                                          setTimeout(() => onAddNew(), 200);
-                                      },
-                                      renderIcon: (c) => (
-                                          <Iconify icon="heroicons:plus-circle" size={18} color={c} />
-                                      ),
-                                  }
-                                : undefined
-                        }
-                    />
-                </View>
-            );
+            if (error && catalog.length === 0) {
+                return (
+                    <View style={styles.centered}>
+                        <SheetEmptyState
+                            icon={
+                                <Iconify
+                                    icon="heroicons:exclamation-triangle"
+                                    size={32}
+                                    color={emptyIconColor}
+                                />
+                            }
+                            title="Unable to load items"
+                            description={error}
+                            primaryAction={{
+                                label: 'Try Again',
+                                onPress: resetAndLoad,
+                                renderIcon: (c) => (
+                                    <Iconify icon="heroicons:arrow-path" size={18} color={c} />
+                                ),
+                            }}
+                        />
+                    </View>
+                );
+            }
+
+            if (catalog.length === 0) {
+                return (
+                    <View style={styles.centered}>
+                        <SheetEmptyState
+                            icon={<Iconify icon="heroicons:cube" size={32} color={emptyIconColor} />}
+                            title="No items yet"
+                            description="You can still submit — the system default item will be attached automatically."
+                            primaryAction={
+                                onAddNew
+                                    ? {
+                                          label: 'Add New Item',
+                                          onPress: () => {
+                                              onClose();
+                                              setTimeout(() => onAddNew(), 200);
+                                          },
+                                          renderIcon: (c) => (
+                                              <Iconify
+                                                  icon="heroicons:plus-circle"
+                                                  size={18}
+                                                  color={c}
+                                              />
+                                          ),
+                                      }
+                                    : undefined
+                            }
+                        />
+                    </View>
+                );
+            }
         }
 
         return (
@@ -612,11 +795,17 @@ export const SelectExpenseItemBottomSheet: React.FC<SelectExpenseItemBottomSheet
                             />
                         }
                         title="No results"
-                        description="Try another search or filter."
+                        description={
+                            isSearching
+                                ? `Nothing matched “${debouncedQuery}”.`
+                                : 'Try another search or filter.'
+                        }
                         primaryAction={{
                             label: 'Clear Search',
-                            onPress: () => setSearchQuery(''),
-                            renderIcon: (c) => <Iconify icon="heroicons:x-mark" size={18} color={c} />,
+                            onPress: handleClearSearch,
+                            renderIcon: (c) => (
+                                <Iconify icon="heroicons:x-mark" size={18} color={c} />
+                            ),
                         }}
                     />
                 }
@@ -671,8 +860,14 @@ export const SelectExpenseItemBottomSheet: React.FC<SelectExpenseItemBottomSheet
                         )}
                         renderRightIcon={(c) =>
                             searchQuery.length > 0 ? (
-                                <Pressable onPress={() => setSearchQuery('')} hitSlop={8}>
-                                    <Iconify icon="heroicons:x-mark" size={20} color={c} />
+                                <Pressable onPress={handleClearSearch} hitSlop={8}>
+                                    {searchLoading ||
+                                    (searchQuery.trim() !== debouncedQuery &&
+                                        searchQuery.trim().length > 0) ? (
+                                        <ActivityIndicator size="small" color={c} />
+                                    ) : (
+                                        <Iconify icon="heroicons:x-mark" size={20} color={c} />
+                                    )}
                                 </Pressable>
                             ) : null
                         }
@@ -755,8 +950,9 @@ export const SelectExpenseItemBottomSheet: React.FC<SelectExpenseItemBottomSheet
                             variant="caption-xs"
                             className="mb-6 text-center text-text-primary-lighter"
                         >
-                            Updating the amount will also redistribute Paid by and Split Between
-                            (locked shares stay fixed).
+                            Expense total, items, Paid by, and Split Between must match. Updating
+                            the amount redistributes Paid by / Split (locked shares stay fixed).
+                            Keeping the amount replaces catalog items with a single default line.
                         </AppText>
 
                         <AppButton variant="primary" size="md" onPress={handleUpdateAmountAndSave}>
@@ -773,7 +969,7 @@ export const SelectExpenseItemBottomSheet: React.FC<SelectExpenseItemBottomSheet
                                 onPress={handleKeepAmountAndSave}
                             >
                                 Keep {currencySymbol}
-                                {expenseTotalAmount.toFixed(2)}
+                                {expenseTotalAmount.toFixed(2)} (default item)
                             </AppButton>
                         )}
 

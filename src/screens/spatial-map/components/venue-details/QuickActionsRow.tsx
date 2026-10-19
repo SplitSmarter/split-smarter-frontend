@@ -64,6 +64,8 @@ interface QuickActionsRowProps {
     onDirections: () => void;
     directionsEnabled: boolean;
     expenseLoading?: boolean;
+    /** Soft-disable Expense/Budget (e.g. reverse geocode still resolving). */
+    saveActionsDisabled?: boolean;
 }
 
 export function QuickActionsRow({
@@ -73,9 +75,11 @@ export function QuickActionsRow({
     onDirections,
     directionsEnabled,
     expenseLoading = false,
+    saveActionsDisabled = false,
 }: QuickActionsRowProps) {
     const isDark = themeStore((state) => state.theme === 'dark');
     const colors = isDark ? COLORS.dark : COLORS.light;
+    const saveBlocked = expenseLoading || saveActionsDisabled;
 
     return (
         <View className="flex-row gap-2.5">
@@ -84,6 +88,7 @@ export function QuickActionsRow({
                 primary
                 onPress={onAddExpense}
                 loading={expenseLoading}
+                disabled={saveActionsDisabled}
                 spinnerColor={colors.text.contrast}
                 icon={
                     <Iconify icon="heroicons:plus" size={18} color={colors.text.contrast} />
@@ -92,7 +97,7 @@ export function QuickActionsRow({
             <QuickAction
                 label="Budget"
                 onPress={onAddBudget}
-                disabled={expenseLoading}
+                disabled={saveBlocked}
                 spinnerColor={colors.icon.primary}
                 icon={
                     <Iconify
@@ -105,14 +110,14 @@ export function QuickActionsRow({
             <QuickAction
                 label="Share"
                 onPress={onShare}
-                disabled={expenseLoading}
+                disabled={saveBlocked}
                 spinnerColor={colors.icon.primary}
                 icon={<Iconify icon="heroicons:share" size={18} color={colors.icon.primary} />}
             />
             <QuickAction
                 label="Directions"
                 onPress={onDirections}
-                disabled={!directionsEnabled || expenseLoading}
+                disabled={!directionsEnabled || saveBlocked}
                 spinnerColor={colors.icon.primary}
                 icon={<Iconify icon="heroicons:map" size={18} color={colors.icon.primary} />}
             />

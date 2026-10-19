@@ -22,6 +22,25 @@ interface TrailIndexRangeSliderProps {
     onOpenList?: () => void;
     /** Stops in the committed [min, max] range — shown on the List control. */
     listCount?: number;
+    /**
+     * ISO timestamps aligned 0-based with trail order (index 1 → [0]).
+     * Used for left/right range labels under the track.
+     */
+    stopAts?: Array<string | undefined>;
+}
+
+function formatTrailBoundLabel(at?: string): string {
+    if (!at) return '—';
+    const d = new Date(at);
+    if (Number.isNaN(d.getTime())) {
+        return at.includes('T') ? at.slice(11, 16) : at;
+    }
+    return d.toLocaleString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
 }
 
 function clamp(n: number, lo: number, hi: number) {
@@ -48,6 +67,7 @@ export function TrailIndexRangeSlider({
     onChangeRange,
     onOpenList,
     listCount,
+    stopAts,
 }: TrailIndexRangeSliderProps) {
     const isDark = themeStore((s) => s.theme === 'dark');
     const colors = isDark ? COLORS.dark : COLORS.light;
@@ -170,6 +190,8 @@ export function TrailIndexRangeSlider({
     const minX = indexToX(draft.min, trackWidth, count);
     const maxX = indexToX(draft.max, trackWidth, count);
     const selectedWidth = Math.max(0, maxX - minX);
+    const minAtLabel = formatTrailBoundLabel(stopAts?.[draft.min - 1]);
+    const maxAtLabel = formatTrailBoundLabel(stopAts?.[draft.max - 1]);
 
     return (
         <View
@@ -280,18 +302,20 @@ export function TrailIndexRangeSlider({
                     ) : null}
                 </View>
 
-                <View className="mt-1 flex-row justify-between">
+                <View className="mt-1 flex-row items-start justify-between gap-2">
                     <AppText
                         variant="caption-xs"
-                        className="text-text-primary-lighter"
+                        className="max-w-[48%] font-medium text-text-primary-lighter"
+                        numberOfLines={1}
                     >
-                        1
+                        {minAtLabel}
                     </AppText>
                     <AppText
                         variant="caption-xs"
-                        className="text-text-primary-lighter"
+                        className="max-w-[48%] text-right font-medium text-text-primary-lighter"
+                        numberOfLines={1}
                     >
-                        {count}
+                        {maxAtLabel}
                     </AppText>
                 </View>
             </View>

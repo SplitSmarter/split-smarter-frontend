@@ -1,26 +1,22 @@
-import MultiUserSplitSelect, { UserItem } from "@/src/components/expense/MultiUserSelect";
-import { router, useLocalSearchParams } from 'expo-router';
+import MultiUserSplitSelect, {UserItem} from '@/src/components/expense/MultiUserSelect';
+import {router, useLocalSearchParams} from 'expo-router';
 import React from 'react';
-import { View } from 'react-native';
 
 const UserSplitScreen = () => {
-    const { type, totalExpense } = useLocalSearchParams<{
+    const {type} = useLocalSearchParams<{
         type: 'paidBy' | 'split';
         totalExpense: string;
     }>();
 
-    const handleSave = (selectedUsers: UserItem[]) => {
-        // TODO: Handle saving the selected users
+    const handleSave = (_selectedUsers: UserItem[]) => {
         router.back();
     };
 
     return (
-        <View className="flex-1 bg-bg-primary">
-            <MultiUserSplitSelect
-                type={type}
-                onSave={handleSave}
-            />
-        </View>
+        <MultiUserSplitSelect
+            type={type === 'paidBy' ? 'paidBy' : 'split'}
+            onSave={handleSave}
+        />
     );
 };
 

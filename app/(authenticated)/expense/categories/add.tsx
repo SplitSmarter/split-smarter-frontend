@@ -1,10 +1,6 @@
-import React from "react";
-import AddExpenseCategoryScreen from "@/src/screens/expense/AddExpenseCategory";
+import React from 'react';
+import AddExpenseCategoryScreen from '@/src/screens/expense/add-category';
 
-const CategoryDetailsScreen = () => {
-    return (
-        <AddExpenseCategoryScreen />
-    );
-};
-
-export default CategoryDetailsScreen;
+export default function AddExpenseCategoryRoute() {
+    return <AddExpenseCategoryScreen />;
+}

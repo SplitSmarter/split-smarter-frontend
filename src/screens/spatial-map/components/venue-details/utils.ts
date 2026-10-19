@@ -24,14 +24,22 @@ export function buildGoogleDirectionsUrl(
     );
 }
 
-/** Opens Google Maps directions when the URL can be handled; returns false otherwise. */
+/** Opens Google Maps directions (place id when known, else lat/lng). */
 export async function openPlaceDirections(venue: PlaceAgg): Promise<boolean> {
-    if (!hasGooglePlaceId(venue.googlePlaceId)) return false;
-    const url = buildGoogleDirectionsUrl(
-        venue.googlePlaceId!,
-        venue.latitude,
-        venue.longitude
-    );
+    if (
+        !Number.isFinite(venue.latitude) ||
+        !Number.isFinite(venue.longitude)
+    ) {
+        return false;
+    }
+    const destination = `${venue.latitude},${venue.longitude}`;
+    const url = hasGooglePlaceId(venue.googlePlaceId)
+        ? buildGoogleDirectionsUrl(
+              venue.googlePlaceId!,
+              venue.latitude,
+              venue.longitude
+          )
+        : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`;
     try {
         const canOpen = await Linking.canOpenURL(url);
         if (!canOpen) return false;

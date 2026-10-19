@@ -10,9 +10,10 @@ export const AlertProvider = ({ children }: { children: ReactNode }) => {
     const showAlert = (message: string, severity: AlertSeverity = 'info') => {
         setAlert({ message, severity });
 
+        // Keep mounted through premium toast enter + hold + exit (~3.2s)
         setTimeout(() => {
             setAlert(null);
-        }, 3000);
+        }, 3600);
     };
 
     return (

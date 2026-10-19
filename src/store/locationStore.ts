@@ -10,7 +10,8 @@ interface LocationState {
     isLocationLoading: boolean;
     locationError: string | null;
 
-    tempLocationMode: 'none' | 'current' | 'place';
+    /** null = no pending map → expense handoff (do not overwrite draft). */
+    tempLocationMode: 'none' | 'current' | 'place' | null;
     tempSelectedMapPlaceId: number | null;
 
     // Actions
@@ -19,8 +20,12 @@ interface LocationState {
     setLocationError: (error: string | null) => void;
 
     setTempSelectedMapPlaceId: (placeId: number | null) => void;
-    setTempLocationSelection: (mode: 'none' | 'current' | 'place', placeId: number | null) => void;
+    setTempLocationSelection: (
+        mode: 'none' | 'current' | 'place',
+        placeId: number | null
+    ) => void;
     clearTempSelectedMapPlaceId: () => void;
+    clearTempLocationSelection: () => void;
 }
 
 export const useLocationStore = create<LocationState>((set) => ({
@@ -28,7 +33,7 @@ export const useLocationStore = create<LocationState>((set) => ({
     isLocationLoading: false,
     locationError: null,
 
-    tempLocationMode: 'none',
+    tempLocationMode: null,
     tempSelectedMapPlaceId: null,
 
     setLocation: (coords) => set({ currentLocation: coords, locationError: null }),
@@ -36,6 +41,9 @@ export const useLocationStore = create<LocationState>((set) => ({
     setLocationError: (error) => set({ locationError: error }),
 
     setTempSelectedMapPlaceId: (placeId) => set({ tempSelectedMapPlaceId: placeId }),
-    setTempLocationSelection: (mode, placeId) => set({ tempLocationMode: mode, tempSelectedMapPlaceId: placeId }),
+    setTempLocationSelection: (mode, placeId) =>
+        set({ tempLocationMode: mode, tempSelectedMapPlaceId: placeId }),
     clearTempSelectedMapPlaceId: () => set({ tempSelectedMapPlaceId: null }),
+    clearTempLocationSelection: () =>
+        set({ tempLocationMode: null, tempSelectedMapPlaceId: null }),
 }));

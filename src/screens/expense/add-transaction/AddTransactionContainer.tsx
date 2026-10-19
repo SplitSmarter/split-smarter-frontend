@@ -1,12 +1,12 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {View, ScrollView, KeyboardAvoidingView, Platform, Keyboard} from 'react-native';
-import {SafeAreaView} from 'react-native-safe-area-context';
 import {router} from 'expo-router';
 import {MediaPickerBottomSheet} from '@/src/components/common/MediaPickerBottomSheet';
+import {ScreenWrapper} from '@/src/components/common/ScreenWrapper';
 import {ExpenseScheduleModal} from '@/src/components/expense/schedule/ExpenseScheduleModal';
 import {GenericValidationErrorModal} from '@/src/components/expense/errors/GenericValidationErrorModal';
 import {GroupMismatchModal} from '@/src/components/expense/GroupMismatchModal';
-import {COLORS} from '@/src/constants/colors';
+import {COLORS, PLATINUM_HEADER} from '@/src/constants/colors';
 import {
     BackDismissStackProvider,
     useBackDismissStack,
@@ -17,7 +17,8 @@ import AddExpenseScreen from './AddExpense';
 import AddTransfer from './AddTransfer';
 
 import {useAddTransaction} from './hooks/useAddTransaction';
-import {ADD_TRANSACTION_THEME, TransactionTabType} from './constants/addTransaction.constants';
+import {useExpenseContextHints} from '@/src/screens/expense/add-transaction/hooks/useExpenseContextHints';
+import {TransactionTabType} from './constants/addTransaction.constants';
 import {addTransactionStyles as styles} from './styles/addTransaction.styles';
 
 import {AddTransactionHeader} from './components/AddTransactionHeader';
@@ -70,24 +71,26 @@ const AddTransactionOverlayRegistration = ({
 };
 
 const AddTransactionHeaderWithBack = ({
-    iconColor,
     activeTab,
     onTabChange,
     onOpenOptions,
 }: {
-    iconColor: string;
     activeTab: TransactionTabType;
     onTabChange: (tab: TransactionTabType) => void;
     onOpenOptions: () => void;
 }) => {
     const stack = useBackDismissStack();
     const onBack = useCallback(() => {
-        stack?.requestBack() ?? navigateBackFromAddTransaction();
+        // requestBack() returns void — never use ?? or both back navigations fire.
+        if (stack) {
+            stack.requestBack();
+            return;
+        }
+        navigateBackFromAddTransaction();
     }, [stack]);
 
     return (
         <AddTransactionHeader
-            iconColor={iconColor}
             activeTab={activeTab}
             onTabChange={onTabChange}
             onOpenOptions={onOpenOptions}
@@ -127,6 +130,28 @@ export const AddTransactionContainer = () => {
 
     const transferDate = useTransferDraftStore((s) => s.transferDate);
 
+    const placeId = useMemo(() => {
+        if (expenseDraft.expenseLocationMode !== 'place') return null;
+        const raw = expenseDraft.expenseLocation?.id;
+        if (raw == null) return null;
+        const n = Number(raw);
+        return Number.isFinite(n) && n > 0 ? n : null;
+    }, [expenseDraft.expenseLocationMode, expenseDraft.expenseLocation?.id]);
+
+    const {
+        memories: contextMemories,
+        budgets: contextBudgets,
+        loading: contextHintsLoading,
+    } = useExpenseContextHints({
+        enabled: activeTab === 'expense',
+        expenseDate: expenseDraft.expenseDate,
+        groupId: expenseDraft.groupId,
+        categoryId: expenseDraft.categoryId,
+        placeId,
+        amount: expenseDraft.totalAmount,
+        currency: expenseDraft.currency,
+    });
+
     const datePickerActions = useMemo(
         () => ({openDatePicker: () => setShowDatePicker(true)}),
         [setShowDatePicker],
@@ -138,9 +163,9 @@ export const AddTransactionContainer = () => {
         return raw?.includes('T') ? raw.split('T')[0] : raw;
     }, [activeTab, transferDate, expenseDraft.expenseDate]);
 
-    const themeConfig = isDark ? ADD_TRANSACTION_THEME.dark : ADD_TRANSACTION_THEME.light;
     const colors = isDark ? COLORS.dark : COLORS.light;
     const canvasBg = {backgroundColor: colors.bg.primary};
+    const heroStatusBar = isDark ? PLATINUM_HEADER.dark : PLATINUM_HEADER.light;
     const [keyboardVisible, setKeyboardVisible] = useState(false);
     const blockBack = isProcessing || isSubmitting;
 
@@ -177,28 +202,30 @@ export const AddTransactionContainer = () => {
             setValidationModalVisible={setValidationModalVisible}
             setPickerVisible={setPickerVisible}
         />
-        <SafeAreaView style={[styles.safeArea, canvasBg]} edges={['top']}>
+        <ScreenWrapper
+            backgroundColor={heroStatusBar}
+            statusBarStyle="light-content"
+            withPadding={false}
+            className="relative flex-1"
+        >
             <KeyboardAvoidingView
                 behavior={keyboardBehavior}
-                style={[styles.keyboardView, canvasBg]}
+                style={[styles.keyboardView, {backgroundColor: heroStatusBar}]}
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}
                 enabled={Platform.OS === 'ios' || keyboardVisible}
             >
-                <View style={[styles.mainContainer, canvasBg]}>
+                <View style={[styles.mainContainer, {backgroundColor: heroStatusBar}]}>
                     <ProcessingOverlay visible={isProcessing || isSubmitting} isProcessing={isProcessing}/>
 
-                    <View style={[styles.mainContainer, canvasBg]}>
+                    <View style={[styles.mainContainer, {backgroundColor: heroStatusBar}]}>
                         <AddTransactionHeaderWithBack
-                            iconColor={themeConfig.iconColor}
                             activeTab={activeTab}
                             onTabChange={handleTabChange}
                             onOpenOptions={() => setOptionsVisible(true)}
                         />
 
-                        <View className="mt-2 flex-1 flex-col" style={canvasBg}>
-                            <View
-                                style={[styles.sheetCardContainer, canvasBg]}
-                            >
+                        <View className="flex-1 flex-col" style={{backgroundColor: heroStatusBar}}>
+                            <View style={[styles.sheetCardContainer, canvasBg]}>
                                 <ScrollView
                                     className="flex-1"
                                     style={canvasBg}
@@ -224,6 +251,10 @@ export const AddTransactionContainer = () => {
                                 ? expenseDraft.pendingGroupMemberAdds.length
                                 : 0
                         }
+                        contextMemories={contextMemories}
+                        contextBudgets={contextBudgets}
+                        contextHintsLoading={contextHintsLoading}
+                        currencyCode={expenseDraft.currency}
                         onOpenPicker={() => setPickerVisible(true)}
                         onOpenValidationModal={() => setValidationModalVisible(true)}
                         onSubmit={handleSubmitData}
@@ -282,7 +313,7 @@ export const AddTransactionContainer = () => {
                     />
                 </View>
             </KeyboardAvoidingView>
-        </SafeAreaView>
+        </ScreenWrapper>
         </AddTransactionActionsProvider>
         </BackDismissStackProvider>
     );

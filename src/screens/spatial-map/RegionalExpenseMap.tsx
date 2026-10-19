@@ -22,11 +22,13 @@ import {AnalysisFab} from './components/AnalysisFab';
 import {ViewportAnalysisBottomSheet} from './components/viewport-analysis/ViewportAnalysisBottomSheet';
 import {TrailIndexRangeSlider} from './components/TrailIndexRangeSlider';
 import {TrailExpenseListBottomSheet} from './components/TrailExpenseListBottomSheet';
+import {DroppedPinBottomSheet} from './components/dropped-pin/DroppedPinBottomSheet';
 import {VenueDetailsBottomSheet} from './components/venue-details';
 import {formatRangeLabel} from './components/venue-details/utils';
 import {DateRangeBottomSheet} from '@/src/components/common/DateRangeBottomSheet';
 import {DEFAULT_PLACE_IMAGE} from '@/src/screens/place/select-map/constants/selectMap.constants';
 import {formatExpenseMoney} from '@/src/screens/expense/details/utils/formatExpenseMoney';
+import type {LocationDetails} from '@/src/api/dto/user/place';
 
 import {SpotsLayer} from './components/SpotsLayer';
 import {TrailLayer, TrailTxn} from './components/TrailLayer';
@@ -57,6 +59,10 @@ export function RegionalExpenseMap({
     const [showDisplayViewMenu, setShowDisplayViewMenu] = useState(false);
     const [showViewportAnalysis, setShowViewportAnalysis] = useState(false);
     const [showTrailList, setShowTrailList] = useState(false);
+    const [droppedPin, setDroppedPin] = useState<{
+        latitude: number;
+        longitude: number;
+    } | null>(null);
     const {notifyActivity, setOverlayOpen} = useMapTabBarVisibility();
     const consumedLinkKeyRef = useRef<string | null>(null);
 
@@ -123,7 +129,17 @@ export function RegionalExpenseMap({
     const handlePickedPlace = useCallback(
         (place: PlaceAgg) => {
             notifyActivity();
+            setDroppedPin(null);
             setSheet({kind: 'venue', venue: place});
+        },
+        [notifyActivity, setSheet]
+    );
+
+    const handleDroppedPin = useCallback(
+        (coords: {latitude: number; longitude: number}) => {
+            notifyActivity();
+            setSheet(null);
+            setDroppedPin(coords);
         },
         [notifyActivity, setSheet]
     );
@@ -136,6 +152,7 @@ export function RegionalExpenseMap({
         isSearching,
         handleSearchTextChange,
         handleSearchResultSelect,
+        openLocationDetails,
         clearSearch,
         onPoiClick,
         onMapLongPress,
@@ -145,6 +162,7 @@ export function RegionalExpenseMap({
         visiblePlaces: placesList,
         spendCatalog,
         onPlaceSelected: handlePickedPlace,
+        onDroppedPin: handleDroppedPin,
     });
 
     const staticOrderedTrail = useMemo<TrailTxn[]>(() => {
@@ -194,7 +212,8 @@ export function RegionalExpenseMap({
                     showDisplayViewMenu ||
                     dateRangeVisible ||
                     showViewportAnalysis ||
-                    showTrailList
+                    showTrailList ||
+                    droppedPin
             )
         );
     }, [
@@ -203,6 +222,7 @@ export function RegionalExpenseMap({
         dateRangeVisible,
         showViewportAnalysis,
         showTrailList,
+        droppedPin,
         setOverlayOpen,
     ]);
 
@@ -235,14 +255,34 @@ export function RegionalExpenseMap({
         setSheet(null);
     }, [clearTempMarker, setSheet]);
 
+    const handleCloseDroppedPin = useCallback(() => {
+        clearTempMarker();
+        setDroppedPin(null);
+    }, [clearTempMarker]);
+
+    const handleNearbyFromDroppedPin = useCallback(
+        (place: LocationDetails) => {
+            setDroppedPin(null);
+            clearTempMarker();
+            openLocationDetails(place);
+        },
+        [clearTempMarker, openLocationDetails]
+    );
+
     const dismissMapOverlays = useCallback(() => {
         handleCloseVenueSheet();
+        handleCloseDroppedPin();
         clearSearch();
         setDateRangeVisible(false);
         setShowDisplayViewMenu(false);
         setShowViewportAnalysis(false);
         setShowTrailList(false);
-    }, [clearSearch, handleCloseVenueSheet, setDateRangeVisible]);
+    }, [
+        clearSearch,
+        handleCloseDroppedPin,
+        handleCloseVenueSheet,
+        setDateRangeVisible,
+    ]);
 
     // Stable refs so focus-effect cleanup only runs on tab blur (not on every overlay change).
     const backNavRef = useRef({
@@ -253,12 +293,14 @@ export function RegionalExpenseMap({
         showDisplayViewMenu: false,
         showViewportAnalysis: false,
         showTrailList: false,
+        droppedPinOpen: false,
         clearSearch,
         dismissMapOverlays,
         setDateRangeVisible,
         setShowDisplayViewMenu,
         setShowViewportAnalysis,
         setShowTrailList,
+        handleCloseDroppedPin,
     });
     backNavRef.current = {
         searchResultsLength: searchResults.length,
@@ -268,12 +310,14 @@ export function RegionalExpenseMap({
         showDisplayViewMenu,
         showViewportAnalysis,
         showTrailList,
+        droppedPinOpen: Boolean(droppedPin),
         clearSearch,
         dismissMapOverlays,
         setDateRangeVisible,
         setShowDisplayViewMenu,
         setShowViewportAnalysis,
         setShowTrailList,
+        handleCloseDroppedPin,
     };
 
     /**
@@ -307,6 +351,10 @@ export function RegionalExpenseMap({
                 }
                 if (s.showTrailList) {
                     s.setShowTrailList(false);
+                    return true;
+                }
+                if (s.droppedPinOpen) {
+                    s.handleCloseDroppedPin();
                     return true;
                 }
                 return false;
@@ -423,6 +471,9 @@ export function RegionalExpenseMap({
         () => formatRangeLabel(dateRange, '', ''),
         [dateRange]
     );
+
+    const isSearchMode =
+        searchQuery.trim().length > 0 || isSearching;
 
     const canvasBg = isDark ? COLORS.dark.bg.primary : COLORS.light.bg.primary;
 
@@ -550,22 +601,29 @@ export function RegionalExpenseMap({
                 />
             ) : null}
 
-            <AnalysisFab
-                bottom={analysisFabBottom}
-                onPress={() => {
-                    notifyActivity();
-                    setShowViewportAnalysis(true);
-                }}
-            />
+            {!isSearchMode ? (
+                <AnalysisFab
+                    bottom={analysisFabBottom}
+                    onPress={() => {
+                        notifyActivity();
+                        setShowViewportAnalysis(true);
+                    }}
+                />
+            ) : null}
 
             <MyLocationFab
                 isLoading={isLocationLoading}
                 isDark={isDark}
                 onPress={onMyLocationPress}
-                style={{bottom: myLocationFabBottom, right: 12}}
+                style={{
+                    bottom: isSearchMode
+                        ? insets.bottom + 20 + TAB_BAR_CLEARANCE
+                        : myLocationFabBottom,
+                    right: 12,
+                }}
             />
 
-            {uiDisplayView === 'trail' && (
+            {uiDisplayView === 'trail' && !isSearchMode ? (
                 <TrailIndexRangeSlider
                     insetsBottom={bottomChromeInset}
                     mapMode={uiDisplayView}
@@ -574,12 +632,13 @@ export function RegionalExpenseMap({
                     maxIndex={trailIndexMax}
                     onChangeRange={handleTrailIndexRange}
                     listCount={trailListCount}
+                    stopAts={staticOrderedTrail.map((t) => t.at)}
                     onOpenList={() => {
                         notifyActivity();
                         setShowTrailList(true);
                     }}
                 />
-            )}
+            ) : null}
 
             <DisplayViewOptionsBottomSheet
                 isVisible={showDisplayViewMenu}
@@ -632,6 +691,13 @@ export function RegionalExpenseMap({
                 totalCount={staticOrderedTrail.length}
                 amountById={trailAmountById}
                 onSelectTxn={handleSelectTrailTxn}
+            />
+
+            <DroppedPinBottomSheet
+                coords={droppedPin}
+                isVisible={Boolean(droppedPin)}
+                onClose={handleCloseDroppedPin}
+                onSelectNearby={handleNearbyFromDroppedPin}
             />
         </View>
     );

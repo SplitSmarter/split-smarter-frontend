@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, Image } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Iconify } from "react-native-iconify";
 import { GlassCard } from "./GlassCard";
 import { UPIInstalledApp } from "@/src/utils/upiNativeModule";
 import { ThemeColors } from "../constants/theme";
@@ -48,11 +48,19 @@ export const InstalledUpiAppsSelector: React.FC<InstalledUpiAppsSelectorProps> =
                                 contentStyle={styles.cardRow}
                             >
                                 <View style={styles.iconCheckWrapper}>
-                                    <Ionicons
-                                        name={isSelected ? "checkmark-circle" : "ellipse-outline"}
-                                        size={22}
-                                        color={isSelected ? colors.glassBorderSelected : colors.unselectedIcon}
-                                    />
+                                    {isSelected ? (
+                                        <Iconify
+                                            icon="heroicons:check-circle-solid"
+                                            size={22}
+                                            color={colors.glassBorderSelected}
+                                        />
+                                    ) : (
+                                        <Iconify
+                                            icon="heroicons:check-circle"
+                                            size={22}
+                                            color={colors.unselectedIcon}
+                                        />
+                                    )}
                                 </View>
                                 {app.icon ? (
                                     <Image

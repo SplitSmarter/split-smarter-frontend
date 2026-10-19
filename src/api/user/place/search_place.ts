@@ -1,6 +1,10 @@
 import { SuccessResponse } from "@/src/api/dto/ApiResponse";
 import { handleApiError } from "@/src/api/utils/mapper";
-import { SearchPlaceRequest, LocationDetails } from "@/src/api/dto/user/place";
+import {
+    SearchPlaceRequest,
+    LocationDetails,
+    ReverseGeocodeResponse,
+} from "@/src/api/dto/user/place";
 import axiosUserInstance from "@/src/api/axiosUserServiceInstance";
 import { PlaceSource } from "@/src/api/dto/constants";
 
@@ -70,6 +74,41 @@ export const GetGooglePlaceDetailsApi = async (placeId: string) => {
                 },
             }
         );
+
+        if (res.data && res.data.success) {
+            return {
+                message: res.data.message,
+                data: res.data.data,
+            };
+        }
+
+        throw new Error("Invalid Response Schema");
+    } catch (error: any) {
+        return handleApiError(error);
+    }
+};
+
+/**
+ * Reverse-geocode lat/lon via user-service (region + optional nearby places).
+ * Mirrors GET /place/v1/reverse.
+ */
+export const ReverseGeocodePlaceApi = async (params: {
+    lat: number;
+    lon: number;
+    radius?: number;
+    include_nearby?: boolean;
+}) => {
+    try {
+        const res = await axiosUserInstance.get<
+            SuccessResponse<ReverseGeocodeResponse>
+        >(`${BASE_PATH}/reverse`, {
+            params: {
+                lat: params.lat,
+                lon: params.lon,
+                radius: params.radius ?? 2000,
+                include_nearby: params.include_nearby ?? false,
+            },
+        });
 
         if (res.data && res.data.success) {
             return {

@@ -1,173 +1,221 @@
-import React, { useState } from 'react';
-import { View, Pressable, ActivityIndicator } from 'react-native';
-import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { Iconify } from 'react-native-iconify';
-import { AppText } from "@/src/components/common/AppText";
-import { AppInput } from "@/src/components/common/AppInput";
-import { AppButton } from "@/src/components/common/AppButton";
-import { AppImage } from "@/src/components/common/AppImage";
-import { themeStore } from "@/src/store/themeStore";
-import { systemStore } from "@/src/store/systemStore";
-import { CreateExpenseCategoryApi } from "@/src/api/expense/categories";
-import {useAlert} from "@/src/context/alertContext";
-import {ExpenseCategoryResponse} from "@/src/api/dto/expense/category";
-import { COLORS } from '@/src/constants/colors';
+import React, {useState} from 'react';
+import {View, Pressable, Image} from 'react-native';
+import {BottomSheetScrollView} from '@gorhom/bottom-sheet';
+import {Iconify} from 'react-native-iconify';
+import {AppText} from '@/src/components/common/AppText';
+import {AppInput} from '@/src/components/common/AppInput';
+import {AppButton} from '@/src/components/common/AppButton';
+import {AppImage} from '@/src/components/common/AppImage';
+import {MediaPickerBottomSheet} from '@/src/components/common/MediaPickerBottomSheet';
+import {themeStore} from '@/src/store/themeStore';
+import {systemStore} from '@/src/store/systemStore';
+import {CreateExpenseCategoryApi} from '@/src/api/expense/categories';
+import {useAssetPicker} from '@/src/hooks/useMediaPicker';
+import {processLocalAttachments} from '@/src/utils/expense/transactionHelpers';
+import {useAlert} from '@/src/context/alertContext';
+import {ExpenseCategoryResponse} from '@/src/api/dto/expense/category';
+import {COLORS} from '@/src/constants/colors';
 
 interface AddCategoryFormProps {
     onBack: () => void;
-    onSuccess?: (newCategory: ExpenseCategoryResponse) => void; // Added to refresh the list after creation
+    onSuccess?: (newCategory: ExpenseCategoryResponse) => void;
 }
 
-export const AddCategoryForm = ({ onBack, onSuccess }: AddCategoryFormProps) => {
+export const AddCategoryForm = ({onBack, onSuccess}: AddCategoryFormProps) => {
     const isDark = themeStore((state) => state.theme === 'dark');
     const colors = isDark ? COLORS.dark : COLORS.light;
-    const { defaults } = systemStore();
-    const { showAlert } = useAlert();
+    const {defaults} = systemStore();
+    const {showAlert} = useAlert();
+    const {handleSingleCamera, handleSingleGallery} = useAssetPicker({
+        autoUpload: false,
+    });
 
-
-    // State management
-    const [name, setName] = useState('');
-    const [description, setDescription] = useState('');
-    const [isSaving, setIsSaving] = useState(false);
-
-    // Get default icon from system store
     const defaultIcon = defaults.defaultExpenseCategory?.asset;
 
+    const [name, setName] = useState('');
+    const [description, setDescription] = useState('');
+    const [localIconUri, setLocalIconUri] = useState<string | null>(null);
+    const [pickerVisible, setPickerVisible] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+
+    const handleMediaSelection = (fromCamera: boolean) => {
+        setPickerVisible(false);
+        setTimeout(async () => {
+            const action = fromCamera ? handleSingleCamera : handleSingleGallery;
+            const results = await action();
+            const uri = results?.[0]?.uri;
+            if (uri) setLocalIconUri(uri);
+        }, 100);
+    };
+
     const handleSave = async () => {
-        // 1. Prevent double-taps
         if (isSaving) return;
 
-        // 2. Client-side Validation
         if (!name.trim()) {
-            showAlert("Category name is required");
-            return;
-        }
-
-        if (!defaultIcon?.id) {
-            showAlert("Default icon not found");
-            // Optional: use showAlert here if this is a critical system failure
+            showAlert('Category name is required', 'error');
             return;
         }
 
         setIsSaving(true);
-
         try {
+            let iconAssetId = defaultIcon?.id;
+
+            if (localIconUri) {
+                const uploaded = await processLocalAttachments([localIconUri]);
+                if (!uploaded[0]) {
+                    showAlert('Failed to upload category icon. Try again.', 'error');
+                    return;
+                }
+                iconAssetId = uploaded[0];
+            }
+
+            if (!iconAssetId) {
+                showAlert('Default icon not found', 'error');
+                return;
+            }
 
             const response = await CreateExpenseCategoryApi({
                 title: name.trim(),
                 description: description.trim() || undefined,
-                icon_asset_id: defaultIcon.id,
+                icon_asset_id: iconAssetId,
             });
 
-            // 3. Handle Successful Business Logic
             if (response.data) {
-                showAlert(response.message || "Category created successfully", "success");
-
-                // Pass the actual new category data back to the parent
-                if (onSuccess && response.data) {
-                    onSuccess(response.data);
-                }
-                // Note: We don't call onBack() here because the parent will handle the closure
-            }else {
-                // 4. Handle Known API Errors (e.g., duplicate name)
-                const errorMsg = response.message || "Failed to create category";
-                showAlert(errorMsg, "error");
+                showAlert(response.message || 'Category created successfully', 'success');
+                onSuccess?.(response.data);
+            } else {
+                showAlert(response.message || 'Failed to create category', 'error');
             }
         } catch (err: any) {
-            // 5. Handle Critical Failures (Network down, Server 500, etc.)
-            const fallbackMsg = "An unexpected error occurred. Please try again.";
-            showAlert(err?.message || fallbackMsg, "error");
+            showAlert(
+                err?.message || 'An unexpected error occurred. Please try again.',
+                'error',
+            );
         } finally {
-            // 6. Always clean up loading state
             setIsSaving(false);
         }
     };
 
     return (
         <View className="flex-1">
-            {/* Header */}
-            <View className="px-6 pt-2 pb-4">
+            <View className="px-6 pb-4 pt-2">
                 <View className="flex-row items-center justify-between">
-                    <Pressable onPress={onBack} className="p-2 rounded-full" disabled={isSaving}>
-                        <Iconify icon="heroicons:chevron-left" size={24} color={colors.icon.primary} />
+                    <Pressable onPress={onBack} className="rounded-full p-2" disabled={isSaving}>
+                        <Iconify
+                            icon="heroicons:chevron-left"
+                            size={24}
+                            color={colors.icon.primary}
+                        />
                     </Pressable>
-                    <AppText variant="h4" className="font-bold text-text-primary">New Category</AppText>
+                    <AppText variant="h4" className="font-bold text-text-primary">
+                        New Category
+                    </AppText>
                     <View className="w-10" />
                 </View>
             </View>
 
             <BottomSheetScrollView
-                contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 60 }}
+                contentContainerStyle={{paddingHorizontal: 24, paddingBottom: 60}}
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
             >
-                {/* Image Display from System Defaults */}
-                <View className="items-center mb-8">
+                <View className="mb-8 items-center">
                     <View className="relative">
-                        <View className="w-24 h-24 rounded-3xl overflow-hidden border-2 border-border-input">
-                            <AppImage
-                                url={defaultIcon?.url}
-                                id={defaultIcon?.id}
-                                size="lg"
-                                variant="square"
-                            />
+                        <View className="h-24 w-24 overflow-hidden rounded-3xl border-2 border-border-input">
+                            {localIconUri ? (
+                                <Image
+                                    source={{uri: localIconUri}}
+                                    style={{width: '100%', height: '100%'}}
+                                    resizeMode="cover"
+                                />
+                            ) : (
+                                <AppImage
+                                    url={defaultIcon?.url}
+                                    id={defaultIcon?.id}
+                                    size="full"
+                                    variant="square"
+                                    contentFit="cover"
+                                    className="h-full w-full"
+                                />
+                            )}
                         </View>
                         <Pressable
-                            className="absolute bottom-[-8] right-[-8] bg-bg-secondary p-2 rounded-full border-2 border-white"
-                            onPress={() => console.log("Image picker logic would go here")}
+                            className="rounded-full border-2 border-white p-2 active:opacity-80"
+                            style={{
+                                position: 'absolute',
+                                bottom: -8,
+                                right: -8,
+                                backgroundColor: colors.brand.primary,
+                            }}
+                            onPress={() => setPickerVisible(true)}
+                            disabled={isSaving}
                         >
-                            <Iconify icon="heroicons:pencil-square" size={14} color={colors.text.contrast} />
+                            <Iconify
+                                icon="heroicons:pencil-square"
+                                size={14}
+                                color={colors.text.contrast}
+                            />
                         </Pressable>
                     </View>
-                    <AppText variant="caption-xs" className="mt-3 text-text-primary-lighter">Default Icon Selected</AppText>
+                    <AppText
+                        variant="caption-xs"
+                        className="mt-3 text-text-primary-lighter"
+                    >
+                        {localIconUri
+                            ? 'Custom icon — uploads on save'
+                            : 'Default icon · tap pencil to change'}
+                    </AppText>
+                    {localIconUri ? (
+                        <Pressable
+                            onPress={() => setLocalIconUri(null)}
+                            disabled={isSaving}
+                            className="mt-2 active:opacity-70"
+                        >
+                            <AppText
+                                variant="caption-xs"
+                                className="font-semibold text-accent-sky"
+                            >
+                                Use default icon
+                            </AppText>
+                        </Pressable>
+                    ) : null}
                 </View>
 
-                {/* Form Fields */}
                 <View className="gap-y-6">
                     <AppInput
                         label="Name"
-                        placeholder="Enter Name"
+                        placeholder="e.g. Groceries, Travel"
                         value={name}
-                        onChangeText={(val) => {
-                            setName(val);
-                        }}
-                        required={true}
+                        onChangeText={setName}
+                        required
                     />
                     <AppInput
                         label="Description"
-                        placeholder="Enter Description"
+                        placeholder="Optional note"
                         value={description}
                         onChangeText={setDescription}
                     />
                 </View>
 
-                {/* Suggestions & Similar Sections */}
-                <View className="mt-8 gap-y-4">
-                    <SectionBox title="Suggestions" message="No Suggestions" />
-                    <SectionBox title="Similar Categories" message="No similar categories found" />
-                </View>
-
-                {/* Save Button */}
                 <View className="mt-10">
                     <AppButton
                         variant="primary"
-                        className="w-full h-14 rounded-2xl"
+                        className="h-14 w-full rounded-2xl"
                         onPress={handleSave}
                         disabled={isSaving}
+                        loading={isSaving}
+                        loadingText={localIconUri ? 'Uploading…' : 'Saving…'}
                     >
-                        {isSaving ? <ActivityIndicator color={colors.text.contrast} /> : "Save Category"}
+                        Save Category
                     </AppButton>
                 </View>
             </BottomSheetScrollView>
+
+            <MediaPickerBottomSheet
+                visible={pickerVisible}
+                onClose={() => setPickerVisible(false)}
+                onSelect={handleMediaSelection}
+            />
         </View>
     );
 };
-
-const SectionBox = ({ title, message }: { title: string; message: string }) => (
-    <View className="p-4 rounded-3xl border bg-bg-canvas border-border-input">
-        <AppText variant="body-base" className="font-bold mb-4 text-text-primary">{title}</AppText>
-        <View className="items-center py-4">
-            <AppText variant="caption-xs" className="text-text-primary-lighter italic text-center">{message}</AppText>
-        </View>
-    </View>
-);

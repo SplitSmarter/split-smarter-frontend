@@ -2,11 +2,15 @@ import React, {useState} from "react";
 import {View, Alert} from "react-native";
 import {useRouter} from "expo-router";
 import * as Linking from "expo-linking";
+import {Iconify} from "react-native-iconify";
 import {AppButton} from "@/src/components/common/AppButton";
 import ThemeToggle from "@/src/components/common/themeToggle";
 import {SelectDateBottomSheet} from "@/src/components/common/SelectDateBottomSheet";
 import {DurationSelectionBottomSheet} from "@/src/components/common/DurationSelectionBottomSheet";
 import {ROUTES} from "@/src/constants/routes";
+import {authStore} from "@/src/store/authStore";
+import {COLORS} from "@/src/constants/colors";
+import {themeStore} from "@/src/store/themeStore";
 import {
     SAMPLE_PLACE_LINKS,
     buildPlaceDeepLinkUrl,
@@ -14,6 +18,14 @@ import {
 
 export default function CameraScreen() {
     const router = useRouter();
+    const logout = authStore((s) => s.logout);
+    const isDark = themeStore((s) => s.theme === "dark");
+    const errorColor = isDark ? COLORS.dark.status.error : COLORS.light.status.error;
+
+    const handleLogout = async () => {
+        await logout();
+        router.replace("/login");
+    };
 
     // Sheet visibility state
     const [isScheduleOpen, setIsScheduleOpen] = useState(false);
@@ -104,6 +116,23 @@ export default function CameraScreen() {
             </AppButton>
 
             <ThemeToggle/>
+
+            <AppButton
+                onPress={handleLogout}
+                variant="secondary"
+                size="sm"
+                className="w-full border border-red-500/20"
+                hasShadow={false}
+                renderIcon={() => (
+                    <Iconify
+                        icon="heroicons:arrow-left-on-rectangle"
+                        size={18}
+                        color={errorColor}
+                    />
+                )}
+            >
+                Logout
+            </AppButton>
 
             {/* Schedule Bottom Sheet Modal */}
             <SelectDateBottomSheet

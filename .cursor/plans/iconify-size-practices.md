@@ -1,8 +1,8 @@
 # Iconify migration and size/perf practices
 
-Status: **blocked — Plan mode only allows markdown edits; Agent-mode switch was rejected**  
-Next step: switch to Agent mode (or say **execute the plan**) to apply JS changes below.  
-Constraint: no changes that require a native app rebuild in this pass.
+Status: **implemented** (JS/Metro only)  
+Constraint: no changes that require a native app rebuild in this pass.  
+After pull: restart Metro with `npx expo start -c`.
 
 ## Do now (JS / Metro only)
 

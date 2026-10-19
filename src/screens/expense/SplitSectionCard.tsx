@@ -41,7 +41,7 @@ export const SplitSectionCard = React.memo(
                     <AppText variant="h4" className="font-bold" style={{color: colors.text.primary}}>
                         Split Between
                     </AppText>
-                    <Iconify icon="heroicons:pencil-square" size={20} color={colors.icon.primary} />
+                    <Iconify icon="heroicons:chevron-right" size={20} color={colors.icon.primary} />
                 </View>
 
                 {participants.length > 0 ? (

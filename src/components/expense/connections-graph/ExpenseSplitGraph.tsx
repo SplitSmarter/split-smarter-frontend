@@ -300,11 +300,23 @@ export function ExpenseSplitGraph({
                     <View className="mb-2 flex-row" style={{ gap: COLUMN_GAP }}>
                         {(
                             [
-                                { column: 'payer' as const, label: 'Paid by' },
-                                { column: 'item' as const, label: 'Items' },
-                                { column: 'split' as const, label: 'Split between' },
+                                {
+                                    column: 'payer' as const,
+                                    label: 'Paid by',
+                                    editTarget: 'paidBy' as ConnectionsEditTarget,
+                                },
+                                {
+                                    column: 'item' as const,
+                                    label: 'Items',
+                                    editTarget: 'assignItems' as ConnectionsEditTarget,
+                                },
+                                {
+                                    column: 'split' as const,
+                                    label: 'Split between',
+                                    editTarget: 'split' as ConnectionsEditTarget,
+                                },
                             ] as const
-                        ).map(({ column, label }) => {
+                        ).map(({ column, label, editTarget }) => {
                             const active = selection?.column === column;
                             const onPath =
                                 !!highlight &&
@@ -323,19 +335,49 @@ export function ExpenseSplitGraph({
                                                 splitNodeId(personKeyOf(u)),
                                             ),
                                         ));
+                            const labelClass = `uppercase tracking-wide ${
+                                active
+                                    ? 'font-bold text-accent-sky'
+                                    : onPath
+                                      ? 'font-semibold text-text-primary'
+                                      : selection
+                                        ? 'text-text-primary-lighter opacity-50'
+                                        : 'text-text-primary-lighter'
+                            }`;
+                            const chevronColor = active
+                                ? colors.accent.sky
+                                : colors.icon.lighter;
+
+                            if (onEditTarget) {
+                                return (
+                                    <Pressable
+                                        key={column}
+                                        className="flex-1 flex-row items-center gap-0.5 active:opacity-70"
+                                        onPress={() => onEditTarget(editTarget)}
+                                        accessibilityRole="button"
+                                        accessibilityLabel={`Edit ${label}`}
+                                    >
+                                        <AppText
+                                            variant="caption-xs"
+                                            className={`min-w-0 flex-shrink ${labelClass}`}
+                                            numberOfLines={1}
+                                        >
+                                            {label}
+                                        </AppText>
+                                        <Iconify
+                                            icon="heroicons:chevron-right"
+                                            size={14}
+                                            color={chevronColor}
+                                        />
+                                    </Pressable>
+                                );
+                            }
+
                             return (
                                 <View key={column} className="flex-1">
                                     <AppText
                                         variant="caption-xs"
-                                        className={`uppercase tracking-wide ${
-                                            active
-                                                ? 'font-bold text-accent-sky'
-                                                : onPath
-                                                  ? 'font-semibold text-text-primary'
-                                                  : selection
-                                                    ? 'text-text-primary-lighter opacity-50'
-                                                    : 'text-text-primary-lighter'
-                                        }`}
+                                        className={labelClass}
                                     >
                                         {label}
                                     </AppText>

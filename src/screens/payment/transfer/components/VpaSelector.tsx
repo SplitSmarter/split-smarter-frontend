@@ -1,6 +1,6 @@
 import React from "react";
 import {View, Text, TouchableOpacity} from "react-native";
-import {Ionicons, MaterialCommunityIcons} from "@expo/vector-icons";
+import {Iconify} from "react-native-iconify";
 import {GlassCard} from "./GlassCard";
 import {UserPaymentAccountItemDTO, UPIRegistrySummaryDTO} from "@/src/api/dto/user_payments/account";
 import {BRAND_COLORS, ThemeColors} from "../constants/theme";
@@ -45,19 +45,27 @@ export const VpaSelector: React.FC<VpaSelectorProps> = ({
                             contentStyle={styles.cardRow}
                         >
                             <View style={styles.iconCheckWrapper}>
-                                <Ionicons
-                                    name={isSelected ? "checkmark-circle" : "ellipse-outline"}
-                                    size={22}
-                                    color={isSelected ? colors.glassBorderSelected : colors.unselectedIcon}
-                                />
+                                {isSelected ? (
+                                    <Iconify
+                                        icon="heroicons:check-circle-solid"
+                                        size={22}
+                                        color={colors.glassBorderSelected}
+                                    />
+                                ) : (
+                                    <Iconify
+                                        icon="heroicons:check-circle"
+                                        size={22}
+                                        color={colors.unselectedIcon}
+                                    />
+                                )}
                             </View>
                             <View style={{flex: 1, justifyContent: "center"}}>
                                 <Text style={styles.primaryCardText}>{providerName}</Text>
                                 <View style={styles.subCardRow}>
                                     <Text style={styles.subCardText}>VPA: {vpa}</Text>
                                     {account.is_active && (
-                                        <MaterialCommunityIcons
-                                            name="check-decagram"
+                                        <Iconify
+                                            icon="heroicons:check-badge"
                                             size={15}
                                             color={BRAND_COLORS.greenIncrease}
                                             style={{marginLeft: 4}}

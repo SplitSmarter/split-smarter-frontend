@@ -57,26 +57,6 @@ export function ExpensePositionStrip({position, currency}: ExpensePositionStripP
                     elevation: 3,
                 }}
             >
-                <View className="mb-3 flex-row items-center justify-between">
-                    <View className="flex-row items-center gap-2">
-                        <View
-                            className="h-2 w-2 rounded-full"
-                            style={{
-                                backgroundColor: even
-                                    ? colors.status.success
-                                    : colors.accent.sky,
-                            }}
-                        />
-                        <AppText
-                            variant="caption-xs"
-                            className="font-bold uppercase tracking-wider"
-                            style={{color: colors.text.lighter}}
-                        >
-                            With settlements
-                        </AppText>
-                    </View>
-                </View>
-
                 <View className="flex-row items-center justify-between">
                     <View className="min-w-0 flex-1 pr-3">
                         <AppText

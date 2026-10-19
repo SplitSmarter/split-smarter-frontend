@@ -34,19 +34,11 @@ const OPTIONS: {
         ),
     },
     {
-        target: 'items',
-        title: 'Items',
-        subtitle: 'What was bought (catalog lines)',
-        renderIcon: (color) => (
-            <Iconify icon="heroicons:shopping-bag" size={22} color={color} />
-        ),
-    },
-    {
         target: 'assignItems',
         title: 'Assign items',
-        subtitle: 'Who funded / who shares each item',
+        subtitle: 'Pick catalog lines and who funded / shares each',
         renderIcon: (color) => (
-            <Iconify icon="heroicons:link" size={22} color={color} />
+            <Iconify icon="heroicons:shopping-bag" size={22} color={color} />
         ),
     },
     {

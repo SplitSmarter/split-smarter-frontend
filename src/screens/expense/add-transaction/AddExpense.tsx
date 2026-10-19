@@ -1,7 +1,6 @@
 import {AppInput} from '@/src/components/common/AppInput';
 import {AppText} from '@/src/components/common/AppText';
 import {ExpenseAttachments} from '@/src/components/expense/ExpenseAttachments';
-import {SelectExpenseItemBottomSheet} from '@/src/components/expense/SelectExpenseItemBottomSheet';
 import {CategoryGroupLocationSelector} from '@/src/screens/expense/CGLSelector';
 import {themeStore} from '@/src/store/themeStore';
 import {userStore} from '@/src/store/userStore';
@@ -13,13 +12,12 @@ import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {Modal, Pressable, ScrollView, View} from 'react-native';
 import {AddExpenseItemResponse} from '@/src/api/dto/expense/item';
 import {Iconify} from 'react-native-iconify';
-import {AppButtonV2} from '@/src/components/common/AppButtonV2';
 import {AppButton} from '@/src/components/common/AppButton';
 import {COLORS} from '@/src/constants/colors';
 import {
     distributeProportionalAmounts,
-    getPayerSummaryText,
     hasAmountChangeDependents,
+    itemCostSum,
     redistributeSplitPreservingItemFloors,
 } from '@/src/utils/expense/expenseCalculations';
 import {
@@ -28,9 +26,8 @@ import {
 } from '@/src/utils/expense/defaultExpenseItem';
 import {RelationWithUserType} from '@/src/api/dto/constants';
 import {DraftValidationErrorKey} from '@/src/interfaces/expense/draft_validation';
-import {SplitSectionCard} from '@/src/screens/expense/SplitSectionCard';
-import {ItemsSectionCard} from '@/src/screens/expense/ItemsSectionCard';
 import {ExpenseSplitGraph} from '@/src/components/expense/connections-graph/ExpenseSplitGraph';
+import {ConnectionsListView} from '@/src/components/expense/connections-graph/ConnectionsListView';
 import type {ConnectionsEditTarget} from '@/src/components/expense/connections-graph/ConnectionsEditChooserModal';
 import {buildGraphFromDraft} from '@/src/utils/expense/buildGraphFromDraft';
 import {systemStore} from '@/src/store/systemStore';
@@ -56,14 +53,12 @@ const AddExpenseScreen = () => {
     const isDark = theme === 'dark';
     const colors = isDark ? COLORS.dark : COLORS.light;
 
-    const [isItemSelectVisible, setIsItemSelectVisible] = useState(false);
     const [currencySheetOpen, setCurrencySheetOpen] = useState(false);
     const [amountModalVisible, setAmountModalVisible] = useState(false);
     const [pendingTotal, setPendingTotal] = useState<number | null>(null);
     const params = useLocalSearchParams<{newlyCreatedItem?: string}>();
     const consumedItemParamRef = useRef<string | null>(null);
 
-    useRegisterOverlayDismiss(isItemSelectVisible, () => setIsItemSelectVisible(false));
     useRegisterOverlayDismiss(currencySheetOpen, () => setCurrencySheetOpen(false));
     useRegisterOverlayDismiss(amountModalVisible, () => setAmountModalVisible(false));
 
@@ -128,11 +123,9 @@ const AddExpenseScreen = () => {
                 });
                 return;
             }
-            if (target === 'assignItems') {
+            if (target === 'assignItems' || target === 'items') {
                 router.push('/(authenticated)/expense/items/assign');
-                return;
             }
-            setIsItemSelectVisible(true);
         },
         [draft.totalAmount],
     );
@@ -154,7 +147,7 @@ const AddExpenseScreen = () => {
                 (item) => String(item.id) === String(created.id)
             );
             if (!alreadySelected) {
-                useExpenseDraftStore.getState().setExpenseItems([
+                const nextItems = [
                     ...currentItems,
                     {
                         id: String(created.id),
@@ -165,7 +158,22 @@ const AddExpenseScreen = () => {
                         sharedBetween: [],
                         paidBetween: [],
                     },
-                ]);
+                ];
+                const nextTotal = itemCostSum(nextItems);
+                const draftStore = useExpenseDraftStore.getState();
+                draftStore.setExpenseItems(nextItems);
+                draftStore.setTotalAmount(nextTotal);
+                draftStore.setPayers(
+                    distributeProportionalAmounts(draftStore.payers, nextTotal),
+                );
+                draftStore.setSplitParticipants(
+                    redistributeSplitPreservingItemFloors(
+                        draftStore.splitParticipants,
+                        nextItems,
+                        nextTotal,
+                    ),
+                );
+                setAmountInput(formatAmountInput(nextTotal));
             }
         } catch {
             // Ignore malformed return params
@@ -295,11 +303,6 @@ const AddExpenseScreen = () => {
         }
     }, [user]);
 
-    const payerSummary = useMemo(
-        () => getPayerSummaryText(draft.payers, user?.id),
-        [draft.payers, user]
-    );
-
     return (
         <>
             <ScrollView
@@ -373,70 +376,12 @@ const AddExpenseScreen = () => {
                         onEditTarget={handleConnectionsEdit}
                         initialViewMode="graph"
                         listContent={
-                            <>
-                                <AppButtonV2
-                                    variant="secondary"
-                                    size="none"
-                                    className="w-full flex-row items-center justify-between rounded-full border border-border-input bg-bg-primary-lighter px-6 py-4"
-                                    onPress={() =>
-                                        router.push({
-                                            pathname: '/(authenticated)/expense/user/split',
-                                            params: {
-                                                type: 'paidBy',
-                                                totalExpense: draft.totalAmount.toString(),
-                                            },
-                                        })
-                                    }
-                                    hasShadow={false}
-                                >
-                                    <View className="flex-1 items-start space-y-0.5">
-                                        <AppText
-                                            variant="caption-xs"
-                                            className="font-semibold uppercase tracking-wider text-text-primary-lighter"
-                                        >
-                                            Paid By
-                                        </AppText>
-                                        <AppText
-                                            variant="body-base"
-                                            className="font-medium text-text-primary"
-                                        >
-                                            {payerSummary}
-                                        </AppText>
-                                    </View>
-                                    <Iconify
-                                        icon="heroicons:chevron-right"
-                                        size={20}
-                                        color={
-                                            isDark
-                                                ? COLORS.dark.icon.primary
-                                                : COLORS.light.icon.primary
-                                        }
-                                    />
-                                </AppButtonV2>
-
-                                <SplitSectionCard
-                                    participants={draft.splitParticipants}
-                                    expenseItems={draft.expenseItems}
-                                    currencySymbol={currencySymbol}
-                                    isDark={isDark}
-                                    onPress={() =>
-                                        router.push({
-                                            pathname: '/(authenticated)/expense/user/split',
-                                            params: {
-                                                type: 'split',
-                                                totalExpense: draft.totalAmount.toString(),
-                                            },
-                                        })
-                                    }
-                                />
-
-                                <ItemsSectionCard
-                                    items={draft.expenseItems}
-                                    currencySymbol={currencySymbol}
-                                    isDark={isDark}
-                                    onPress={() => setIsItemSelectVisible(true)}
-                                />
-                            </>
+                            <ConnectionsListView
+                                data={connectionsGraphData}
+                                viewerId={user?.id}
+                                showAllSections
+                                onEditSection={handleConnectionsEdit}
+                            />
                         }
                     />
 
@@ -445,60 +390,6 @@ const AddExpenseScreen = () => {
                     />
                 </View>
             </ScrollView>
-
-            <SelectExpenseItemBottomSheet
-                visible={isItemSelectVisible}
-                selectedItems={draft.expenseItems}
-                splitParticipants={draft.splitParticipants}
-                currencySymbol={currencySymbol}
-                expenseTotalAmount={draft.totalAmount}
-                onClose={() => setIsItemSelectVisible(false)}
-                onSave={(items, opts) => {
-                    const nextTotal =
-                        typeof opts?.syncTotalAmount === 'number'
-                            ? opts.syncTotalAmount
-                            : draft.totalAmount;
-                    const resolvedItems =
-                        items.length > 0
-                            ? items
-                            : (() => {
-                                  const fallback = getDefaultExpenseItemDraft(nextTotal);
-                                  return fallback ? [fallback] : [];
-                              })();
-
-                    draft.setExpenseItems(resolvedItems);
-
-                    if (opts?.splitParticipants) {
-                        draft.setSplitParticipants(opts.splitParticipants);
-                    }
-
-                    if (typeof opts?.syncTotalAmount === 'number') {
-                        draft.setTotalAmount(nextTotal);
-                        setAmountInput(formatAmountInput(nextTotal));
-                        if (opts.redistributeParticipants) {
-                            draft.setPayers(
-                                distributeProportionalAmounts(draft.payers, nextTotal)
-                            );
-                            if (!opts.splitParticipants) {
-                                draft.setSplitParticipants(
-                                    redistributeSplitPreservingItemFloors(
-                                        draft.splitParticipants,
-                                        resolvedItems,
-                                        nextTotal
-                                    )
-                                );
-                            }
-                        }
-                    }
-                    setIsItemSelectVisible(false);
-                }}
-                onAddNew={() => {
-                    setIsItemSelectVisible(false);
-                    setTimeout(() => {
-                        router.push('/(authenticated)/expense/items/add');
-                    }, 200);
-                }}
-            />
 
             <CurrencyBottomSheet
                 isVisible={currencySheetOpen}

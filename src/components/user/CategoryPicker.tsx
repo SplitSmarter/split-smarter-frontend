@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { View, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { Iconify } from 'react-native-iconify';
 import { AppInput } from "@/src/components/common/AppInput";
+import { SearchClearButton } from "@/src/components/common/SearchClearButton";
 import { AppText } from "@/src/components/common/AppText";
 import { AppImage } from "@/src/components/common/AppImage";
 import { EntityFallbackIcon } from "@/src/components/common/EntityFallbackIcon";
@@ -138,6 +139,13 @@ export const CategoryPicker = ({ onSelect, selectedId, onBack }: any) => {
                 value={search}
                 onChangeText={setSearch}
                 renderLeftIcon={(c) => <Iconify icon="heroicons:magnifying-glass" size={20} color={c} />}
+                renderRightIcon={(c) => (
+                    <SearchClearButton
+                        value={search}
+                        onClear={() => setSearch('')}
+                        color={c}
+                    />
+                )}
                 className="bg-bg-primary-darker border-0 mb-4"
             />
             <View className="bg-bg-primary-lighter rounded-[32px] p-6 min-h-[300px]">

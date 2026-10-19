@@ -22,8 +22,6 @@ interface UsePlaceDetailsProps {
 }
 
 export const usePlaceDetails = (place: UsePlaceDetailsProps['place'], isVisible: boolean) => {
-    console.log("hook place: ", place);
-
     const [loading, setLoading] = useState(false);
     const [enrichedDetails, setEnrichedDetails] = useState<EnrichedPlaceDetails | null>(null);
 
@@ -90,6 +88,30 @@ export const usePlaceDetails = (place: UsePlaceDetailsProps['place'], isVisible:
                     } else {
                         console.log(`Google API execution returned empty dataset for provider reference: ${place.provider_id}`);
                     }
+                } else if (
+                    place.provider === PlaceSource.CUSTOM &&
+                    !place.id &&
+                    place.provider_id == null &&
+                    !place.place_id
+                ) {
+                    // Dropped / custom pin — already reverse-geocoded on the map.
+                    // Do not call Photon (often returns HTML → JSON parse error).
+                    const [longitude, latitude] = place.coordinate;
+                    setEnrichedDetails({
+                        id: null,
+                        name: place.name,
+                        description: '',
+                        address: place.address || '',
+                        geo: {latitude, longitude},
+                        city: '',
+                        state: '',
+                        country: '',
+                        country_code: '',
+                        provider: PlaceSource.CUSTOM,
+                        provider_id: null,
+                        photos: [],
+                        rating: null,
+                    });
                 } else if (place.provider) {
                     // Priority 3: Geometry & Reverse Geocode Fallback Tree
                     const [longitude, latitude] = place.coordinate;

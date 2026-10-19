@@ -15,6 +15,7 @@ import {
 import {Iconify} from 'react-native-iconify';
 import {AppText} from '@/src/components/common/AppText';
 import {AppInput} from '@/src/components/common/AppInput';
+import {SearchClearButton} from '@/src/components/common/SearchClearButton';
 import {AppButton} from '@/src/components/common/AppButton';
 import {AppImageV2} from '@/src/components/common/AppImageV2';
 import {EntityFallbackIcon, EntityImageKind} from '@/src/components/common/EntityFallbackIcon';
@@ -187,8 +188,11 @@ export function BudgetMultiSelectSheet({
             snapPoints={snapPoints}
             enableDynamicSizing={false}
             enablePanDownToClose
+            enableContentPanningGesture
             onDismiss={onClose}
             backdropComponent={renderBackdrop}
+            keyboardBehavior="interactive"
+            keyboardBlurBehavior="restore"
             backgroundStyle={{
                 backgroundColor: colors.bg.overlay,
                 borderRadius: 40,
@@ -214,7 +218,7 @@ export function BudgetMultiSelectSheet({
                     <View className="w-10" />
                 </View>
 
-                <View className="px-6 pt-3 pb-2">
+                    <View className="px-6 pt-3 pb-2">
                     <AppInput
                         placeholder="Search"
                         value={searchQuery}
@@ -222,75 +226,89 @@ export function BudgetMultiSelectSheet({
                         renderLeftIcon={(c) => (
                             <Iconify icon="heroicons:magnifying-glass" size={18} color={c} />
                         )}
+                        renderRightIcon={(c) => (
+                            <SearchClearButton
+                                value={searchQuery}
+                                onClear={() => onSearchChange('')}
+                                color={c}
+                            />
+                        )}
                     />
                 </View>
 
-                {loading && items.length === 0 ? (
-                    <View style={styles.centered}>
-                        <ActivityIndicator size="large" color={colors.icon.primary} />
-                    </View>
-                ) : error && items.length === 0 ? (
-                    <View style={styles.centered}>
-                        <SheetEmptyState
-                            icon={
-                                <Iconify
-                                    icon="heroicons:exclamation-triangle"
-                                    size={32}
-                                    color={colors.icon.lighter}
-                                />
-                            }
-                            title="Unable to load"
-                            description={error}
-                            primaryAction={
-                                onRetry
-                                    ? {
-                                          label: 'Try again',
-                                          onPress: onRetry,
-                                          renderIcon: (c) => (
-                                              <Iconify
-                                                  icon="heroicons:arrow-path"
-                                                  size={18}
-                                                  color={c}
-                                              />
-                                          ),
-                                      }
-                                    : undefined
-                            }
-                        />
-                    </View>
-                ) : (
-                    <BottomSheetFlatList
-                        data={items}
-                        keyExtractor={(item) => String(item.id)}
-                        renderItem={renderItem}
-                        onEndReached={onLoadMore}
-                        onEndReachedThreshold={0.4}
-                        contentContainerStyle={styles.list}
-                        ListFooterComponent={
-                            loadingMore ? (
-                                <ActivityIndicator
-                                    style={{marginVertical: 12}}
-                                    color={colors.icon.primary}
-                                />
-                            ) : (
-                                <View style={{height: 12}} />
-                            )
-                        }
-                        ListEmptyComponent={
+                <View style={styles.body}>
+                    {loading && items.length === 0 ? (
+                        <View style={styles.centered}>
+                            <ActivityIndicator size="large" color={colors.icon.primary} />
+                        </View>
+                    ) : error && items.length === 0 ? (
+                        <View style={styles.centered}>
                             <SheetEmptyState
                                 icon={
                                     <Iconify
-                                        icon="heroicons:magnifying-glass-minus"
+                                        icon="heroicons:exclamation-triangle"
                                         size={32}
                                         color={colors.icon.lighter}
                                     />
                                 }
-                                title="Nothing found"
-                                description="Try a different search."
+                                title="Unable to load"
+                                description={error}
+                                primaryAction={
+                                    onRetry
+                                        ? {
+                                              label: 'Try again',
+                                              onPress: onRetry,
+                                              renderIcon: (c) => (
+                                                  <Iconify
+                                                      icon="heroicons:arrow-path"
+                                                      size={18}
+                                                      color={c}
+                                                  />
+                                              ),
+                                          }
+                                        : undefined
+                                }
                             />
-                        }
-                    />
-                )}
+                        </View>
+                    ) : (
+                        <BottomSheetFlatList
+                            data={items}
+                            keyExtractor={(item) => String(item.id)}
+                            renderItem={renderItem}
+                            onEndReached={onLoadMore}
+                            onEndReachedThreshold={0.4}
+                            style={styles.list}
+                            contentContainerStyle={
+                                items.length === 0 ? styles.emptyListContent : styles.listContent
+                            }
+                            keyboardShouldPersistTaps="handled"
+                            showsVerticalScrollIndicator={false}
+                            ListFooterComponent={
+                                loadingMore ? (
+                                    <ActivityIndicator
+                                        style={{marginVertical: 12}}
+                                        color={colors.icon.primary}
+                                    />
+                                ) : (
+                                    <View style={{height: 12}} />
+                                )
+                            }
+                            ListEmptyComponent={
+                                <SheetEmptyState
+                                    icon={
+                                        <Iconify
+                                            icon="heroicons:magnifying-glass-minus"
+                                            size={32}
+                                            color={colors.icon.lighter}
+                                        />
+                                    }
+                                    title="Nothing found"
+                                    description="Try a different search."
+                                />
+                            }
+                        />
+                    )}
+                </View>
 
                 <View className="border-t border-border-input px-6 pb-8 pt-3">
                     <AppButton variant="primary" onPress={handleDone}>
@@ -304,6 +322,14 @@ export function BudgetMultiSelectSheet({
 
 const styles = StyleSheet.create({
     container: {flex: 1},
-    list: {paddingHorizontal: 24, paddingBottom: 24},
+    body: {flex: 1},
+    list: {flex: 1},
+    listContent: {paddingHorizontal: 24, paddingBottom: 24},
+    emptyListContent: {
+        flexGrow: 1,
+        paddingHorizontal: 24,
+        paddingBottom: 24,
+        justifyContent: 'center',
+    },
     centered: {flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24},
 });

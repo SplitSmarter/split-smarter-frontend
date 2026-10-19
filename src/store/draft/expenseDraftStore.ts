@@ -16,6 +16,7 @@ import {SelectUser} from "@/src/api/dto/constants";
 import {getMissingGroupMembers, UniqueUserIdentity} from "@/src/utils/expense/validation/group_members";
 import {
     allocationWithinTolerance,
+    itemCostSum,
     sumParticipantAmounts,
 } from "@/src/utils/expense/expenseCalculations";
 import { getDefaultExpenseItemDraft } from "@/src/utils/expense/defaultExpenseItem";
@@ -488,21 +489,38 @@ export const useExpenseDraftStore = create<ExpenseDraftState>((set, get) => ({
             }
         }
 
-        // --- 2b. ALLOCATION SUM CHECK (Paid By / Split vs total) ---
+        // --- 2b. ALLOCATION SUM CHECK (items / Paid By / Split vs total) ---
         if (targetKeys.includes(DraftValidationErrorKey.ALLOCATION_MISMATCH)) {
             const paidSum = sumParticipantAmounts(state.payers);
             const splitSum = sumParticipantAmounts(state.splitParticipants);
             const total = state.totalAmount;
+            const itemsSum = itemCostSum(state.expenseItems);
             const paidOk =
                 state.payers.length === 0 || allocationWithinTolerance(paidSum, total);
             const splitOk =
                 state.splitParticipants.length === 0 ||
                 allocationWithinTolerance(splitSum, total);
+            const itemsOk =
+                state.expenseItems.length === 0 ||
+                allocationWithinTolerance(itemsSum, total);
 
-            if (!paidOk || !splitOk) {
+            if (!paidOk || !splitOk || !itemsOk) {
+                const mismatchCount =
+                    Number(!paidOk) + Number(!splitOk) + Number(!itemsOk);
                 const side =
-                    !paidOk && !splitOk ? 'both' : !paidOk ? 'paidBy' : 'split';
+                    mismatchCount > 1
+                        ? 'both'
+                        : !itemsOk
+                          ? 'items'
+                          : !paidOk
+                            ? 'paidBy'
+                            : 'split';
                 const parts: string[] = [];
+                if (!itemsOk) {
+                    parts.push(
+                        `Items sum to ${itemsSum.toFixed(2)} but expense total is ${total.toFixed(2)}`
+                    );
+                }
                 if (!paidOk) {
                     parts.push(
                         `Paid By sums to ${paidSum.toFixed(2)} but expense total is ${total.toFixed(2)}`
@@ -514,7 +532,7 @@ export const useExpenseDraftStore = create<ExpenseDraftState>((set, get) => ({
                     );
                 }
                 nextErrors[DraftValidationErrorKey.ALLOCATION_MISMATCH] = {
-                    message: `${parts.join('. ')}. Open Paid By / Split Between or update Amount to fix.`,
+                    message: `${parts.join('. ')}. Update Amount from items, or adjust Paid By / Split Between.`,
                     side,
                 };
             }

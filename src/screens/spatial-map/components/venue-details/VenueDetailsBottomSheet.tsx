@@ -13,7 +13,9 @@ import {VENUE_SHEET_SNAP_POINTS} from './constants';
 import type {VenueDetailsBottomSheetProps} from './types';
 import {VenueSheetHeader} from './VenueSheetHeader';
 import {SinglePlaceBody} from './SinglePlaceBody';
+import {UnsavedGooglePlaceBody} from './UnsavedGooglePlaceBody';
 import {ClusterBody} from './ClusterBody';
+import {isUnsavedGooglePlace} from '@/src/screens/spatial-map/utils/ensureVenuePlaceSaved';
 
 export function VenueDetailsBottomSheet({
     sheet,
@@ -79,6 +81,9 @@ export function VenueDetailsBottomSheet({
     const showingCluster = sheet?.kind === 'cluster' && !drilledVenue;
     const showBack = sheet?.kind === 'cluster' && Boolean(drilledVenue);
 
+    const unsavedGoogle =
+        showingVenue != null && isUnsavedGooglePlace(showingVenue);
+
     const headerTitle = showingVenue
         ? showingVenue.placeName
         : showingCluster
@@ -86,7 +91,9 @@ export function VenueDetailsBottomSheet({
           : '';
 
     const headerSubtitle = showingVenue
-        ? showingVenue.address ?? null
+        ? unsavedGoogle
+            ? 'Dropped pin'
+            : (showingVenue.address ?? null)
         : showingCluster && sheet?.kind === 'cluster'
           ? `${sheet.venues.length} location${sheet.venues.length === 1 ? '' : 's'} nearby`
           : null;
@@ -100,6 +107,8 @@ export function VenueDetailsBottomSheet({
             enableContentPanningGesture
             onDismiss={onClose}
             backdropComponent={renderBackdrop}
+            keyboardBehavior="interactive"
+            android_keyboardInputMode="adjustResize"
             backgroundStyle={{
                 backgroundColor: colors.bg.overlay,
                 borderRadius: 40,
@@ -125,8 +134,15 @@ export function VenueDetailsBottomSheet({
                     style={styles.scroll}
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
                 >
-                    {showingVenue ? (
+                    {showingVenue && isUnsavedGooglePlace(showingVenue) ? (
+                        <UnsavedGooglePlaceBody
+                            venue={showingVenue}
+                            onClose={onClose}
+                        />
+                    ) : null}
+                    {showingVenue && !isUnsavedGooglePlace(showingVenue) ? (
                         <SinglePlaceBody
                             venue={showingVenue}
                             dateRange={dateRange}

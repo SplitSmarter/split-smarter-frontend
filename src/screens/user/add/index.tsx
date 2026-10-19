@@ -1,20 +1,19 @@
 import React, {useEffect} from 'react';
-import {BackHandler, Pressable, View} from 'react-native';
+import {BackHandler, KeyboardAvoidingView, Platform, View} from 'react-native';
 import {useRouter} from 'expo-router';
-import {Iconify} from 'react-native-iconify';
-import {SafeAreaView} from 'react-native-safe-area-context';
-import {AppText} from "@/src/components/common/AppText";
-import {themeStore} from "@/src/store/themeStore";
-import { COLORS } from '@/src/constants/colors';
-import {systemStore} from "@/src/store/systemStore";
-import {logStore} from "@/src/store/logStore";
-
-// API Endpoints & Types
-import {RelationshipForm} from "./components/RelationshipForm";
+import {ScreenWrapper} from '@/src/components/common/ScreenWrapper';
+import {themeStore} from '@/src/store/themeStore';
+import {COLORS, PLATINUM_HEADER} from '@/src/constants/colors';
+import {systemStore} from '@/src/store/systemStore';
+import {logStore} from '@/src/store/logStore';
+import {RelationshipForm} from '@/src/screens/user/add/components/RelationshipForm';
+import {AddRelationHeader} from '@/src/screens/user/add/components/AddRelationHeader';
 
 export default function AddUserScreen() {
     const isDark = themeStore((state) => state.theme === 'dark');
     const colors = isDark ? COLORS.dark : COLORS.light;
+    const canvasBg = colors.bg.primary;
+    const heroStatusBar = isDark ? PLATINUM_HEADER.dark : PLATINUM_HEADER.light;
     const {defaults} = systemStore();
     const router = useRouter();
 
@@ -22,53 +21,64 @@ export default function AddUserScreen() {
 
     const safeNavigateBack = () => {
         try {
-            console.log("Back pressed")
             if (router.canGoBack()) {
                 router.back();
             } else {
-                router.replace("/(authenticated)/(tabs)/" as any);
+                router.replace('/(authenticated)/(tabs)/' as any);
             }
         } catch (navError: any) {
             logStore.getState().addLog({
                 level: 'WARN',
                 message: `Safe fallback navigation processed: ${navError.message}`,
-                context: {location: 'AddUserScreen:safeNavigateBack'}
+                context: {location: 'AddUserScreen:safeNavigateBack'},
             });
-            router.replace("/(authenticated)/(tabs)/" as any);
+            router.replace('/(authenticated)/(tabs)/' as any);
         }
     };
 
     useEffect(() => {
         const onBackPress = () => {
             safeNavigateBack();
-            return true; // Prevents the default behavior (exiting the app)
+            return true;
         };
 
         const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-
-        return () => {
-            subscription.remove();
-        };
+        return () => subscription.remove();
     }, []);
 
     return (
-        <SafeAreaView className="flex-1 bg-bg-canvas" edges={['top']}>
-            {/* Structural Nav Header Context */}
-            <View className="px-6 pt-2 pb-4 flex-row items-center justify-between">
-                <Pressable onPress={safeNavigateBack}
-                           className="p-2 rounded-full active:bg-bg-primary-darker">
-                    <Iconify icon="heroicons:chevron-left" size={24} color={colors.icon.primary}/>
-                </Pressable>
-                <AppText variant="h4" className="font-bold text-text-primary">Add Relation</AppText>
-                <View className="w-10"/>
-            </View>
+        <ScreenWrapper
+            backgroundColor={heroStatusBar}
+            statusBarStyle="light-content"
+            withPadding={false}
+            className="relative flex-1"
+        >
+            <View className="flex-1" style={{backgroundColor: heroStatusBar}}>
+                <AddRelationHeader onBack={safeNavigateBack} />
 
-            {/* Isolated Form Subtree Rendering Boundary Context */}
-            <RelationshipForm
-                isDark={isDark}
-                defaultAvatarAssetId={defaultAvatarAssetId}
-                onSuccess={safeNavigateBack}
-            />
-        </SafeAreaView>
+                <KeyboardAvoidingView
+                    className="flex-1"
+                    style={{backgroundColor: heroStatusBar}}
+                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                    keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
+                >
+                    <View
+                        className="flex-1 overflow-hidden"
+                        style={{
+                            marginTop: -20,
+                            borderTopLeftRadius: 28,
+                            borderTopRightRadius: 28,
+                            backgroundColor: canvasBg,
+                        }}
+                    >
+                        <RelationshipForm
+                            isDark={isDark}
+                            defaultAvatarAssetId={defaultAvatarAssetId}
+                            onSuccess={safeNavigateBack}
+                        />
+                    </View>
+                </KeyboardAvoidingView>
+            </View>
+        </ScreenWrapper>
     );
 }

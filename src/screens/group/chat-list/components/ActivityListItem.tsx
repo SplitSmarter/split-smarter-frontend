@@ -64,9 +64,13 @@ export const ActivityListItem = React.memo(({ item, isDark }: ActivityListItemPr
             onPress={handlePress}
         >
             {/* Avatar Profile Matrix Frame Container */}
-            <View className="w-14 h-14 rounded-full bg-bg-primary-darker overflow-hidden items-center justify-center">
+            <View className="h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-bg-primary-darker">
                 {item.avatarUrl ? (
-                    <Image source={{ uri: item.avatarUrl }} style={{ width: 40, height: 40 }} contentFit="contain" />
+                    <Image
+                        source={{ uri: item.avatarUrl }}
+                        style={{ width: '100%', height: '100%', borderRadius: 9999 }}
+                        contentFit="cover"
+                    />
                 ) : item.type === 'group' ? (
                     <EntityFallbackIcon kind="group" size={24} color={iconColor} />
                 ) : (

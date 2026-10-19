@@ -7,6 +7,7 @@ import {
     GestureResponderEvent,
     ActivityIndicator,
     ViewStyle,
+    TextStyle,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { AppText } from "@/src/components/common/AppText";
@@ -17,9 +18,9 @@ import { COLORS } from "@/src/constants/colors";
 interface AppButtonV2Props extends PressableProps {
     children: ReactNode;
     variant?: 'primary' | 'secondary' | 'ghost';
-    size?: 'sm' | 'md' | 'lg' | 'none'; // 'none' allows complete layout overrides
+    size?: 'sm' | 'md' | 'lg' | 'none';
     renderIcon?: (color: string, size: number) => ReactNode;
-    className?: string;       // Placed directly on the visible outer container wrapper
+    className?: string;
     hasShadow?: boolean;
     vibrate?: boolean;
     loading?: boolean;
@@ -57,7 +58,6 @@ export const AppButtonV2 = ({
         }
     };
 
-    // Primary CTA = platinum invert (brand.primary) — icons match text.contrast
     const getIconColor = () => {
         if (variant === 'primary') {
             return colors.text.contrast;
@@ -65,7 +65,6 @@ export const AppButtonV2 = ({
         return colors.icon.primary;
     };
 
-    // StyleSheet shadows — avoid NativeWind shadow-* during theme flips
     const getShadowStyle = (isPressed: boolean): ViewStyle | undefined => {
         if (!hasShadow || isInteractionDisabled) return undefined;
         if (platform === 'android') {
@@ -95,7 +94,7 @@ export const AppButtonV2 = ({
             };
     };
 
-    // Force fill via COLORS — NativeWind bg-bg-secondary can linger as emerald
+    // Fill on INNER view only — isolates from NativeWind className on Pressable.
     const variantSurfaceStyle: ViewStyle =
         variant === 'primary'
             ? {backgroundColor: colors.brand.primary}
@@ -106,14 +105,12 @@ export const AppButtonV2 = ({
     const labelColor =
         variant === 'primary' ? colors.text.contrast : colors.text.primary;
 
-    // Structural / border classes only (fill + label color come from style)
     const variantStyles = {
         primary: "border-transparent",
         secondary: "border-border-input",
         ghost: "border-transparent",
     };
 
-    // Core Metric Presets - Sensible defaults, completely omitted if size="none"
     const sizeStyles = {
         none: "",
         sm: "py-2 px-4 rounded-xl",
@@ -123,53 +120,69 @@ export const AppButtonV2 = ({
 
     const textVariants = { none: "body-base" as const, sm: "body-small" as const, md: "body-base" as const, lg: "body-large" as const };
     const iconSizes = { none: 20, sm: 16, md: 20, lg: 24 };
+    const iconSize = iconSizes[size];
+    const labelStyle: TextStyle = {
+        color: labelColor,
+        lineHeight: iconSize + 4,
+        includeFontPadding: false,
+        textAlignVertical: 'center',
+    };
 
     return (
         <Pressable
             onPress={handlePress}
             disabled={isInteractionDisabled}
-            /* className last so callers can override layout; fill always from COLORS */
-            className={`
-                flex-row gap-x-2 items-center justify-center border
-                ${variantStyles[variant]}
-                ${sizeStyles[size]}
-                ${isInteractionDisabled ? 'opacity-50' : ''}
-                ${className} 
-            `}
+            className={`w-full items-center justify-center ${className}`}
             {...props}
-            style={[variantSurfaceStyle, props.style as ViewStyle]}
         >
             {({ pressed }) => (
                 <View
                     style={[
+                        variantSurfaceStyle,
                         (pressed && !isInteractionDisabled)
                             ? {transform: [{scale: 0.98}]}
                             : {transform: [{scale: 1}]},
                         getShadowStyle(pressed),
                     ]}
-                    className="flex-row items-center justify-center w-full h-full gap-x-2"
+                    className={`
+                        w-full flex-row items-center justify-center gap-x-2 border
+                        ${variantStyles[variant]}
+                        ${sizeStyles[size]}
+                        ${isInteractionDisabled ? 'opacity-50' : ''}
+                    `}
                 >
                     {loading ? (
                         <>
                             <ActivityIndicator size="small" color={getIconColor()} />
-                            {loadingText && (
+                            {loadingText ? (
                                 <AppText
                                     variant={textVariants[size]}
                                     className="font-bold"
-                                    style={{color: labelColor}}
+                                    style={labelStyle}
                                 >
                                     {loadingText}
                                 </AppText>
-                            )}
+                            ) : null}
                         </>
                     ) : (
                         <>
-                            {renderIcon && renderIcon(getIconColor(), iconSizes[size])}
+                            {renderIcon ? (
+                                <View
+                                    style={{
+                                        width: iconSize,
+                                        height: iconSize,
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}
+                                >
+                                    {renderIcon(getIconColor(), iconSize)}
+                                </View>
+                            ) : null}
                             {typeof children === 'string' ? (
                                 <AppText
                                     variant={textVariants[size]}
                                     className="font-bold"
-                                    style={{color: labelColor}}
+                                    style={labelStyle}
                                 >
                                     {children}
                                 </AppText>

@@ -3,6 +3,7 @@ import { GetExpenseItemsApi } from "@/src/api/expense/item";
 import { AppImageV2 } from "@/src/components/common/AppImageV2";
 import { EntityFallbackIcon } from "@/src/components/common/EntityFallbackIcon";
 import { AppInput } from '@/src/components/common/AppInput';
+import { SearchClearButton } from '@/src/components/common/SearchClearButton';
 import { AppText } from '@/src/components/common/AppText';
 import { ScreenWrapper } from "@/src/components/common/ScreenWrapper";
 import { themeStore } from "@/src/store/themeStore";
@@ -204,6 +205,13 @@ const MultiExpenseItemSelect = ({ onSave, onAddNew }: Props) => {
                         onChangeText={setSearchQuery}
                         placeholderTextColor={colors.text.placeholder}
                         renderLeftIcon={(color) => <Iconify icon="heroicons:magnifying-glass" size={20} color={color} />}
+                        renderRightIcon={(color) => (
+                            <SearchClearButton
+                                value={searchQuery}
+                                onClear={() => setSearchQuery('')}
+                                color={color}
+                            />
+                        )}
                     />
                     <View className="flex-row mt-4">
                         {(['All', 'Default', 'Custom'] as FilterTab[]).map((tab) => (

@@ -1,6 +1,6 @@
 import {useState, useMemo, useRef, useCallback, useEffect} from 'react';
 import {Alert} from 'react-native';
-import {router, useFocusEffect} from 'expo-router';
+import {router, useFocusEffect, useLocalSearchParams} from 'expo-router';
 import {themeStore} from '@/src/store/themeStore';
 import {useExpenseDraftStore} from '@/src/store/draft/expenseDraftStore';
 import {useTransferDraftStore} from '@/src/store/draft/transferDraftStore';
@@ -18,12 +18,44 @@ import {
 } from '@/src/utils/expense/formatExpenseScheduleLabel';
 import {GetTransactionStatusApi, InitiateTransactionApi} from '@/src/api/user_payment/transaction';
 
+function initialTabFromParams(tab?: string | string[]): TransactionTabType {
+    const raw = Array.isArray(tab) ? tab[0] : tab;
+    return raw === 'transfer' ? 'transfer' : 'expense';
+}
+
 export const useAddTransaction = () => {
     const {theme} = themeStore();
     const isDark = theme === 'dark';
+    const params = useLocalSearchParams<{tab?: string; groupId?: string; scan?: string}>();
 
-    const [activeTab, setActiveTab] = useState<TransactionTabType>('expense');
+    const [activeTab, setActiveTab] = useState<TransactionTabType>(() =>
+        initialTabFromParams(params.tab),
+    );
+
+    useEffect(() => {
+        setActiveTab(initialTabFromParams(params.tab));
+    }, [params.tab]);
+
+    // Prefill group when opened from group details (or any entry with groupId).
+    useEffect(() => {
+        const raw = Array.isArray(params.groupId) ? params.groupId[0] : params.groupId;
+        const id = raw != null ? Number(raw) : NaN;
+        if (!Number.isFinite(id) || id <= 0) return;
+
+        const draft = useExpenseDraftStore.getState();
+        if (draft.groupId === id) return;
+
+        draft.setGroupId(id);
+        void draft.runIntegrityValidation(DraftValidationErrorKey.GROUP_MISMATCH);
+    }, [params.groupId]);
     const [pickerVisible, setPickerVisible] = useState(false);
+
+    // Dashboard Create hub → Scan receipt opens the media picker once on arrive.
+    useEffect(() => {
+        const raw = Array.isArray(params.scan) ? params.scan[0] : params.scan;
+        if (raw !== '1' && raw !== 'true') return;
+        setPickerVisible(true);
+    }, [params.scan]);
     const [validationModalVisible, setValidationModalVisible] = useState(false);
     const [isLocalValidating, setIsLocalValidating] = useState(false);
     const [optionsVisible, setOptionsVisible] = useState(false);

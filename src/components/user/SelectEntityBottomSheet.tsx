@@ -12,6 +12,7 @@ import { COLORS } from "@/src/constants/colors";
 import { RelationWithUserType } from "@/src/api/dto/constants";
 import { HiddenUserTarget, SelectPeopleTab } from './SelectPeopleTab';
 import { SelectMerchantTab } from './SelectMerchantTab';
+import { AddMerchantHeaderButton } from '@/src/components/user/AddMerchantHeaderButton';
 import { UserMerchantDetails } from '@/src/api/dto/expense/merchant';
 import { RelationDetails } from '@/src/api/dto/user/relation';
 import { UserSearchResponse } from '@/src/api/dto/user/user';
@@ -96,13 +97,29 @@ export const SelectEntityBottomSheet = ({
                         <Iconify
                             icon="heroicons:chevron-left"
                             size={24}
-                            color={isDark ? COLORS.dark.text.primary : COLORS.light.text.primary}
+                            color={isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary}
                         />
                     </Pressable>
                     <AppText variant="h4" className="font-bold text-text-primary text-center">
                         Select Entity
                     </AppText>
-                    <View style={{ width: 40 }} />
+                    {activeTab === 'merchant' ? (
+                        <AddMerchantHeaderButton
+                            onClose={onClose}
+                            iconColor={
+                                isDark
+                                    ? COLORS.dark.icon.primary
+                                    : COLORS.light.icon.primary
+                            }
+                            backgroundColor={
+                                isDark
+                                    ? COLORS.dark.bg.darker
+                                    : COLORS.light.bg.darker
+                            }
+                        />
+                    ) : (
+                        <View style={{ width: 40 }} />
+                    )}
                 </View>
 
                 {/* Switcher Segmented Control */}

@@ -45,13 +45,15 @@ export const addTransactionStyles = StyleSheet.create({
         width: '100%',
     },
 
-    // Body Sheet Container
+    /** Inverted-U sheet: rounded top over flat platinum chrome. */
     sheetCardContainer: {
         flex: 1,
-        borderTopLeftRadius: 36,
-        borderTopRightRadius: 36,
+        marginTop: -20,
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
         paddingHorizontal: 24,
         paddingTop: 24,
+        overflow: 'hidden',
     },
     scrollContent: {
         paddingBottom: 28,

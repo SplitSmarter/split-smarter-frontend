@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Iconify } from "react-native-iconify";
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { ThemeColors } from "../constants/theme";
@@ -31,7 +31,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({ colors, onCancel }) => {
 
             <TouchableOpacity style={styles.iconBtn}>
                 <BlurView intensity={30} tint={colors.blurTint} style={styles.iconBlur}>
-                    <Ionicons name="help-circle-outline" size={20} color={colors.textPrimary} />
+                    <Iconify icon="heroicons:question-mark-circle" size={20} color={colors.textPrimary} />
                 </BlurView>
             </TouchableOpacity>
         </View>

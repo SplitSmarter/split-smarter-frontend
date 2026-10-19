@@ -23,10 +23,30 @@ export function resolveExistingUserPlaceId(venue: PlaceAgg): number | null {
     return null;
 }
 
+/** Google place from search / map that is not yet a saved user place. */
+export function isUnsavedGooglePlace(venue: PlaceAgg): boolean {
+    const isGoogle =
+        venue.provider === PlaceSource.GOOGLE || venue.provider === 'GOOGLE';
+    if (!isGoogle) return false;
+    if (resolveExistingUserPlaceId(venue) != null) return false;
+    return (
+        typeof venue.googlePlaceId === 'string' &&
+        venue.googlePlaceId.trim().length > 0
+    );
+}
+
 function buildCustomDetails(
     venue: PlaceAgg,
     details?: LocationDetails | null
 ): NonNullable<AddPlaceRequest['custom_details']> {
+    const countryCode = (
+        details?.country_code ||
+        venue.countryCode ||
+        ''
+    )
+        .trim()
+        .toUpperCase();
+
     return {
         name: details?.name || venue.placeName,
         description: '',
@@ -35,10 +55,10 @@ function buildCustomDetails(
             latitude: venue.latitude,
             longitude: venue.longitude,
         },
-        country: details?.country || '',
-        city: details?.city || '',
-        state: details?.state || '',
-        country_code: details?.country_code || '',
+        country: details?.country || venue.country || '',
+        city: details?.city || venue.city || '',
+        state: details?.state || venue.state || '',
+        country_code: countryCode,
     };
 }
 

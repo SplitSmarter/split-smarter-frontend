@@ -1,5 +1,5 @@
 import React, {useMemo} from 'react';
-import {View} from 'react-native';
+import {Pressable, View} from 'react-native';
 import {Iconify} from 'react-native-iconify';
 import {AppText} from '@/src/components/common/AppText';
 import {AppImageV2} from '@/src/components/common/AppImageV2';
@@ -9,6 +9,7 @@ import {themeStore} from '@/src/store/themeStore';
 import type {PaymentLinkSummary} from '@/src/api/dto/expense/expense';
 import type {PaymentLinkDetails} from '@/src/api/dto/expense/payment_link';
 import {buildItemColorMap} from '@/src/components/expense/connections-graph/itemColors';
+import type {ConnectionsEditTarget} from '@/src/components/expense/connections-graph/ConnectionsEditChooserModal';
 import {
     personKeyOf,
     type ExpenseSplitGraphData,
@@ -22,6 +23,10 @@ export type ConnectionsListViewProps = {
     viewerId?: number | null;
     isViewerPayer?: boolean;
     paymentLinks?: LinkRow[];
+    /** Always render Paid by / Items / Split between (empty placeholders when needed). */
+    showAllSections?: boolean;
+    /** Section header chevron → direct edit. */
+    onEditSection?: (target: ConnectionsEditTarget) => void;
 };
 
 function money(symbol: string, amount: number) {
@@ -70,16 +75,18 @@ function SectionLabel({
     title,
     meta,
     accent,
+    onPress,
 }: {
     title: string;
     meta?: string;
     accent: string;
+    onPress?: () => void;
 }) {
     const isDark = themeStore((s) => s.theme === 'dark');
     const colors = isDark ? COLORS.dark : COLORS.light;
-    return (
-        <View className="mb-2 mt-1 flex-row items-center justify-between">
-            <View className="flex-row items-center gap-2">
+    const body = (
+        <>
+            <View className="min-w-0 flex-1 flex-row items-center gap-2">
                 <View
                     className="h-1.5 w-1.5 rounded-full"
                     style={{backgroundColor: accent}}
@@ -92,15 +99,59 @@ function SectionLabel({
                     {title}
                 </AppText>
             </View>
-            {meta ? (
-                <AppText
-                    variant="caption-xs"
-                    className="font-semibold"
-                    style={{color: colors.text.lighter}}
-                >
-                    {meta}
-                </AppText>
-            ) : null}
+            <View className="flex-row items-center gap-1">
+                {meta ? (
+                    <AppText
+                        variant="caption-xs"
+                        className="font-semibold"
+                        style={{color: colors.text.lighter}}
+                    >
+                        {meta}
+                    </AppText>
+                ) : null}
+                {onPress ? (
+                    <Iconify
+                        icon="heroicons:chevron-right"
+                        size={16}
+                        color={colors.icon.primary}
+                    />
+                ) : null}
+            </View>
+        </>
+    );
+
+    if (onPress) {
+        return (
+            <Pressable
+                className="mb-2 mt-1 flex-row items-center justify-between active:opacity-70"
+                onPress={onPress}
+                accessibilityRole="button"
+                accessibilityLabel={`Edit ${title}`}
+            >
+                {body}
+            </Pressable>
+        );
+    }
+
+    return (
+        <View className="mb-2 mt-1 flex-row items-center justify-between">{body}</View>
+    );
+}
+
+function EmptySectionBody({message}: {message: string}) {
+    const isDark = themeStore((s) => s.theme === 'dark');
+    const colors = isDark ? COLORS.dark : COLORS.light;
+    return (
+        <View
+            className="overflow-hidden rounded-2xl border px-3.5 py-4"
+            style={{
+                backgroundColor: colors.bg.primary,
+                borderColor: colors.status.border,
+            }}
+        >
+            <AppText variant="caption-xs" style={{color: colors.text.lighter}}>
+                {message}
+            </AppText>
         </View>
     );
 }
@@ -113,6 +164,8 @@ export function ConnectionsListView({
     viewerId = null,
     isViewerPayer = false,
     paymentLinks = [],
+    showAllSections = false,
+    onEditSection,
 }: ConnectionsListViewProps) {
     const isDark = themeStore((s) => s.theme === 'dark');
     const colors = isDark ? COLORS.dark : COLORS.light;
@@ -162,6 +215,7 @@ export function ConnectionsListView({
     const paidTotal = data.payers.reduce((s, p) => s + p.amount, 0);
 
     if (
+        !showAllSections &&
         data.payers.length === 0 &&
         data.splitUsers.length === 0 &&
         data.items.length === 0
@@ -173,15 +227,32 @@ export function ConnectionsListView({
         );
     }
 
+    const showPaidBy = showAllSections || data.payers.length > 0;
+    const showItems = showAllSections || data.items.length > 0;
+    const showSplit = showAllSections || data.splitUsers.length > 0;
+
     return (
         <View className="gap-y-4">
-            {data.payers.length > 0 ? (
+            {showPaidBy ? (
                 <View>
                     <SectionLabel
                         title="Paid by"
-                        meta={money(sym, paidTotal)}
+                        meta={
+                            data.payers.length > 0
+                                ? money(sym, paidTotal)
+                                : undefined
+                        }
                         accent={colors.accent.sky}
+                        onPress={
+                            onEditSection
+                                ? () => onEditSection('paidBy')
+                                : undefined
+                        }
                     />
+                    {data.payers.length === 0 ? (
+                        <EmptySectionBody message="No payers yet" />
+                    ) : null}
+                    {data.payers.length > 0 ? (
                     <View
                         className="overflow-hidden rounded-2xl border"
                         style={{
@@ -362,105 +433,31 @@ export function ConnectionsListView({
                             </View>
                         ) : null}
                     </View>
+                    ) : null}
                 </View>
             ) : null}
 
-            {data.splitUsers.length > 0 ? (
-                <View>
-                    <SectionLabel
-                        title="Split with"
-                        meta={`${data.splitUsers.length} ${
-                            data.splitUsers.length === 1 ? 'person' : 'people'
-                        }`}
-                        accent={colors.accent.orbIndigo}
-                    />
-                    <View
-                        className="overflow-hidden rounded-2xl border"
-                        style={{
-                            backgroundColor: colors.bg.primary,
-                            borderColor: colors.status.border,
-                        }}
-                    >
-                        {data.splitUsers.map((sharer, index) => {
-                            const key = personKeyOf(sharer);
-                            const paid = paidByKey.get(key) ?? 0;
-                            const net = paid - sharer.amount;
-                            const isMe =
-                                viewerId != null &&
-                                String(sharer.id) === String(viewerId);
-                            const isLast = index === data.splitUsers.length - 1;
-
-                            let statusLabel = 'Even';
-                            let statusColor = colors.text.lighter;
-                            if (net > 0.005) {
-                                statusLabel = `+${money(sym, net)}`;
-                                statusColor = colors.status.success;
-                            } else if (net < -0.005) {
-                                statusLabel = `owes ${money(sym, Math.abs(net))}`;
-                                statusColor = colors.status.decrease;
-                            }
-
-                            return (
-                                <View
-                                    key={`split-${key}`}
-                                    className="flex-row items-center justify-between px-3.5 py-3"
-                                    style={
-                                        isLast
-                                            ? undefined
-                                            : {
-                                                  borderBottomWidth: 1,
-                                                  borderBottomColor: colors.status.border,
-                                              }
-                                    }
-                                >
-                                    <View className="min-w-0 flex-1 flex-row items-center gap-3 pr-2">
-                                        <PersonAvatar
-                                            name={sharer.name}
-                                            url={sharer.avatarUrl}
-                                        />
-                                        <View className="min-w-0 flex-1">
-                                            <AppText
-                                                variant="body-small"
-                                                className="font-semibold"
-                                                style={{color: colors.text.primary}}
-                                                numberOfLines={1}
-                                            >
-                                                {isMe
-                                                    ? `${sharer.name} (You)`
-                                                    : sharer.name}
-                                            </AppText>
-                                            <AppText
-                                                variant="caption-xs"
-                                                className="mt-0.5"
-                                                style={{color: colors.text.lighter}}
-                                            >
-                                                Share {money(sym, sharer.amount)}
-                                            </AppText>
-                                        </View>
-                                    </View>
-                                    <AppText
-                                        variant="caption-xs"
-                                        className="font-bold"
-                                        style={{color: statusColor}}
-                                    >
-                                        {statusLabel}
-                                    </AppText>
-                                </View>
-                            );
-                        })}
-                    </View>
-                </View>
-            ) : null}
-
-            {data.items.length > 0 ? (
+            {showItems ? (
                 <View>
                     <SectionLabel
                         title="Items"
-                        meta={`${data.items.length} item${
-                            data.items.length === 1 ? '' : 's'
-                        }`}
+                        meta={
+                            data.items.length > 0
+                                ? `${data.items.length} item${
+                                      data.items.length === 1 ? '' : 's'
+                                  }`
+                                : undefined
+                        }
                         accent={colors.accent.teal}
+                        onPress={
+                            onEditSection
+                                ? () => onEditSection('assignItems')
+                                : undefined
+                        }
                     />
+                    {data.items.length === 0 ? (
+                        <EmptySectionBody message="No items yet — default item may apply" />
+                    ) : (
                     <View
                         className="overflow-hidden rounded-2xl border"
                         style={{
@@ -558,6 +555,107 @@ export function ConnectionsListView({
                             );
                         })}
                     </View>
+                    )}
+                </View>
+            ) : null}
+
+            {showSplit ? (
+                <View>
+                    <SectionLabel
+                        title="Split between"
+                        meta={
+                            data.splitUsers.length > 0
+                                ? `${data.splitUsers.length} ${
+                                      data.splitUsers.length === 1 ? 'person' : 'people'
+                                  }`
+                                : undefined
+                        }
+                        accent={colors.accent.orbIndigo}
+                        onPress={
+                            onEditSection
+                                ? () => onEditSection('split')
+                                : undefined
+                        }
+                    />
+                    {data.splitUsers.length === 0 ? (
+                        <EmptySectionBody message="Nobody selected for the split" />
+                    ) : (
+                    <View
+                        className="overflow-hidden rounded-2xl border"
+                        style={{
+                            backgroundColor: colors.bg.primary,
+                            borderColor: colors.status.border,
+                        }}
+                    >
+                        {data.splitUsers.map((sharer, index) => {
+                            const key = personKeyOf(sharer);
+                            const paid = paidByKey.get(key) ?? 0;
+                            const net = paid - sharer.amount;
+                            const isMe =
+                                viewerId != null &&
+                                String(sharer.id) === String(viewerId);
+                            const isLast = index === data.splitUsers.length - 1;
+
+                            let statusLabel = 'Even';
+                            let statusColor = colors.text.lighter;
+                            if (net > 0.005) {
+                                statusLabel = `+${money(sym, net)}`;
+                                statusColor = colors.status.success;
+                            } else if (net < -0.005) {
+                                statusLabel = `owes ${money(sym, Math.abs(net))}`;
+                                statusColor = colors.status.decrease;
+                            }
+
+                            return (
+                                <View
+                                    key={`split-${key}`}
+                                    className="flex-row items-center justify-between px-3.5 py-3"
+                                    style={
+                                        isLast
+                                            ? undefined
+                                            : {
+                                                  borderBottomWidth: 1,
+                                                  borderBottomColor: colors.status.border,
+                                              }
+                                    }
+                                >
+                                    <View className="min-w-0 flex-1 flex-row items-center gap-3 pr-2">
+                                        <PersonAvatar
+                                            name={sharer.name}
+                                            url={sharer.avatarUrl}
+                                        />
+                                        <View className="min-w-0 flex-1">
+                                            <AppText
+                                                variant="body-small"
+                                                className="font-semibold"
+                                                style={{color: colors.text.primary}}
+                                                numberOfLines={1}
+                                            >
+                                                {isMe
+                                                    ? `${sharer.name} (You)`
+                                                    : sharer.name}
+                                            </AppText>
+                                            <AppText
+                                                variant="caption-xs"
+                                                className="mt-0.5"
+                                                style={{color: colors.text.lighter}}
+                                            >
+                                                Share {money(sym, sharer.amount)}
+                                            </AppText>
+                                        </View>
+                                    </View>
+                                    <AppText
+                                        variant="caption-xs"
+                                        className="font-bold"
+                                        style={{color: statusColor}}
+                                    >
+                                        {statusLabel}
+                                    </AppText>
+                                </View>
+                            );
+                        })}
+                    </View>
+                    )}
                 </View>
             ) : null}
         </View>

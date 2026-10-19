@@ -1,5 +1,6 @@
 import React from 'react';
-import {View} from 'react-native';
+import {Pressable, View} from 'react-native';
+import {Iconify} from 'react-native-iconify';
 import {AppBottomSheet} from '@/src/components/common/AppBottomSheet';
 import {AppText} from '@/src/components/common/AppText';
 import {COLORS} from '@/src/constants/colors';
@@ -35,23 +36,39 @@ export function LedgerFiltersSheet({
             isVisible={visible}
             onClose={onClose}
             snapPoints={['62%', '88%']}
-            showCloseButton
+            showCloseButton={false}
         >
-            <View className="px-5 pb-8">
-                <AppText
-                    variant="caption-xs"
-                    className="mb-1 font-semibold uppercase tracking-wider"
-                    style={{color: colors.text.lighter}}
-                >
-                    Ledger
-                </AppText>
-                <AppText
-                    variant="h3"
-                    className="mb-4 font-bold"
-                    style={{color: colors.text.primary}}
-                >
-                    Filters
-                </AppText>
+            <View className="pb-8">
+                {/* Balanced header — equal side slots keep Filters centered */}
+                <View className="mb-5 flex-row items-center">
+                    <View className="w-10 items-start">
+                        <Pressable
+                            onPress={onClose}
+                            hitSlop={12}
+                            accessibilityRole="button"
+                            accessibilityLabel="Close filters"
+                            className="h-9 w-9 items-center justify-center rounded-full"
+                            style={{backgroundColor: colors.bg.darker}}
+                        >
+                            <Iconify
+                                icon="heroicons:x-mark"
+                                size={18}
+                                color={colors.icon.primary}
+                            />
+                        </Pressable>
+                    </View>
+
+                    <AppText
+                        variant="h3"
+                        className="flex-1 text-center font-bold"
+                        style={{color: colors.text.primary}}
+                    >
+                        Filters
+                    </AppText>
+
+                    <View className="w-10" />
+                </View>
+
                 <LensScopeBar {...filterProps} />
             </View>
         </AppBottomSheet>

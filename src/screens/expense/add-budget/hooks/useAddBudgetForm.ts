@@ -22,6 +22,18 @@ function hasPlaceParams(params?: AddBudgetRouteParams): boolean {
     return Number.isFinite(placeId) && placeId > 0;
 }
 
+function hasGroupParams(params?: AddBudgetRouteParams): boolean {
+    const groupId = Number(firstParam(params?.groupId));
+    return Number.isFinite(groupId) && groupId > 0;
+}
+
+function hydrateKey(params?: AddBudgetRouteParams): string {
+    const parts: string[] = [];
+    if (hasGroupParams(params)) parts.push(`group:${firstParam(params?.groupId)}`);
+    if (hasPlaceParams(params)) parts.push(`place:${firstParam(params?.placeId)}`);
+    return parts.length ? parts.join('|') : 'bare';
+}
+
 export function useAddBudgetForm(params?: AddBudgetRouteParams) {
     const router = useRouter();
     const {showAlert} = useAlert();
@@ -75,16 +87,14 @@ export function useAddBudgetForm(params?: AddBudgetRouteParams) {
     const [isSaving, setIsSaving] = useState(false);
     const hydratedKeyRef = useRef<string | null>(null);
 
-    // Fresh open: reset abandoned draft; map entry then hydrates place prefill.
+    // Fresh open: reset abandoned draft; hydrate place and/or group prefill from route.
     useEffect(() => {
-        const placeKey = hasPlaceParams(params)
-            ? `place:${firstParam(params?.placeId)}`
-            : 'bare';
-        if (hydratedKeyRef.current === placeKey) return;
-        hydratedKeyRef.current = placeKey;
+        const key = hydrateKey(params);
+        if (hydratedKeyRef.current === key) return;
+        hydratedKeyRef.current = key;
 
         resetDraft();
-        if (hasPlaceParams(params)) {
+        if (hasPlaceParams(params) || hasGroupParams(params)) {
             hydrateFromRouteParams(params);
         }
     }, [params, resetDraft, hydrateFromRouteParams]);

@@ -124,13 +124,13 @@ function ensureSelfSelected(
 }
 
 export const SelectMultiPeopleBottomSheet = ({
-    visible,
-    initialSelectedUsers = [],
+                                                 visible,
+                                                 initialSelectedUsers = [],
     allowedUserTypes = DEFAULT_ALLOWED_USER_TYPES,
     minSelectionToClose,
-    onClose,
+                                                 onClose,
     onConfirmed,
-}: SelectMultiPeopleBottomSheetProps) => {
+                                             }: SelectMultiPeopleBottomSheetProps) => {
     const theme = themeStore((state) => state.theme);
     const isDark = theme === 'dark';
     const colors = isDark ? COLORS.dark : COLORS.light;
@@ -307,7 +307,7 @@ export const SelectMultiPeopleBottomSheet = ({
                 setGlobalResults([]);
             } finally {
                 if (requestId === searchRequestId.current) {
-                    setIsSearchingGlobal(false);
+            setIsSearchingGlobal(false);
                 }
             }
         }, 500);
@@ -365,8 +365,8 @@ export const SelectMultiPeopleBottomSheet = ({
                 subtext,
                 isSelected: locked || selectedKeys.has(key),
                 isLocked: locked,
-            });
-        };
+        });
+    };
 
         // Self always pinned at top, selected, and not toggleable (USER source only).
         if (allowsUser && currentUser) {
@@ -463,10 +463,11 @@ export const SelectMultiPeopleBottomSheet = ({
     const hasSelection = selectionCount > 0;
     const canDismiss =
         minSelectionToClose == null || selectionCount >= minSelectionToClose;
+    // Keep search mounted during the first relations fetch so the bar doesn't pop in
+    // after load and shift the list (You row + results).
     const showSearch =
-        (hasPeople || isSearching || hasSelection) &&
-        !loadingRelations &&
-        !(error && !hasPeople);
+        (hasPeople || isSearching || hasSelection || loadingRelations) &&
+        !(error && !hasPeople && !loadingRelations);
     const emptyIconColor = isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary;
     const headerIconColor = isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary;
     const spinnerColor = isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary;
@@ -499,8 +500,8 @@ export const SelectMultiPeopleBottomSheet = ({
                 return [
                     ...baseline,
                     {
-                        id: user.id,
-                        name: user.name,
+                            id: user.id,
+                            name: user.name,
                         user_type: user.user_type,
                         avatar: user.avatar,
                     },
@@ -590,16 +591,16 @@ export const SelectMultiPeopleBottomSheet = ({
 
     const renderRowItem = useCallback<ListRenderItem<ListRow>>(
         ({item}) => (
-            <UserMultiRowItem
-                user={item.rawData}
+        <UserMultiRowItem
+            user={item.rawData}
                 isSelected={item.isSelected}
                 isLocked={item.isLocked}
                 onPress={() => {
                     if (item.isLocked) return;
                     toggleUser(item.rawData);
                 }}
-                subtext={item.subtext}
-            />
+            subtext={item.subtext}
+        />
         ),
         [toggleUser],
     );
@@ -644,17 +645,26 @@ export const SelectMultiPeopleBottomSheet = ({
     );
 
     const listFooter = useMemo(() => {
-        const showPagingLoader = listMode === 'all' && (loadingMore || (loadingRelations && hasPeople));
+        const showPagingLoader =
+            listMode === 'all' && (loadingMore || (loadingRelations && hasPeople));
         if (!showPagingLoader) return <View style={styles.footerSpacer} />;
+        const isInitialLoad = loadingRelations && relations.length === 0;
         return (
             <View style={styles.footerLoading}>
                 <ActivityIndicator size="small" color={spinnerColor} />
                 <AppText variant="caption-xs" className="text-text-primary-lighter mt-2">
-                    Loading more users...
+                    {isInitialLoad ? 'Loading people...' : 'Loading more users...'}
                 </AppText>
             </View>
         );
-    }, [loadingMore, loadingRelations, hasPeople, listMode, spinnerColor]);
+    }, [
+        loadingMore,
+        loadingRelations,
+        hasPeople,
+        listMode,
+        spinnerColor,
+        relations.length,
+    ]);
 
     const confirmBar = useMemo(
         () => (
@@ -680,15 +690,15 @@ export const SelectMultiPeopleBottomSheet = ({
                         Done ({selectionCount}/{minSelectionToClose})
                     </AppButton>
                 ) : hasSelection ? (
-                    <AppButton variant="primary" onPress={handleConfirmSelection}>
+                <AppButton variant="primary" onPress={handleConfirmSelection}>
                         Done ({selectionCount})
-                    </AppButton>
-                ) : (
+                </AppButton>
+            ) : (
                     <AppButton variant="secondary" onPress={requestClose}>
                         Cancel
                     </AppButton>
-                )}
-            </View>
+            )}
+        </View>
         ),
         [
             isDark,
@@ -753,7 +763,9 @@ export const SelectMultiPeopleBottomSheet = ({
     ]);
 
     const renderBody = () => {
-        if (loadingRelations && !hasPeople && listMode === 'all') {
+        // Prefer list chrome (You + footer spinner) while loading so search stays put.
+        // Only fall back to a full-body spinner when there is no self row to anchor on.
+        if (loadingRelations && !hasPeople && !hasSelfSuggestion && listMode === 'all') {
             return (
                 <View style={styles.centeredBody}>
                     <ActivityIndicator size="large" color={spinnerColor} />
@@ -802,7 +814,7 @@ export const SelectMultiPeopleBottomSheet = ({
             );
         }
 
-        return (
+    return (
             <View style={styles.listArea}>
                 <View
                     style={[
@@ -857,10 +869,10 @@ export const SelectMultiPeopleBottomSheet = ({
             }}
         >
             <View style={styles.container}>
-                <View className="flex-row items-center justify-between py-4 px-6 border-b border-border-input">
+                    <View className="flex-row items-center justify-between py-4 px-6 border-b border-border-input">
                     <Pressable onPress={requestClose} className="p-2 rounded-full">
                         <Iconify icon="heroicons:chevron-left" size={24} color={headerIconColor} />
-                    </Pressable>
+                        </Pressable>
                     <AppText variant="h4" className="font-bold text-text-primary text-center">
                         Select People
                     </AppText>
@@ -870,8 +882,8 @@ export const SelectMultiPeopleBottomSheet = ({
                         accessibilityLabel="Add new person"
                     >
                         <Iconify icon="heroicons:user-plus" size={24} color={headerIconColor} />
-                    </Pressable>
-                </View>
+                        </Pressable>
+                    </View>
 
                 {showSearch ? (
                     <View className="px-6 pt-4 pb-2">
@@ -915,24 +927,24 @@ const UserMultiRowItem = React.memo(
         onPress,
         subtext,
     }: {
-        user: SelectedUserEntity;
-        isSelected: boolean;
+    user: SelectedUserEntity;
+    isSelected: boolean;
         isLocked: boolean;
-        onPress: () => void;
+    onPress: () => void;
         subtext: string;
-    }) => {
-        const isDark = themeStore((state) => state.theme === 'dark');
-        const colors = isDark ? COLORS.dark : COLORS.light;
+}) => {
+    const isDark = themeStore((state) => state.theme === 'dark');
+    const colors = isDark ? COLORS.dark : COLORS.light;
 
-        return (
-            <Pressable
+    return (
+        <Pressable
                 onPress={isLocked ? undefined : onPress}
                 disabled={isLocked}
                 className={`mb-2 flex-row items-center rounded-2xl border p-3 ${
                     isSelected ? 'bg-accent-sky-bg border-accent-sky' : 'border-transparent'
-                }`}
-                style={isSelected ? undefined : {backgroundColor: colors.bg.lighter}}
-            >
+            }`}
+            style={isSelected ? undefined : {backgroundColor: colors.bg.lighter}}
+        >
                 <View className="w-8 h-8 rounded-full overflow-hidden">
                     <AppImageV2
                         id={user.avatar?.id || `people-row-${user.user_type}-${user.id}`}
@@ -945,25 +957,25 @@ const UserMultiRowItem = React.memo(
                     />
                 </View>
                 <View className="ml-3 flex-1">
-                    <AppText className="font-semibold text-text-primary">{user.name}</AppText>
-                    <AppText
-                        variant="caption-xs"
+                <AppText className="font-semibold text-text-primary">{user.name}</AppText>
+                <AppText
+                    variant="caption-xs"
                         className={`text-text-primary-lighter ${
                             isLocked || subtext === 'You'
                                 ? 'text-accent-sky font-bold'
                                 : 'opacity-60'
                         }`}
-                    >
-                        {subtext}
-                    </AppText>
-                </View>
-                {isSelected ? (
+                >
+                    {subtext}
+                </AppText>
+            </View>
+            {isSelected ? (
                     <Iconify icon="heroicons:check-circle-solid" size={24} color={colors.accent.sky} />
-                ) : (
+            ) : (
                     <Iconify icon="heroicons:check-circle" size={24} color={colors.icon.primary} />
-                )}
-            </Pressable>
-        );
+            )}
+        </Pressable>
+    );
     },
     (prev, next) =>
         prev.isSelected === next.isSelected &&

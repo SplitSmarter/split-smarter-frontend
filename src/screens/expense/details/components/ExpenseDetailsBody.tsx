@@ -134,16 +134,6 @@ export function ExpenseDetailsBody({
                 <ExpensePositionStrip position={position} currency={expense.currency} />
             ) : null}
 
-            {mode === 'full' && position ? (
-                <ExpenseSettlementPath
-                    settlements={settlements}
-                    position={position}
-                    currency={expense.currency}
-                    onSettle={showSettleActions ? onSettle : undefined}
-                    onUseTransfer={showSettleActions ? onUseTransfer : undefined}
-                />
-            ) : null}
-
             {hasConnections ? (
                 <ExpenseSplitGraph
                     data={connectionsGraphData}
@@ -160,6 +150,16 @@ export function ExpenseDetailsBody({
             ) : (
                 paidByList
             )}
+
+            {mode === 'full' && position ? (
+                <ExpenseSettlementPath
+                    settlements={settlements}
+                    position={position}
+                    currency={expense.currency}
+                    onSettle={showSettleActions ? onSettle : undefined}
+                    onUseTransfer={showSettleActions ? onUseTransfer : undefined}
+                />
+            ) : null}
 
             <ExpenseContextChips
                 expense={expense}

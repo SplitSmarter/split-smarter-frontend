@@ -20,6 +20,12 @@ export interface PlaceAgg {
     latitude: number;
     longitude: number;
     address?: string;
+    /** Address components for CUSTOM create (from reverse geocode / region). */
+    city?: string;
+    state?: string;
+    country?: string;
+    /** ISO 3166-1 alpha-2 when known. */
+    countryCode?: string;
     totalAmount: number;
     expensesCount: number;
     expenses: ExpenseDetailsBasicResponse[];

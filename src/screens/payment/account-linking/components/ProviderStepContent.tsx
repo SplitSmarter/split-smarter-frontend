@@ -1,6 +1,6 @@
 import React from 'react';
 import {View, TouchableOpacity, ActivityIndicator} from 'react-native';
-import {Ionicons} from '@expo/vector-icons';
+import {Iconify} from 'react-native-iconify';
 import {AppText} from "@/src/components/common/AppText";
 import {AppImageV2} from "@/src/components/common/AppImageV2";
 import {EntityFallbackIcon} from "@/src/components/common/EntityFallbackIcon";
@@ -26,7 +26,8 @@ export const ProviderStepContent: React.FC<ProviderStepContentProps> = ({
                                                                             onSelectProvider,
                                                                         }) => {
     const isDark = themeStore((state) => state.theme === 'dark');
-    const iconColor = isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary;
+    const colors = isDark ? COLORS.dark : COLORS.light;
+    const iconColor = colors.icon.primary;
 
     if (isLoading) {
         return (
@@ -68,7 +69,9 @@ export const ProviderStepContent: React.FC<ProviderStepContentProps> = ({
         return (
             <View
                 className="py-6 items-center justify-center bg-bg-canvas rounded-2xl border border-bg-primary-darker p-4 mt-1">
-                <Ionicons name="alert-circle-outline" size={28} className="text-status-error mb-2"/>
+                <View className="mb-2">
+                    <Iconify icon="heroicons:exclamation-circle" size={28} color={colors.status.error}/>
+                </View>
                 <AppText variant="body-small" className="font-semibold text-text-primary text-center">
                     No Providers Available
                 </AppText>

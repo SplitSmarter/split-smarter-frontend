@@ -20,13 +20,24 @@ export const ListMccCodesApi = async (params?: ListMccCodesParams) => {
     try {
         const res = await axiosUserInstance.get<SuccessResponse<MCCResponse[]>>(
             `${BASE_PATH}/`,
-            { params },
+            {
+                params: {
+                    offset: params?.offset ?? 0,
+                    limit: params?.limit ?? 40,
+                    ...(params?.query?.trim()
+                        ? {query: params.query.trim()}
+                        : {}),
+                    ...(params?.group_category
+                        ? {group_category: params.group_category}
+                        : {}),
+                },
+            },
         );
 
         if (res.data && res.data.success) {
             return {
                 message: res.data.message,
-                data: res.data.data,
+                data: res.data.data ?? [],
                 pagination: res.data.pagination as PaginationResponse,
             };
         }

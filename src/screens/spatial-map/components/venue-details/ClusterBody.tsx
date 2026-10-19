@@ -138,6 +138,21 @@ export function ClusterBody({venues, dateRange, onSelectVenue}: ClusterBodyProps
                                 placeholderTextColor={colors.text.placeholder}
                                 className="ml-2 flex-1 py-0 text-xs text-text-primary"
                             />
+                            {query.trim().length > 0 ? (
+                                <Pressable
+                                    onPress={() => setQuery('')}
+                                    hitSlop={8}
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Clear search"
+                                    className="ml-1 active:opacity-70"
+                                >
+                                    <Iconify
+                                        icon="heroicons:x-mark"
+                                        size={14}
+                                        color={colors.icon.lighter}
+                                    />
+                                </Pressable>
+                            ) : null}
                         </View>
                     }
                 >

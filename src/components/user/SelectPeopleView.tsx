@@ -3,6 +3,7 @@ import {View, Pressable, ScrollView, ActivityIndicator} from 'react-native';
 import {BottomSheetScrollView} from '@gorhom/bottom-sheet';
 import {Iconify} from 'react-native-iconify';
 import {AppInput} from "@/src/components/common/AppInput";
+import {SearchClearButton} from "@/src/components/common/SearchClearButton";
 import {AppText} from "@/src/components/common/AppText";
 import {AppImage} from "@/src/components/common/AppImage";
 import {EntityFallbackIcon} from "@/src/components/common/EntityFallbackIcon";
@@ -124,8 +125,17 @@ export const SelectPeopleView = ({
                 value={search}
                 onChangeText={setSearch}
                 renderLeftIcon={(c) => <Iconify icon="heroicons:magnifying-glass" size={20} color={c}/>}
-                renderRightIcon={() => isSearchingGlobal ?
-                    <ActivityIndicator size="small" color={colors.icon.primary}/> : null}
+                renderRightIcon={(c) =>
+                    isSearchingGlobal ? (
+                        <ActivityIndicator size="small" color={c}/>
+                    ) : (
+                        <SearchClearButton
+                            value={search}
+                            onClear={() => setSearch('')}
+                            color={c}
+                        />
+                    )
+                }
             />
 
             <BottomSheetScrollView className="mt-4" showsVerticalScrollIndicator={false}>

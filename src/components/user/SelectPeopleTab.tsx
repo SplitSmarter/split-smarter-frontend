@@ -166,9 +166,19 @@ export const SelectPeopleTab = ({
                     value={search}
                     onChangeText={setSearch}
                 />
-                {isSearchingGlobal && (
+                {isSearchingGlobal ? (
                     <ActivityIndicator size="small" color={colors.icon.primary} />
-                )}
+                ) : search.trim().length > 0 ? (
+                    <Pressable
+                        onPress={() => setSearch('')}
+                        hitSlop={8}
+                        accessibilityRole="button"
+                        accessibilityLabel="Clear search"
+                        className="p-1 active:opacity-70"
+                    >
+                        <Iconify icon="heroicons:x-mark" size={18} color={colors.icon.primary} />
+                    </Pressable>
+                ) : null}
                 <Pressable
                     onPress={handleAddNewUser}
                     className="ml-2 p-1.5 rounded-full"

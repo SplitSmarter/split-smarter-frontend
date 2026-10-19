@@ -11,6 +11,7 @@ import { logStore } from "@/src/store/logStore";
 import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 import { AppText } from "@/src/components/common/AppText";
 import { AppInput } from "@/src/components/common/AppInput";
+import { SearchClearButton } from "@/src/components/common/SearchClearButton";
 import { Iconify } from "react-native-iconify";
 import { COLORS } from "@/src/constants/colors";
 import { AppImageV2 } from "@/src/components/common/AppImageV2";
@@ -140,13 +141,13 @@ export function RelationshipForm({ isDark, defaultAvatarAssetId, onSuccess }: Re
 
     return (
         <ScrollView
-            className="flex-1 px-6"
-            contentContainerStyle={{ paddingBottom: 40 }}
+            className="flex-1 px-5"
+            contentContainerStyle={{paddingTop: 24, paddingBottom: 40}}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
         >
             {/* Step 1 Section: Search & Pick Block */}
-            <View className="mt-4">
+            <View>
                 <AppText variant="body-base" className="font-bold mb-2 text-text-primary">
                     Who is this relationship with?
                 </AppText>
@@ -158,7 +159,17 @@ export function RelationshipForm({ isDark, defaultAvatarAssetId, onSuccess }: Re
                             value={searchQuery}
                             onChangeText={setSearchQuery}
                             renderLeftIcon={(c) => <Iconify icon="heroicons:magnifying-glass" size={20} color={c} />}
-                            renderRightIcon={() => isSearchingGlobal ? <ActivityIndicator size="small" color={COLORS.icon_primary_darker_light} /> : null}
+                            renderRightIcon={(c) =>
+                                isSearchingGlobal ? (
+                                    <ActivityIndicator size="small" color={c} />
+                                ) : (
+                                    <SearchClearButton
+                                        value={searchQuery}
+                                        onClear={() => setSearchQuery('')}
+                                        color={c}
+                                    />
+                                )
+                            }
                         />
 
                         {searchQuery.trim().length > 0 && (

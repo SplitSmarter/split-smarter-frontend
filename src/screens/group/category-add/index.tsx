@@ -1,32 +1,49 @@
-import React, { useState } from 'react';
-import { View, Pressable, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Iconify } from 'react-native-iconify';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { AppText } from "@/src/components/common/AppText";
-import { AppInput } from "@/src/components/common/AppInput";
-import { AppButton } from "@/src/components/common/AppButton";
-import { AppImage } from "@/src/components/common/AppImage";
-import { themeStore } from "@/src/store/themeStore";
-import { COLORS } from '@/src/constants/colors';
-import { systemStore } from "@/src/store/systemStore";
-import { CreateGroupCategoryApi } from "@/src/api/group/categories";
-import { useAlert } from "@/src/context/alertContext";
+import React, {useState} from 'react';
+import {
+    View,
+    Pressable,
+    ScrollView,
+    KeyboardAvoidingView,
+    Platform,
+    Image,
+} from 'react-native';
+import {useRouter} from 'expo-router';
+import {Iconify} from 'react-native-iconify';
+import {BottomSheetModalProvider} from '@gorhom/bottom-sheet';
+import {AppText} from '@/src/components/common/AppText';
+import {AppInput} from '@/src/components/common/AppInput';
+import {AppButton} from '@/src/components/common/AppButton';
+import {AppImage} from '@/src/components/common/AppImage';
+import {ScreenWrapper} from '@/src/components/common/ScreenWrapper';
+import {PlatinumFormHeader} from '@/src/components/common/PlatinumFormHeader';
+import {MediaPickerBottomSheet} from '@/src/components/common/MediaPickerBottomSheet';
+import {themeStore} from '@/src/store/themeStore';
+import {systemStore} from '@/src/store/systemStore';
+import {CreateGroupCategoryApi} from '@/src/api/group/categories';
+import {useAssetPicker} from '@/src/hooks/useMediaPicker';
+import {processLocalAttachments} from '@/src/utils/expense/transactionHelpers';
+import {useAlert} from '@/src/context/alertContext';
+import {COLORS, PLATINUM_HEADER} from '@/src/constants/colors';
 
 export default function AddGroupCategoryScreen() {
     const isDark = themeStore((state) => state.theme === 'dark');
     const colors = isDark ? COLORS.dark : COLORS.light;
-    const { defaults } = systemStore();
-    const { showAlert } = useAlert();
+    const canvasBg = colors.bg.primary;
+    const heroStatusBar = isDark ? PLATINUM_HEADER.dark : PLATINUM_HEADER.light;
+    const {defaults} = systemStore();
+    const {showAlert} = useAlert();
     const router = useRouter();
+    const {handleSingleCamera, handleSingleGallery} = useAssetPicker({
+        autoUpload: false,
+    });
 
-    // Form State management
+    const defaultIcon = defaults.defaultGroupIconImage;
+
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
+    const [localIconUri, setLocalIconUri] = useState<string | null>(null);
+    const [pickerVisible, setPickerVisible] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-
-    // Resolve system default group icon asset reference
-    const defaultIcon = defaults.defaultGroupIconImage;
 
     const handleBack = () => {
         if (router.canGoBack()) {
@@ -36,131 +53,229 @@ export default function AddGroupCategoryScreen() {
         }
     };
 
+    const handleMediaSelection = (fromCamera: boolean) => {
+        setPickerVisible(false);
+        setTimeout(async () => {
+            const action = fromCamera ? handleSingleCamera : handleSingleGallery;
+            const results = await action();
+            const uri = results?.[0]?.uri;
+            if (uri) setLocalIconUri(uri);
+        }, 100);
+    };
+
     const handleSave = async () => {
         if (isSaving) return;
 
         if (!name.trim()) {
-            showAlert("Category name is required", "error");
-            return;
-        }
-
-        if (!defaultIcon?.id) {
-            showAlert("Default group icon configuration not found", "error");
+            showAlert('Category name is required', 'error');
             return;
         }
 
         setIsSaving(true);
-
         try {
+            let iconAssetId = defaultIcon?.id;
+
+            if (localIconUri) {
+                const uploaded = await processLocalAttachments([localIconUri]);
+                if (!uploaded[0]) {
+                    showAlert('Failed to upload category icon. Try again.', 'error');
+                    return;
+                }
+                iconAssetId = uploaded[0];
+            }
+
+            if (!iconAssetId) {
+                showAlert('Default group icon configuration not found', 'error');
+                return;
+            }
+
             const response = await CreateGroupCategoryApi({
                 title: name.trim(),
                 description: description.trim(),
-                icon_asset_id: defaultIcon.id,
+                icon_asset_id: iconAssetId,
             });
 
             if (response.data) {
-                showAlert(response.message || "Group category created successfully", "success");
-
+                showAlert(
+                    response.message || 'Group category created successfully',
+                    'success',
+                );
                 router.navigate({
                     pathname: '/(authenticated)/user/group/add',
-                    params: { newlyCreatedGroupCategory: JSON.stringify(response.data) }
+                    params: {newlyCreatedGroupCategory: JSON.stringify(response.data)},
                 });
             } else {
-                const errorMsg = response.message || "Failed to create group category";
-                showAlert(errorMsg, "error");
+                showAlert(
+                    response.message || 'Failed to create group category',
+                    'error',
+                );
             }
         } catch (err: any) {
-            const fallbackMsg = "An unexpected error occurred. Please try again.";
-            showAlert(err?.message || fallbackMsg, "error");
+            showAlert(
+                err?.message || 'An unexpected error occurred. Please try again.',
+                'error',
+            );
         } finally {
             setIsSaving(false);
         }
     };
 
+    const editChipBg = colors.brand.primary;
+    const editChipIcon = colors.text.contrast;
+
     return (
-        <SafeAreaView className="flex-1 bg-bg-canvas" edges={['top']}>
-            {/* Header Area */}
-            <View className="px-6 pt-2 pb-4 flex-row items-center justify-between">
-                <Pressable onPress={handleBack} className="p-2 rounded-full" disabled={isSaving}>
-                    <Iconify icon="heroicons:chevron-left" size={24} color={colors.icon.primary} />
-                </Pressable>
-                <AppText variant="h4" className="font-bold text-text-primary">New Group Category</AppText>
-                <View className="w-10" />
-            </View>
-
-            {/* FIXED: Replaced BottomSheetView wrapper with standard scrolling primitives */}
-            <ScrollView
-                contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 60 }}
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
+        <BottomSheetModalProvider>
+            <ScreenWrapper
+                backgroundColor={heroStatusBar}
+                statusBarStyle="light-content"
+                withPadding={false}
+                className="relative flex-1"
             >
-                {/* Avatar Display Section */}
-                <View className="items-center mb-8 mt-4">
-                    <View className="relative">
-                        <View className="w-24 h-24 rounded-3xl overflow-hidden border-2 border-border-input">
-                            <AppImage
-                                url={defaultIcon?.url}
-                                id={defaultIcon?.id}
-                                size="lg"
-                                variant="square"
-                            />
-                        </View>
-                        <Pressable
-                            className="absolute bottom-[-8] right-[-8] bg-bg-secondary p-2 rounded-full border-2 border-bg-canvas"
-                            onPress={() => console.log("Image picker workflow placeholder")}
-                        >
-                            <Iconify icon="heroicons:pencil-square" size={14} color="white" />
-                        </Pressable>
-                    </View>
-                    <AppText variant="caption-xs" className="mt-3 text-text-primary-lighter">Default Icon Selected</AppText>
-                </View>
-
-                {/* Input Layout Scope */}
-                <View className="gap-y-6">
-                    <AppInput
-                        label="Name"
-                        placeholder="Enter Name"
-                        value={name}
-                        onChangeText={setName}
-                        required={true}
-                    />
-                    <AppInput
-                        label="Description"
-                        placeholder="Enter Description"
-                        value={description}
-                        onChangeText={setDescription}
-                    />
-                </View>
-
-                {/* Metadata Context Sections */}
-                <View className="mt-8 gap-y-4">
-                    <SectionBox title="Suggestions" message="No Suggestions" />
-                    <SectionBox title="Similar Categories" message="No similar categories found" />
-                </View>
-
-                {/* Form Submission Action */}
-                <View className="mt-10">
-                    <AppButton
-                        variant="primary"
-                        className="w-full h-14 rounded-2xl"
-                        onPress={handleSave}
+                <View className="flex-1" style={{backgroundColor: heroStatusBar}}>
+                    <PlatinumFormHeader
+                        title="New Group Category"
+                        subtitle="Name · Icon · Description"
+                        onBack={handleBack}
                         disabled={isSaving}
-                        loading={isSaving}
-                        loadingText="Saving..."
+                    />
+
+                    <KeyboardAvoidingView
+                        className="flex-1"
+                        style={{backgroundColor: heroStatusBar}}
+                        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                        keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
                     >
-                        Save Category
-                    </AppButton>
+                        <View
+                            className="flex-1 overflow-hidden"
+                            style={{
+                                marginTop: -20,
+                                borderTopLeftRadius: 28,
+                                borderTopRightRadius: 28,
+                                backgroundColor: canvasBg,
+                            }}
+                        >
+                            <ScrollView
+                                className="flex-1"
+                                style={{backgroundColor: canvasBg}}
+                                contentContainerStyle={{
+                                    paddingHorizontal: 20,
+                                    paddingTop: 24,
+                                    paddingBottom: 120,
+                                }}
+                                showsVerticalScrollIndicator={false}
+                                keyboardShouldPersistTaps="handled"
+                            >
+                                <View className="mb-8 items-center">
+                                    <View className="relative">
+                                        <View
+                                            className="h-24 w-24 overflow-hidden rounded-3xl border-2"
+                                            style={{
+                                                borderColor: colors.status.border,
+                                                backgroundColor: colors.bg.lighter,
+                                            }}
+                                        >
+                                            {localIconUri ? (
+                                                <Image
+                                                    source={{uri: localIconUri}}
+                                                    style={{width: '100%', height: '100%'}}
+                                                    resizeMode="cover"
+                                                />
+                                            ) : (
+                                                <AppImage
+                                                    url={defaultIcon?.url}
+                                                    id={defaultIcon?.id}
+                                                    size="full"
+                                                    variant="square"
+                                                    contentFit="cover"
+                                                    className="h-full w-full"
+                                                />
+                                            )}
+                                        </View>
+                                        <Pressable
+                                            accessibilityRole="button"
+                                            accessibilityLabel="Change group category icon"
+                                            onPress={() => setPickerVisible(true)}
+                                            disabled={isSaving}
+                                            className="rounded-full border-2 border-white p-2 active:opacity-80"
+                                            style={{
+                                                position: 'absolute',
+                                                bottom: -8,
+                                                right: -8,
+                                                backgroundColor: editChipBg,
+                                            }}
+                                        >
+                                            <Iconify
+                                                icon="heroicons:pencil-square"
+                                                size={14}
+                                                color={editChipIcon}
+                                            />
+                                        </Pressable>
+                                    </View>
+                                    <AppText
+                                        variant="caption-xs"
+                                        className="mt-3 text-text-primary-lighter"
+                                    >
+                                        {localIconUri
+                                            ? 'Custom icon — uploads on save'
+                                            : 'Default icon · tap pencil to change'}
+                                    </AppText>
+                                    {localIconUri ? (
+                                        <Pressable
+                                            onPress={() => setLocalIconUri(null)}
+                                            disabled={isSaving}
+                                            className="mt-2 active:opacity-70"
+                                        >
+                                            <AppText
+                                                variant="caption-xs"
+                                                className="font-semibold text-accent-sky"
+                                            >
+                                                Use default icon
+                                            </AppText>
+                                        </Pressable>
+                                    ) : null}
+                                </View>
+
+                                <View className="gap-y-6">
+                                    <AppInput
+                                        label="Name"
+                                        placeholder="e.g. Trips, Flatmates"
+                                        value={name}
+                                        onChangeText={setName}
+                                        required
+                                    />
+                                    <AppInput
+                                        label="Description"
+                                        placeholder="Optional note"
+                                        value={description}
+                                        onChangeText={setDescription}
+                                    />
+                                </View>
+
+                                <View className="mt-10">
+                                    <AppButton
+                                        variant="primary"
+                                        className="h-14 w-full rounded-2xl"
+                                        onPress={handleSave}
+                                        disabled={isSaving}
+                                        loading={isSaving}
+                                        loadingText={
+                                            localIconUri ? 'Uploading…' : 'Saving…'
+                                        }
+                                    >
+                                        Save Category
+                                    </AppButton>
+                                </View>
+                            </ScrollView>
+                        </View>
+                    </KeyboardAvoidingView>
                 </View>
-            </ScrollView>
-        </SafeAreaView>
+
+                <MediaPickerBottomSheet
+                    visible={pickerVisible}
+                    onClose={() => setPickerVisible(false)}
+                    onSelect={handleMediaSelection}
+                />
+            </ScreenWrapper>
+        </BottomSheetModalProvider>
     );
 }
-
-const SectionBox = ({ title, message }: { title: string; message: string }) => (
-    <View className="p-4 rounded-3xl border bg-bg-canvas border-border-input">
-        <AppText variant="body-base" className="font-bold mb-4 text-text-primary">{title}</AppText>
-        <View className="items-center py-4">
-            <AppText variant="caption-xs" className="text-text-primary-lighter italic text-center">{message}</AppText>
-        </View>
-    </View>
-);

@@ -33,9 +33,14 @@ export const SettlementActionGrid = ({
     const [settleTarget, setSettleTarget] = useState<{ member: GroupMemberDetails; amount: number } | null>(null);
     const [remindTarget, setRemindTarget] = useState<{ name: string } | null>(null);
 
-    const activeBalancesList = members.filter(
-        member => !(member.id === currentUserId && member.user_type === currentUserType)
-    );
+    // Settle/remind cards are peer-only — never include the signed-in user.
+    const activeBalancesList = members.filter((member) => {
+        if (currentUserId == null) return true;
+        const sameId = member.id === currentUserId;
+        const sameType =
+            member.user_type == null || member.user_type === currentUserType;
+        return !(sameId && sameType);
+    });
 
     const targetCurrencySymbol = Currency['INR']?.symbol || '₹';
 

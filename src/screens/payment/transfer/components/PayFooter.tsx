@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Iconify } from "react-native-iconify";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated from "react-native-reanimated";
@@ -35,7 +35,7 @@ export const PayFooter: React.FC<PayFooterProps> = ({
         <View style={styles.footerContainer}>
             <BlurView intensity={40} tint={colors.blurTint} style={styles.footerBlur}>
                 <View style={styles.securityRow}>
-                    <Ionicons name="shield-checkmark" size={14} color={BRAND_COLORS.greenIncrease} />
+                    <Iconify icon="heroicons:shield-check" size={14} color={BRAND_COLORS.greenIncrease} />
                     <Text style={styles.securityText}>256-Bit Encrypted Direct UPI Transfer</Text>
                 </View>
                 <Text style={styles.policyText}>
@@ -61,7 +61,7 @@ export const PayFooter: React.FC<PayFooterProps> = ({
                                     <Text style={styles.payBtnText}>
                                         PAY ₹{formattedAmount} {selectedAppName ? `VIA ${selectedAppName.toUpperCase()}` : ""}
                                     </Text>
-                                    <Ionicons name="arrow-forward" size={18} color={palette.text.contrast} style={{ marginLeft: 6 }} />
+                                    <Iconify icon="heroicons:arrow-right" size={18} color={palette.text.contrast} style={{ marginLeft: 6 }} />
                                 </View>
                             )}
                         </LinearGradient>

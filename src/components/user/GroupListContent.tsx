@@ -1,22 +1,26 @@
 import React, {useCallback, useMemo} from 'react';
-import { COLORS } from '@/src/constants/colors';
+import {COLORS} from '@/src/constants/colors';
 import {View, Pressable, StyleSheet, ActivityIndicator, ListRenderItem} from 'react-native';
 import {BottomSheetFlatList} from '@gorhom/bottom-sheet';
 import {Iconify} from 'react-native-iconify';
-import {AppText} from "@/src/components/common/AppText";
-import {AppImage} from "@/src/components/common/AppImage";
-import {EntityFallbackIcon} from "@/src/components/common/EntityFallbackIcon";
-import {SheetEmptyState} from "@/src/components/empty-states/SheetEmptyState";
-import {GroupDetails} from '@/src/api/dto/user/group';
+import {AppText} from '@/src/components/common/AppText';
+import {AppImageV2} from '@/src/components/common/AppImageV2';
+import {EntityFallbackIcon} from '@/src/components/common/EntityFallbackIcon';
+import {SheetEmptyState} from '@/src/components/empty-states/SheetEmptyState';
+import {BaseGroupDetails, GroupMemberDetails} from '@/src/api/dto/user/group';
+
+const MAX_MEMBER_AVATARS = 3;
 
 interface GroupListContentProps {
     searchQuery: string;
-    filteredGroups: GroupDetails[];
+    filteredGroups: BaseGroupDetails[];
     totalCount: number;
     hasMore: boolean;
     loadingMore: boolean;
     selectedId?: number;
-    onSelect: (group: GroupDetails) => void;
+    /** Preview members keyed by group id (first few for the avatar stack). */
+    memberPreviews?: Record<number, GroupMemberDetails[]>;
+    onSelect: (group: BaseGroupDetails) => void;
     onAddNew: () => void;
     onClearSearch: () => void;
     onLoadMore: () => void;
@@ -30,6 +34,7 @@ export const GroupListContent = React.memo<GroupListContentProps>(({
     hasMore,
     loadingMore,
     selectedId,
+    memberPreviews = {},
     onSelect,
     onAddNew,
     onClearSearch,
@@ -40,67 +45,167 @@ export const GroupListContent = React.memo<GroupListContentProps>(({
     const trimmedQuery = searchQuery.trim();
     const isSearching = trimmedQuery.length > 0;
     const emptyIconColor = colors.icon.primary;
+    const listSurface = colors.bg.lighter;
+    const selectedSurface = isDark ? 'rgba(56, 189, 248, 0.18)' : 'rgba(14, 165, 233, 0.12)';
 
-    const renderItem = useCallback<ListRenderItem<GroupDetails>>(
-        ({item}) => (
-            <Pressable
-                onPress={() => onSelect(item)}
-                className={`flex-row items-center py-3 px-2 rounded-2xl mb-1 ${item.id === selectedId ? 'bg-accent-sky-bg' : ''}`}
-            >
-                <View className="w-14 h-14 mr-4">
-                    <AppImage
-                        id={item.icon?.id}
-                        url={item.icon?.url}
-                        variant="circular"
-                        size="full"
-                        fallbackIcon={
-                            <EntityFallbackIcon kind="group" size={28} color={colors.icon.lighter}/>
-                        }
-                    />
-                </View>
-                <View className="flex-1">
-                    <AppText variant="body-base" className="font-semibold text-text-primary">
-                        {item.title}
-                    </AppText>
-                    <AppText variant="caption-xs" className="opacity-60">Active Group</AppText>
-                </View>
-                <View className="flex-row-reverse">
-                    {[1, 2, 3].map((i) => (
-                        <View
-                            key={i}
-                            className="-mr-2 border-2 border-bg-primary-lighter rounded-full overflow-hidden w-6 h-6 bg-bg-primary"
+    const renderItem = useCallback<ListRenderItem<BaseGroupDetails>>(
+        ({item}) => {
+            const isSelected = item.id === selectedId;
+            const rowSurface = isSelected ? selectedSurface : listSurface;
+            const memberCount = item.no_of_members ?? 0;
+            const membersLabel =
+                memberCount === 1 ? '1 member' : `${memberCount} members`;
+            const preview = (memberPreviews[item.id] ?? []).slice(0, MAX_MEMBER_AVATARS);
+            const overflow =
+                memberCount > preview.length ? memberCount - preview.length : 0;
+
+            return (
+                <Pressable
+                    onPress={() => onSelect(item)}
+                    className="mb-1 flex-row items-center rounded-2xl px-2 py-3"
+                    style={{backgroundColor: isSelected ? selectedSurface : 'transparent'}}
+                    accessibilityRole="button"
+                    accessibilityState={{selected: isSelected}}
+                    accessibilityLabel={`${item.title}, ${membersLabel}`}
+                >
+                    <View
+                        className="mr-4 h-14 w-14 items-center justify-center overflow-hidden rounded-full"
+                        style={{backgroundColor: rowSurface}}
+                    >
+                        <AppImageV2
+                            id={item.icon?.id ?? `group-icon-${item.id}`}
+                            url={item.icon?.url}
+                            style={{width: '100%', height: '100%'}}
+                            contentFit="cover"
+                            fallbackComponent={
+                                <EntityFallbackIcon
+                                    kind="group"
+                                    size={28}
+                                    color={colors.icon.lighter}
+                                />
+                            }
+                        />
+                    </View>
+
+                    <View className="min-w-0 flex-1 pr-2">
+                        <AppText
+                            variant="body-base"
+                            className="font-semibold text-text-primary"
+                            numberOfLines={1}
                         >
-                            <Iconify
-                                icon="heroicons:user-circle"
-                                size={20}
-                                color={colors.icon.lighter}
-                            />
-                        </View>
-                    ))}
-                </View>
-            </Pressable>
-        ),
-        [colors.icon.lighter, onSelect, selectedId]
+                            {item.title}
+                        </AppText>
+                        <AppText
+                            variant="caption-xs"
+                            className="mt-0.5 text-text-primary-lighter"
+                            numberOfLines={1}
+                        >
+                            {membersLabel}
+                        </AppText>
+                    </View>
+
+                    <View className="flex-row items-center">
+                        {preview.length > 0 ? (
+                            <View className="flex-row items-center">
+                                {preview.map((member, index) => (
+                                    <View
+                                        key={`${item.id}-${member.id}-${member.user_type}`}
+                                        className="h-7 w-7 overflow-hidden rounded-full border-2"
+                                        style={{
+                                            marginLeft: index === 0 ? 0 : -8,
+                                            backgroundColor: rowSurface,
+                                            borderColor: listSurface,
+                                            zIndex: index + 1,
+                                        }}
+                                    >
+                                        <AppImageV2
+                                            id={
+                                                member.avatar?.id ??
+                                                `member-${item.id}-${member.id}`
+                                            }
+                                            url={member.avatar?.url}
+                                            style={{width: '100%', height: '100%'}}
+                                            contentFit="cover"
+                                            fallbackComponent={
+                                                <EntityFallbackIcon
+                                                    kind="user"
+                                                    size={14}
+                                                    color={colors.icon.lighter}
+                                                />
+                                            }
+                                        />
+                                    </View>
+                                ))}
+                                {overflow > 0 ? (
+                                    <View
+                                        className="h-7 min-w-[28px] items-center justify-center rounded-full border-2 px-1.5"
+                                        style={{
+                                            marginLeft: -8,
+                                            backgroundColor: rowSurface,
+                                            borderColor: listSurface,
+                                            zIndex: preview.length + 1,
+                                        }}
+                                    >
+                                        <AppText
+                                            variant="caption-xs"
+                                            className="font-semibold text-text-primary-lighter"
+                                        >
+                                            +{overflow}
+                                        </AppText>
+                                    </View>
+                                ) : null}
+                            </View>
+                        ) : memberCount > 0 ? (
+                            <View
+                                className="h-7 min-w-[28px] flex-row items-center justify-center rounded-full border border-border-input px-2"
+                                style={{backgroundColor: rowSurface}}
+                            >
+                                <Iconify
+                                    icon="heroicons:user-group"
+                                    size={14}
+                                    color={colors.icon.lighter}
+                                />
+                                <AppText
+                                    variant="caption-xs"
+                                    className="ml-1 font-semibold text-text-primary-lighter"
+                                >
+                                    {memberCount}
+                                </AppText>
+                            </View>
+                        ) : null}
+                    </View>
+                </Pressable>
+            );
+        },
+        [
+            colors.icon.lighter,
+            listSurface,
+            memberPreviews,
+            onSelect,
+            selectedId,
+            selectedSurface,
+        ],
     );
 
     const listHeader = useMemo(() => (
-        <View className="flex-row items-center justify-between mb-4">
+        <View className="mb-4 flex-row items-center justify-between">
             <AppText variant="h4" className="text-text-primary">
                 {isSearching ? 'Results' : 'All Groups'}
             </AppText>
             <AppText variant="caption-xs" className="text-text-primary-lighter">
                 {filteredGroups.length}
-                {hasMore && !isSearching ? '+' : ''} {filteredGroups.length === 1 ? 'group' : 'groups'}
+                {hasMore && !isSearching ? '+' : ''}{' '}
+                {filteredGroups.length === 1 ? 'group' : 'groups'}
             </AppText>
         </View>
     ), [filteredGroups.length, hasMore, isSearching]);
 
     const listFooter = useMemo(() => {
-        if (!loadingMore) return <View style={styles.footerSpacer}/>;
+        if (!loadingMore) return <View style={styles.footerSpacer} />;
         return (
             <View style={styles.footerLoading}>
-                <ActivityIndicator size="small" color={colors.icon.primary}/>
-                <AppText variant="caption-xs" className="text-text-primary-lighter mt-2">
+                <ActivityIndicator size="small" color={colors.icon.primary} />
+                <AppText variant="caption-xs" className="mt-2 text-text-primary-lighter">
                     Loading more...
                 </AppText>
             </View>
@@ -111,7 +216,7 @@ export const GroupListContent = React.memo<GroupListContentProps>(({
         if (!isSearching) return null;
         return (
             <SheetEmptyState
-                icon={<Iconify icon="heroicons:magnifying-glass-minus" size={32} color={emptyIconColor}/>}
+                icon={<Iconify icon="heroicons:magnifying-glass-minus" size={32} color={emptyIconColor} />}
                 title="No results found"
                 description={
                     hasMore
@@ -119,9 +224,9 @@ export const GroupListContent = React.memo<GroupListContentProps>(({
                         : `Nothing matched “${trimmedQuery}”. Try another name or create a new group.`
                 }
                 primaryAction={{
-                    label: "Clear Search",
+                    label: 'Clear Search',
                     onPress: onClearSearch,
-                    renderIcon: (color) => <Iconify icon="heroicons:x-mark" size={18} color={color}/>,
+                    renderIcon: (color) => <Iconify icon="heroicons:x-mark" size={18} color={color} />,
                 }}
             />
         );
@@ -131,13 +236,15 @@ export const GroupListContent = React.memo<GroupListContentProps>(({
         return (
             <View style={styles.centeredBody}>
                 <SheetEmptyState
-                    icon={<Iconify icon="heroicons:user-group" size={32} color={emptyIconColor}/>}
+                    icon={<Iconify icon="heroicons:user-group" size={32} color={emptyIconColor} />}
                     title="No groups yet"
                     description="Create a group to split expenses and track shared spending with others."
                     primaryAction={{
-                        label: "Create New Group",
+                        label: 'Create New Group',
                         onPress: onAddNew,
-                        renderIcon: (color) => <Iconify icon="heroicons:plus-circle" size={18} color={color}/>,
+                        renderIcon: (color) => (
+                            <Iconify icon="heroicons:plus-circle" size={18} color={color} />
+                        ),
                     }}
                 />
             </View>
@@ -145,7 +252,7 @@ export const GroupListContent = React.memo<GroupListContentProps>(({
     }
 
     return (
-        <View style={[styles.listCard, { backgroundColor: colors.bg.lighter }]}>
+        <View style={[styles.listCard, {backgroundColor: listSurface}]}>
             <BottomSheetFlatList
                 data={filteredGroups}
                 keyExtractor={(item) => String(item.id)}

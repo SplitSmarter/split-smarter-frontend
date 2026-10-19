@@ -26,6 +26,8 @@ interface UseRegionalMapPlacePickOptions {
     /** Aggregated spend catalog from adapter-backed expenses (memory-scoped when active). */
     spendCatalog?: PlaceAgg[];
     onPlaceSelected: (place: PlaceAgg) => void;
+    /** Long-press dropped pin — open dedicated sheet (not venue). */
+    onDroppedPin?: (coords: {latitude: number; longitude: number}) => void;
 }
 
 export function useRegionalMapPlacePick({
@@ -33,6 +35,7 @@ export function useRegionalMapPlacePick({
     visiblePlaces,
     spendCatalog = [],
     onPlaceSelected,
+    onDroppedPin,
 }: UseRegionalMapPlacePickOptions) {
     const {location, refreshLocation} = useCurrentLocation();
     const [tempMarker, setTempMarker] = useState<TempMarker | null>(null);
@@ -42,6 +45,8 @@ export function useRegionalMapPlacePick({
     const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     /** Guards stale enrich results when the user picks another place quickly. */
     const openRequestIdRef = useRef(0);
+    const onDroppedPinRef = useRef(onDroppedPin);
+    onDroppedPinRef.current = onDroppedPin;
 
     useEffect(() => {
         void refreshLocation(false);
@@ -163,26 +168,18 @@ export function useRegionalMapPlacePick({
         [openPlaceItem]
     );
 
-    // TODO(later): On long-press, suggest nearest spend/saved places by proximity
-    // (expense PlaceAgg / nearby API) to avoid duplicate custom pins.
+    // TODO(later): Suggest nearest spend places by proximity inside dropped-pin sheet.
     const onMapLongPress = useCallback(
         (event: LongPressEvent) => {
             const {coordinate} = event.nativeEvent;
-            void openPlaceItem(
-                {
-                    id: null,
-                    provider: PlaceSource.CUSTOM,
-                    provider_id: null,
-                    place_id: null,
-                    name: 'Dropped Pin',
-                    coordinate: [coordinate.longitude, coordinate.latitude],
-                    address: undefined,
-                    isSaved: false,
-                },
-                true
-            );
+            const latitude = coordinate.latitude;
+            const longitude = coordinate.longitude;
+
+            setTempMarker({latitude, longitude});
+            focusMapOnCoordinate(mapRef, latitude, longitude);
+            onDroppedPinRef.current?.({latitude, longitude});
         },
-        [openPlaceItem]
+        [mapRef]
     );
 
     const executeSearch = useCallback(
@@ -229,9 +226,8 @@ export function useRegionalMapPlacePick({
         [executeSearch]
     );
 
-    const handleSearchResultSelect = useCallback(
+    const openLocationDetails = useCallback(
         (item: LocationDetails) => {
-            clearSearch();
             const extended = item as LocationDetails & {
                 google_place_id?: string | null;
                 place_id?: string | null;
@@ -243,12 +239,19 @@ export function useRegionalMapPlacePick({
                     ? item.provider_id?.toString() || null
                     : null);
             const savedId = item.id ?? null;
+            const providerId =
+                item.provider_id == null
+                    ? null
+                    : Number(item.provider_id);
 
             void openPlaceItem(
                 {
                     id: savedId,
                     provider: item.provider || PlaceSource.GOOGLE,
-                    provider_id: item.provider_id,
+                    provider_id:
+                        providerId != null && Number.isFinite(providerId)
+                            ? providerId
+                            : null,
                     place_id: googlePlaceId,
                     name: item.name,
                     coordinate: [item.geo.longitude, item.geo.latitude],
@@ -258,7 +261,15 @@ export function useRegionalMapPlacePick({
                 savedId == null
             );
         },
-        [clearSearch, openPlaceItem]
+        [openPlaceItem]
+    );
+
+    const handleSearchResultSelect = useCallback(
+        (item: LocationDetails) => {
+            clearSearch();
+            openLocationDetails(item);
+        },
+        [clearSearch, openLocationDetails]
     );
 
     return {
@@ -269,6 +280,7 @@ export function useRegionalMapPlacePick({
         isSearching,
         handleSearchTextChange,
         handleSearchResultSelect,
+        openLocationDetails,
         clearSearch,
         onPoiClick,
         onMapLongPress,

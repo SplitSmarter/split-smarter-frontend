@@ -9,7 +9,7 @@ module.exports = function (api) {
             [
                 "react-native-iconify/plugin",
                 {
-                    isOptimized: false,
+                    isOptimized: true,
                 },
             ],
             "react-native-reanimated/plugin",

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, TouchableOpacity, Animated, StyleSheet } from 'react-native';
+import { Iconify } from 'react-native-iconify';
 import { themeStore } from '@/src/store/themeStore';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS } from '@/src/constants/colors';
 
 const ThemeToggle = () => {
@@ -29,9 +29,9 @@ const ThemeToggle = () => {
             <View style={[styles.toggleContainer, { backgroundColor: isDarkMode ? colors.bg.lighter : colors.accent.sky }]}>
                 <Animated.View style={[styles.circle, { transform: [{ translateX }], backgroundColor: colors.bg.canvas }]}>
                     {isDarkMode ? (
-                        <MaterialCommunityIcons name="moon-waning-crescent" size={20} color={colors.text.primary} />
+                        <Iconify icon="heroicons:moon" size={20} color={colors.text.primary} />
                     ) : (
-                        <MaterialCommunityIcons name="white-balance-sunny" size={20} color={colors.status.warning} />
+                        <Iconify icon="heroicons:sun" size={20} color={colors.status.warning} />
                     )}
                 </Animated.View>
             </View>

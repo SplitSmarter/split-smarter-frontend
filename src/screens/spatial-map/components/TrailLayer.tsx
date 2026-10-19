@@ -4,6 +4,7 @@ import {View, StyleSheet} from 'react-native';
 import {Marker, Polyline} from 'react-native-maps';
 import {AppText} from '@/src/components/common/AppText';
 import {COLORS} from '@/src/constants/colors';
+import {themeStore} from '@/src/store/themeStore';
 
 export interface TrailTxn {
     id: string | number;
@@ -23,13 +24,23 @@ interface TrailLayerProps {
     onSelectTxn: (txn: TrailTxn) => void;
 }
 
-/** Daypart trail strokes — palette-adjacent accents (edit in COLORS to retheme). */
-export const TIME_SLOT_COLORS = {
-    morning: COLORS.light.accent.sky,
-    afternoon: COLORS.light.status.warning,
-    evening: COLORS.light.status.decrease,
-    night: COLORS.light.icon.darker,
+export type TimeSlotPalette = {
+    morning: string;
+    afternoon: string;
+    evening: string;
+    night: string;
 };
+
+/** Daypart trail strokes — light/dark palette-adjacent accents. */
+export function getTimeSlotColors(isDark: boolean): TimeSlotPalette {
+    const c = isDark ? COLORS.dark : COLORS.light;
+    return {
+        morning: c.accent.sky,
+        afternoon: c.status.warning,
+        evening: isDark ? c.status.error : c.status.decrease,
+        night: isDark ? c.icon.lighter : c.icon.darker,
+    };
+}
 
 /**
  * Extract local hour safely across Hermes / JS engines without UTC offset shifts.
@@ -46,13 +57,17 @@ function getHourFromTimestamp(timestamp?: string): number {
     return Number.isNaN(hour) ? 9 : hour;
 }
 
-export function getTimeSlotColor(timestamp?: string): string {
+export function getTimeSlotColor(
+    timestamp?: string,
+    isDark = false
+): string {
+    const palette = getTimeSlotColors(isDark);
     const hour = getHourFromTimestamp(timestamp);
 
-    if (hour >= 5 && hour < 12) return TIME_SLOT_COLORS.morning;
-    if (hour >= 12 && hour < 17) return TIME_SLOT_COLORS.afternoon;
-    if (hour >= 17 && hour < 21) return TIME_SLOT_COLORS.evening;
-    return TIME_SLOT_COLORS.night;
+    if (hour >= 5 && hour < 12) return palette.morning;
+    if (hour >= 12 && hour < 17) return palette.afternoon;
+    if (hour >= 17 && hour < 21) return palette.evening;
+    return palette.night;
 }
 
 function getMidpoint(
@@ -68,19 +83,25 @@ function getMidpoint(
 function NumberedMarker({
     txn,
     displayIndex,
+    isDark,
     onSelectTxn,
 }: {
     txn: TrailTxn;
     displayIndex: number;
+    isDark: boolean;
     onSelectTxn: (txn: TrailTxn) => void;
 }) {
     const [tracksViewChanges, setTracksViewChanges] = useState(true);
-    const hexColor = useMemo(() => getTimeSlotColor(txn.at), [txn.at]);
+    const hexColor = useMemo(
+        () => getTimeSlotColor(txn.at, isDark),
+        [txn.at, isDark]
+    );
 
     useEffect(() => {
+        setTracksViewChanges(true);
         const timer = setTimeout(() => setTracksViewChanges(false), 200);
         return () => clearTimeout(timer);
-    }, [txn.id, displayIndex]);
+    }, [txn.id, displayIndex, hexColor]);
 
     return (
         <Marker
@@ -105,6 +126,8 @@ export function TrailLayer({
     indexMax,
     onSelectTxn,
 }: TrailLayerProps) {
+    const isDark = themeStore((s) => s.theme === 'dark');
+
     const indexedTrail = useMemo(
         () =>
             activeTrail.map((txn, i) => ({
@@ -149,17 +172,17 @@ export function TrailLayer({
             segments.push({
                 id: `trail-seg-${start.index}-${end.index}-a`,
                 coords: [startCoord, midCoord],
-                color: getTimeSlotColor(start.at),
+                color: getTimeSlotColor(start.at, isDark),
             });
 
             segments.push({
                 id: `trail-seg-${start.index}-${end.index}-b`,
                 coords: [midCoord, endCoord],
-                color: getTimeSlotColor(end.at),
+                color: getTimeSlotColor(end.at, isDark),
             });
         }
         return segments;
-    }, [visibleTrail]);
+    }, [visibleTrail, isDark]);
 
     if (visibleTrail.length === 0) return null;
 
@@ -180,6 +203,7 @@ export function TrailLayer({
                     key={`static-trail-pin-${txn.id}-${txn.index}`}
                     txn={txn}
                     displayIndex={txn.index}
+                    isDark={isDark}
                     onSelectTxn={onSelectTxn}
                 />
             ))}

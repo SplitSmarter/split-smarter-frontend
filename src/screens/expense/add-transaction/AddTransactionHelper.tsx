@@ -9,37 +9,42 @@ export const TabButton = ({
     label,
     isActive,
     onPress,
+    chrome = 'canvas',
 }: {
     label: string;
     isActive: boolean;
     onPress: () => void;
+    /** `platinum` = glass pill on metallic header; `canvas` = elevated chip on body. */
+    chrome?: 'platinum' | 'canvas';
 }) => {
     const isDark = themeStore((state) => state.theme === 'dark');
     const colors = isDark ? COLORS.dark : COLORS.light;
+    const onPlatinum = chrome === 'platinum';
+
+    const activeBg = onPlatinum ? '#FFFFFF' : colors.brand.primary;
+    const activeText = onPlatinum ? PLATINUM_TAB_ACTIVE_TEXT : colors.text.contrast;
+    const inactiveText = onPlatinum ? 'rgba(255,255,255,0.72)' : colors.text.lighter;
 
     return (
         <Pressable
             onPress={onPress}
             className="flex-1 items-center justify-center rounded-full px-1 py-2"
-            style={
-                isActive
-                    ? {backgroundColor: colors.brand.primary}
-                    : undefined
-            }
+            style={isActive ? {backgroundColor: activeBg} : undefined}
         >
             <AppText
                 variant="caption-xs"
                 numberOfLines={1}
                 className="font-bold"
-                style={{
-                    color: isActive ? colors.text.contrast : colors.text.lighter,
-                }}
+                style={{color: isActive ? activeText : inactiveText}}
             >
                 {label}
             </AppText>
         </Pressable>
     );
 };
+
+/** Slate text on white active tab sitting on platinum chrome. */
+const PLATINUM_TAB_ACTIVE_TEXT = '#0F172A';
 
 export const InlineDatePicker = ({visible, dateValue, isDark, brandColor, onClose, onChange}: any) => {
     if (!visible) return null;

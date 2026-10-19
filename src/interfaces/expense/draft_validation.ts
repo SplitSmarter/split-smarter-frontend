@@ -13,7 +13,7 @@ export interface GroupMismatchPayload {
     missingUsers: BasicUserDetails[];
 }
 
-export type AllocationMismatchSide = 'paidBy' | 'split' | 'both';
+export type AllocationMismatchSide = 'paidBy' | 'split' | 'items' | 'both';
 
 export interface ValidationErrorPayloads {
     [DraftValidationErrorKey.TITLE_REQUIRED]: { message: string };

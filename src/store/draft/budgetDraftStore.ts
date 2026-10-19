@@ -5,7 +5,7 @@ import {
     BudgetPeriod,
 } from '@/src/api/dto/expense/constant';
 import {RelationWithUserType} from '@/src/api/dto/constants';
-import {GroupDetails} from '@/src/api/dto/user/group';
+import {BaseGroupDetails, GroupDetails} from '@/src/api/dto/user/group';
 import {SelectedUserEntity} from '@/src/components/user/SelectMultiPeopleBottomSheet';
 import {userStore} from '@/src/store/userStore';
 import {
@@ -92,7 +92,30 @@ export function budgetDraftFromRouteParams(
     const placeId = Number(firstParam(params?.placeId));
     const placeName = firstParam(params?.placeName).trim();
     const hasPlace = Number.isFinite(placeId) && placeId > 0;
+
+    const groupId = Number(firstParam(params?.groupId));
+    const groupName = firstParam(params?.groupName).trim();
+    const hasGroup = Number.isFinite(groupId) && groupId > 0;
+
     const base = getDefaultBudgetDraft();
+
+    if (hasGroup) {
+        return {
+            ...base,
+            audienceType: BudgetAudienceType.GROUP,
+            groupId,
+            groupName: groupName || null,
+            members: [],
+            // Map place prefill can combine with group when both are passed
+            ...(hasPlace
+                ? {
+                      name: placeName ? `${placeName} budget` : '',
+                      places: [{id: placeId, name: placeName || `Place #${placeId}`}],
+                      mapPrefilled: true,
+                  }
+                : {}),
+        };
+    }
 
     if (!hasPlace) return base;
 
@@ -110,7 +133,7 @@ export interface BudgetDraftState extends AddBudgetFormState {
     setPeriod: (period: BudgetPeriod) => void;
     setCapMode: (capMode: BudgetCapMode) => void;
     setAudienceType: (audienceType: BudgetAudienceType) => void;
-    setGroup: (group: GroupDetails | null) => void;
+    setGroup: (group: BaseGroupDetails | GroupDetails | null) => void;
     setMembers: (members: SelectedUserEntity[]) => void;
     setCategories: (categories: BudgetScopeEntity[]) => void;
     setPlaces: (places: BudgetScopeEntity[]) => void;

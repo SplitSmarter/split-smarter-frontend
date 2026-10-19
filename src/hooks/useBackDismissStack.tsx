@@ -16,8 +16,12 @@ type OverlayEntry = {
 
 type BackDismissStackContextValue = {
     register: (dismiss: () => void) => () => void;
-    /** Dismiss the top overlay if any; otherwise run `onEmptyBack`. */
-    requestBack: () => void;
+    /**
+     * Dismiss the top overlay if any; otherwise run `onEmptyBack`.
+     * Always returns true when a provider is present (handled).
+     * Do not chain with `?? fallback` — this never returns a falsy “unhandled” signal.
+     */
+    requestBack: () => true;
     /** @returns true if an overlay was dismissed (caller should prevent navigation). */
     tryDismiss: () => boolean;
 };
@@ -35,6 +39,12 @@ type ProviderProps = {
      * `beforeRemove` (gesture / system back) go through the stack.
      */
     interceptSystemBack?: boolean;
+    /**
+     * When true, hardware back with an empty stack calls `onEmptyBack` and
+     * returns true (e.g. double-press to exit on the dashboard tab).
+     * Default false leaves the event to React Navigation / the OS.
+     */
+    consumeEmptyHardwareBack?: boolean;
 };
 
 export function BackDismissStackProvider({
@@ -42,13 +52,16 @@ export function BackDismissStackProvider({
     onEmptyBack,
     blockBack = false,
     interceptSystemBack = true,
+    consumeEmptyHardwareBack = false,
 }: ProviderProps) {
     const nextIdRef = useRef(0);
     const stackRef = useRef<OverlayEntry[]>([]);
     const onEmptyBackRef = useRef(onEmptyBack);
     const blockBackRef = useRef(blockBack);
+    const consumeEmptyRef = useRef(consumeEmptyHardwareBack);
     onEmptyBackRef.current = onEmptyBack;
     blockBackRef.current = blockBack;
+    consumeEmptyRef.current = consumeEmptyHardwareBack;
 
     const register = useCallback((dismiss: () => void) => {
         const id = ++nextIdRef.current;
@@ -66,10 +79,11 @@ export function BackDismissStackProvider({
         return true;
     }, []);
 
-    const requestBack = useCallback(() => {
-        if (blockBackRef.current) return;
-        if (tryDismiss()) return;
+    const requestBack = useCallback((): true => {
+        if (blockBackRef.current) return true;
+        if (tryDismiss()) return true;
         onEmptyBackRef.current();
+        return true;
     }, [tryDismiss]);
 
     const navigation = useNavigation();
@@ -81,6 +95,10 @@ export function BackDismissStackProvider({
             if (blockBackRef.current) return true;
             if (stackRef.current.length > 0) {
                 stackRef.current[stackRef.current.length - 1].dismiss();
+                return true;
+            }
+            if (consumeEmptyRef.current) {
+                onEmptyBackRef.current();
                 return true;
             }
             return false;

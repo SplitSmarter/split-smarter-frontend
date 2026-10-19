@@ -42,13 +42,24 @@ export function ScopeEntityChips({items, kind, onRemove}: Props) {
                             }
                         />
                     </View>
-                    <AppText
-                        variant="caption-xs"
-                        className="max-w-[120px] font-semibold text-text-primary"
-                        numberOfLines={1}
-                    >
-                        {item.name}
-                    </AppText>
+                    <View className="max-w-[140px]">
+                        <AppText
+                            variant="caption-xs"
+                            className="font-semibold text-text-primary"
+                            numberOfLines={1}
+                        >
+                            {item.name}
+                        </AppText>
+                        {item.coversDescendants ? (
+                            <AppText
+                                variant="caption-xs"
+                                className="text-text-primary-lighter"
+                                numberOfLines={1}
+                            >
+                                All under this
+                            </AppText>
+                        ) : null}
+                    </View>
                     <Pressable
                         onPress={() => onRemove(item.id)}
                         hitSlop={8}

@@ -1,5 +1,5 @@
 import React, {useState, useEffect} from 'react';
-import {View, Pressable, ActivityIndicator} from 'react-native';
+import {View, Pressable} from 'react-native';
 import {AppText} from '@/src/components/common/AppText';
 import {AppImageV2} from '@/src/components/common/AppImageV2';
 import {EntityFallbackIcon} from '@/src/components/common/EntityFallbackIcon';
@@ -12,8 +12,7 @@ import {useExpenseDraftStore} from "@/src/store/draft/expenseDraftStore";
 import {GetExpenseCategoryByIdApi} from "@/src/api/expense/categories";
 import {GetGroupByIdApi} from "@/src/api/group/group";
 import {ExpenseCategoryResponse} from "@/src/api/dto/expense/category";
-import {GroupDetails} from "@/src/api/dto/user/group";
-import {Iconify} from "react-native-iconify";
+import {BaseGroupDetails, GroupDetails} from "@/src/api/dto/user/group";
 import {GetUserPlaceByIdApi} from "@/src/api/user/place/location";
 import {useLocationStore} from "@/src/store/locationStore";
 import {DraftValidationErrorKey} from "@/src/interfaces/expense/draft_validation";
@@ -38,27 +37,27 @@ export const CategoryGroupLocationSelector = () => {
 
     // Hydrated Entity Payload State
     const [fullCategory, setFullCategory] = useState<ExpenseCategoryResponse | null>(null);
-    const [fullGroup, setFullGroup] = useState<GroupDetails | null>(null);
-
-    // Request Indicators
-    const [catLoading, setCatLoading] = useState(false);
-    const [groupLoading, setGroupLoading] = useState(false);
+    const [fullGroup, setFullGroup] = useState<BaseGroupDetails | GroupDetails | null>(null);
 
     const {tempLocationMode, tempSelectedMapPlaceId} = useLocationStore();
 
-    // 1. Hydrate Category Information Profile
+    const defaultCategory = defaults.defaultExpenseCategory;
+    const resolvedCategoryId = draft.categoryId || defaultCategory?.id;
+    const categoryIconUrl =
+        fullCategory?.icon?.url ||
+        (resolvedCategoryId === defaultCategory?.id ? defaultCategory?.asset?.url : undefined);
+    const categoryLabel = fullCategory?.title || (defaultCategory?.id ? 'Category' : 'Select');
+
+    // 1. Hydrate Category Information Profile (no spinner — show default/selected icon meanwhile)
     useEffect(() => {
         const hydrateCategory = async () => {
             const targetId = draft.categoryId || defaults.defaultExpenseCategory?.id;
             if (!targetId || fullCategory?.id === targetId) return;
             try {
-                setCatLoading(true);
                 const response = await GetExpenseCategoryByIdApi(targetId);
                 if (response.data) setFullCategory(response.data);
             } catch (err) {
                 console.error("Failed to hydrate category payload:", err);
-            } finally {
-                setCatLoading(false);
             }
         };
         hydrateCategory();
@@ -73,13 +72,10 @@ export const CategoryGroupLocationSelector = () => {
             }
             if (fullGroup?.id === draft.groupId) return;
             try {
-                setGroupLoading(true);
                 const response = await GetGroupByIdApi(draft.groupId);
                 if (response.data) setFullGroup(response.data);
             } catch (err) {
                 console.error("Failed to hydrate group details data:", err);
-            } finally {
-                setGroupLoading(false);
             }
         };
         hydrateGroup();
@@ -93,28 +89,37 @@ export const CategoryGroupLocationSelector = () => {
         draft.consumeOpenGroupPickerRequest();
     }, [draft.requestOpenGroupPicker]);
 
-    // 3. Hydrate Selection Map values to Draft Store
+    // 3. Apply one-shot map → expense location handoff (null = no pending overwrite)
     useEffect(() => {
+        if (tempLocationMode == null) return;
+
         const hydratePlaceDetails = async () => {
-            if (tempLocationMode === 'place' && tempSelectedMapPlaceId) {
-                try {
+            try {
+                if (tempLocationMode === 'place' && tempSelectedMapPlaceId) {
                     const response = await GetUserPlaceByIdApi(tempSelectedMapPlaceId);
                     if (response.data) {
                         draft.setExpenseLocation({
                             id: String(response.data.id),
-                            name: response.data.name
+                            name: response.data.name,
                         });
                         draft.setExpenseLocationMode('place');
                     }
-                } catch (err) {
-                    console.error("Failed hydrating specific map place coordinates details:", err);
+                } else if (tempLocationMode === 'current') {
+                    draft.setExpenseLocationMode('current');
+                } else if (tempLocationMode === 'none') {
+                    draft.setExpenseLocationMode('none');
+                    draft.setExpenseLocation(undefined);
                 }
-            } else if (tempLocationMode && tempLocationMode !== 'place') {
-                draft.setExpenseLocationMode(tempLocationMode);
-                if (tempLocationMode === 'none') draft.setExpenseLocation(undefined);
+            } catch (err) {
+                console.error(
+                    'Failed hydrating specific map place coordinates details:',
+                    err
+                );
+            } finally {
+                useLocationStore.getState().clearTempLocationSelection();
             }
         };
-        hydratePlaceDetails();
+        void hydratePlaceDetails();
     }, [tempLocationMode, tempSelectedMapPlaceId]);
 
     // 4. Resolve Location UI Layout dynamically against Zustand Engine values
@@ -143,10 +148,14 @@ export const CategoryGroupLocationSelector = () => {
                 >
                     Category
                 </AppText>
-                <Pressable onPress={() => setCategoryModalVisible(true)} className="mb-2 relative">
+                <Pressable onPress={() => setCategoryModalVisible(true)} className="mb-2">
                     <AppImageV2
-                        id={fullCategory?.id ? `cat-${fullCategory.id}` : 'cat-default'}
-                        url={fullCategory?.icon?.url || defaults.defaultExpenseCategory?.asset?.url}
+                        id={
+                            resolvedCategoryId != null
+                                ? `cat-${resolvedCategoryId}`
+                                : 'cat-default'
+                        }
+                        url={categoryIconUrl}
                         style={{width: 56, height: 56}}
                         className="rounded-full"
                         contentFit="cover"
@@ -154,17 +163,9 @@ export const CategoryGroupLocationSelector = () => {
                             <EntityFallbackIcon kind="expenseCategory" size={24} color={colors.icon.primary}/>
                         }
                     />
-                    {catLoading && (
-                        <View
-                            className="absolute inset-0 items-center justify-center rounded-full"
-                            style={{backgroundColor: isDark ? 'rgba(7,9,14,0.6)' : 'rgba(255,255,255,0.6)'}}
-                        >
-                            <ActivityIndicator size="small" color={colors.icon.primary}/>
-                        </View>
-                    )}
                 </Pressable>
                 <AppText variant="body-xs" className="text-text-primary text-center font-bold px-1" numberOfLines={1}>
-                    {fullCategory?.title || "Select"}
+                    {categoryLabel}
                 </AppText>
             </View>
 
@@ -177,35 +178,28 @@ export const CategoryGroupLocationSelector = () => {
                 >
                     Group
                 </AppText>
-                <Pressable onPress={() => setGroupModalVisible(true)} className="mb-2 relative">
-                    <AppImageV2
-                        id={`group-${fullGroup?.id ?? 'none'}`}
-                        url={fullGroup?.icon?.url}
-                        style={{width: 56, height: 56}}
-                        className="rounded-full"
-                        contentFit="cover"
-                        fallbackComponent={
-                            <View
-                                style={{
-                                    width: 56,
-                                    height: 56,
-                                    backgroundColor: colors.bg.darker,
-                                    borderColor: colors.status.border,
-                                }}
-                                className="items-center justify-center rounded-full border border-dashed"
-                            >
-                                <EntityFallbackIcon kind="group" size={24} color={colors.icon.lighter}/>
-                            </View>
-                        }
-                    />
-                    {groupLoading && (
-                        <View
-                            className="absolute inset-0 items-center justify-center rounded-full"
-                            style={{backgroundColor: isDark ? 'rgba(7,9,14,0.6)' : 'rgba(255,255,255,0.6)'}}
-                        >
-                            <ActivityIndicator size="small" color={colors.icon.primary}/>
-                        </View>
-                    )}
+                <Pressable onPress={() => setGroupModalVisible(true)} className="mb-2">
+                    <View className="h-14 w-14 overflow-hidden rounded-full">
+                        <AppImageV2
+                            id={`group-${fullGroup?.id ?? 'none'}`}
+                            url={fullGroup?.icon?.url}
+                            style={{width: '100%', height: '100%', borderRadius: 9999}}
+                            contentFit="cover"
+                            fallbackComponent={
+                                <View
+                                    style={{
+                                        width: '100%',
+                                        height: '100%',
+                                        backgroundColor: colors.bg.darker,
+                                        borderColor: colors.status.border,
+                                    }}
+                                    className="items-center justify-center rounded-full border border-dashed"
+                                >
+                                    <EntityFallbackIcon kind="group" size={24} color={colors.icon.lighter}/>
+                                </View>
+                            }
+                        />
+                    </View>
                 </Pressable>
                 <AppText variant="body-xs" className="text-text-primary text-center font-bold px-1" numberOfLines={1}>
                     {fullGroup?.title || "No Group"}

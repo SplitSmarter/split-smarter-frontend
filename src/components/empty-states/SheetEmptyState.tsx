@@ -7,7 +7,7 @@ import {themeStore} from '@/src/store/themeStore';
 interface SheetEmptyAction {
     label: string;
     onPress: () => void;
-    renderIcon?: (color: string) => React.ReactNode;
+    renderIcon?: (color: string, size?: number) => React.ReactNode;
 }
 
 interface SheetEmptyStateProps {
@@ -41,9 +41,14 @@ export function SheetEmptyState({
             {primaryAction ? (
                 <AppButton
                     variant="primary"
-                    className="mt-6 px-8 rounded-2xl h-12"
+                    size="md"
+                    className="mt-6 self-center rounded-2xl px-8"
                     onPress={primaryAction.onPress}
-                    renderIcon={primaryAction.renderIcon}
+                    renderIcon={
+                        primaryAction.renderIcon
+                            ? (color, size) => primaryAction.renderIcon!(color, size)
+                            : undefined
+                    }
                 >
                     {primaryAction.label}
                 </AppButton>

@@ -13,6 +13,10 @@ import {systemStore} from "@/src/store/systemStore";
 import {AddTransferRequest} from "@/src/api/dto/expense/transfer";
 import {TransferDraftState} from "@/src/store/draft/transferDraftStore";
 import {sanitizeRecurringDetailsForApi} from "@/src/utils/expense/recurringDateMapper";
+import {
+    allocationWithinTolerance,
+    distributeProportionalAmounts,
+} from "@/src/utils/expense/expenseCalculations";
 
 /**
  * Transforms UI-centric scheduling and recurring details into the strict
@@ -107,13 +111,40 @@ export const mapExpenseDraftToRequest = (
         draftState.recurringDetails
     );
 
-    const paidByUsersPayload: ExpensePaidByDto[] = draftState.payers.map((payerDraft: PayerUser) => ({
+    const lineItems = buildLineItems(draftState);
+    const itemsSum = lineItems.reduce(
+        (sum, item) => sum + Number(item.quantity) * Number(item.unit_cost),
+        0,
+    );
+    // Backend requires total_cost === Σ(line items) === paid_by === sharers.
+    // Prefer catalog line sum when it diverges from a stale draft total.
+    const totalCost =
+        lineItems.length > 0 &&
+        !allocationWithinTolerance(itemsSum, Number(draftState.totalAmount))
+            ? itemsSum
+            : Number(draftState.totalAmount);
+
+    const payersForPayload = allocationWithinTolerance(
+        draftState.payers.reduce((s, p) => s + Number(p.amount || 0), 0),
+        totalCost,
+    )
+        ? draftState.payers
+        : distributeProportionalAmounts(draftState.payers, totalCost);
+
+    const sharersForPayload = allocationWithinTolerance(
+        draftState.splitParticipants.reduce((s, p) => s + Number(p.amount || 0), 0),
+        totalCost,
+    )
+        ? draftState.splitParticipants
+        : distributeProportionalAmounts(draftState.splitParticipants, totalCost);
+
+    const paidByUsersPayload: ExpensePaidByDto[] = payersForPayload.map((payerDraft: PayerUser) => ({
         user_id: Number(payerDraft.id),
         user_type: payerDraft.user_type || RelationWithUserType.USER,
         amount: Number(payerDraft.amount)
     }));
 
-    const sharersPayload: ExpenseSharersDto[] = draftState.splitParticipants.map((sharerDraft: PayerUser) => ({
+    const sharersPayload: ExpenseSharersDto[] = sharersForPayload.map((sharerDraft: PayerUser) => ({
         user_id: Number(sharerDraft.id),
         user_type: sharerDraft.user_type || RelationWithUserType.USER,
         amount: Number(sharerDraft.amount),
@@ -129,7 +160,7 @@ export const mapExpenseDraftToRequest = (
     return {
         name: draftState.title,
         description: draftState.description.trim() === "" ? null : draftState.description,
-        total_cost: Number(draftState.totalAmount),
+        total_cost: totalCost,
         category_id: draftState.categoryId ?? null,
         default_category_id: defaultCategoryId,
         group_id: draftState.groupId ?? null,
@@ -139,7 +170,7 @@ export const mapExpenseDraftToRequest = (
         currency: draftState.currency,
         date_details: dateDetailsPayload,
         extra_fields: [],
-        line_items: buildLineItems(draftState),
+        line_items: lineItems,
         assets: uploadedAssetIds.length > 0 ? uploadedAssetIds : null,
         add_missing_members_to_group: Boolean(
             draftState.shouldAddPendingMembersOnSubmit && draftState.groupId,

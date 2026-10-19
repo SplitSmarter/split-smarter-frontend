@@ -37,7 +37,10 @@ export function TrailExpenseListRow({
     const isDark = themeStore((s) => s.theme === 'dark');
     const colors = isDark ? COLORS.dark : COLORS.light;
     const displayIndex = txn.index ?? 0;
-    const badgeColor = useMemo(() => getTimeSlotColor(txn.at), [txn.at]);
+    const badgeColor = useMemo(
+        () => getTimeSlotColor(txn.at, isDark),
+        [txn.at, isDark]
+    );
     const timeMeta = formatTimeMeta(txn.at);
 
     return (

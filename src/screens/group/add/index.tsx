@@ -1,26 +1,32 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { View, Pressable, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Iconify } from 'react-native-iconify';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { AppText } from "@/src/components/common/AppText";
+import { MediaPickerBottomSheet } from '@/src/components/common/MediaPickerBottomSheet';
 import { themeStore } from "@/src/store/themeStore";
 import { userStore } from "@/src/store/userStore";
 import { COLORS } from '@/src/constants/colors';
+import { ROUTES } from '@/src/constants/routes';
 import { systemStore } from "@/src/store/systemStore";
 import { CreateGroupApi } from "@/src/api/group/group";
 import { RelationDetails } from "@/src/api/dto/user/relation";
 import { UserSearchResponse } from "@/src/api/dto/user/user";
+import { useAssetPicker } from '@/src/hooks/useMediaPicker';
+import { processLocalAttachments } from '@/src/utils/expense/transactionHelpers';
 
 // Subcomponents & Bottom Sheet integration
-import { GroupForm } from './components/GroupForm';
+import { GroupForm } from '@/src/screens/group/add/components/GroupForm';
 import { SelectedUserEntity, SelectMultiPeopleBottomSheet } from '@/src/components/user/SelectMultiPeopleBottomSheet';
 import { RelationWithUserType } from "@/src/api/dto/constants";
 import {GroupCategoryDetails} from "@/src/api/dto/user/addGroupCategoryRequest";
 
 const MIN_GROUP_MEMBERS = 2;
-const GROUP_MEMBER_USER_TYPES = [RelationWithUserType.USER];
+const GROUP_MEMBER_USER_TYPES = [RelationWithUserType.USER, RelationWithUserType.CUSTOM];
+
+type MediaPickTarget = 'icon' | 'background';
 
 export default function AddGroupScreen() {
     const isDark = themeStore((state) => state.theme === 'dark');
@@ -28,11 +34,18 @@ export default function AddGroupScreen() {
     const currentUser = userStore((state) => state.user);
     const { defaults } = systemStore();
     const router = useRouter();
+    const { handleSingleCamera, handleSingleGallery } = useAssetPicker({
+        autoUpload: false,
+    });
+    const pickerTargetRef = useRef<MediaPickTarget>('icon');
 
     // Shared State Core
     const [loading, setLoading] = useState(false);
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
+    const [localIconUri, setLocalIconUri] = useState<string | null>(null);
+    const [localBackgroundUri, setLocalBackgroundUri] = useState<string | null>(null);
+    const [pickerVisible, setPickerVisible] = useState(false);
 
     const [selectedUsers, setSelectedUsers] = useState<SelectedUserEntity[]>([]);
     const [relations, setRelations] = useState<RelationDetails[]>([]);
@@ -40,6 +53,27 @@ export default function AddGroupScreen() {
     const [isBottomSheetVisible, setIsBottomSheetVisible] = useState(true);
     const [selectedCategory, setSelectedCategory] = useState<GroupCategoryDetails | null>(null);
     const [showCategorySheet, setShowCategorySheet] = useState(false);
+
+    const openMediaPicker = (target: MediaPickTarget) => {
+        pickerTargetRef.current = target;
+        setPickerVisible(true);
+    };
+
+    const handleMediaSelection = (fromCamera: boolean) => {
+        const target = pickerTargetRef.current;
+        setPickerVisible(false);
+        setTimeout(async () => {
+            const action = fromCamera ? handleSingleCamera : handleSingleGallery;
+            const results = await action();
+            const uri = results?.[0]?.uri;
+            if (!uri) return;
+            if (target === 'background') {
+                setLocalBackgroundUri(uri);
+            } else {
+                setLocalIconUri(uri);
+            }
+        }, 100);
+    };
 
     const handleBack = () => {
         if (isBottomSheetVisible) {
@@ -106,6 +140,8 @@ export default function AddGroupScreen() {
     };
 
     const handleCreateGroup = async () => {
+        if (loading) return;
+
         if (!title.trim()) {
             return Alert.alert("Group title required", "Enter a name for your group before saving.");
         }
@@ -134,20 +170,49 @@ export default function AddGroupScreen() {
             }));
 
         try {
+            let iconAssetId = defaults.defaultGroupIconImage.id;
+            let backgroundAssetId = defaults.defaultGroupBackgroundImage.id;
+
+            if (localIconUri) {
+                const uploaded = await processLocalAttachments([localIconUri]);
+                if (!uploaded[0]) {
+                    Alert.alert('Error', 'Failed to upload group icon. Try again.');
+                    return;
+                }
+                iconAssetId = uploaded[0];
+            }
+
+            if (localBackgroundUri) {
+                const uploaded = await processLocalAttachments([localBackgroundUri]);
+                if (!uploaded[0]) {
+                    Alert.alert('Error', 'Failed to upload group background. Try again.');
+                    return;
+                }
+                backgroundAssetId = uploaded[0];
+            }
+
+            if (!iconAssetId || !backgroundAssetId) {
+                Alert.alert('Error', 'Default group images are missing. Try again later.');
+                return;
+            }
+
             const response = await CreateGroupApi({
                 title: title.trim(),
                 description: description.trim(),
-                icon_asset_id: defaults.defaultGroupIconImage.id,
-                background_asset_id: defaults.defaultGroupBackgroundImage.id,
+                icon_asset_id: iconAssetId,
+                background_asset_id: backgroundAssetId,
                 category_id: selectedCategory?.id || defaults.defaultGroupCategory.id,
                 users: usersPayload
             });
 
             if (response.data) {
-                router.navigate({
-                    pathname: '/(authenticated)/expense/add',
-                    params: { newlyCreatedGroup: JSON.stringify(response.data) }
-                });
+                if (router.canGoBack()) {
+                    router.back();
+                } else if (response.data.id != null) {
+                    router.replace(ROUTES.groupDetails(response.data.id) as any);
+                } else {
+                    router.replace('/(authenticated)');
+                }
             } else {
                 Alert.alert("Error", response.message || "Could not create group.");
             }
@@ -186,6 +251,12 @@ export default function AddGroupScreen() {
                         setDescription={setDescription}
                         selectedUsers={selectedUsers}
                         loading={loading}
+                        localIconUri={localIconUri}
+                        localBackgroundUri={localBackgroundUri}
+                        onPickIcon={() => openMediaPicker('icon')}
+                        onPickBackground={() => openMediaPicker('background')}
+                        onClearIcon={() => setLocalIconUri(null)}
+                        onClearBackground={() => setLocalBackgroundUri(null)}
                         onOpenSelect={() => setIsBottomSheetVisible(true)}
                         onRemoveUser={handleRemoveUser}
                         onSubmit={handleCreateGroup}
@@ -204,6 +275,12 @@ export default function AddGroupScreen() {
                     minSelectionToClose={MIN_GROUP_MEMBERS}
                     onClose={handlePeopleSheetClose}
                     onConfirmed={handleSelectionConfirmed}
+                />
+
+                <MediaPickerBottomSheet
+                    visible={pickerVisible}
+                    onClose={() => setPickerVisible(false)}
+                    onSelect={handleMediaSelection}
                 />
             </SafeAreaView>
         </BottomSheetModalProvider>

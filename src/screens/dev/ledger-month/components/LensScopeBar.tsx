@@ -1,5 +1,5 @@
 import React from 'react';
-import {Pressable, ScrollView, View} from 'react-native';
+import {Pressable, View} from 'react-native';
 import {AppText} from '@/src/components/common/AppText';
 import {COLORS} from '@/src/constants/colors';
 import {themeStore} from '@/src/store/themeStore';
@@ -35,6 +35,36 @@ function Chip({label, active, onPress}: ChipProps) {
     );
 }
 
+function FilterSection({
+    title,
+    children,
+}: {
+    title: string;
+    children: React.ReactNode;
+}) {
+    const isDark = themeStore((s) => s.theme === 'dark');
+    const colors = isDark ? COLORS.dark : COLORS.light;
+
+    return (
+        <View
+            className="mb-3 rounded-3xl border p-4"
+            style={{
+                backgroundColor: colors.bg.lighter,
+                borderColor: colors.status.border,
+            }}
+        >
+            <AppText
+                variant="caption-xs"
+                className="mb-3 font-bold uppercase tracking-wider"
+                style={{color: colors.text.lighter}}
+            >
+                {title}
+            </AppText>
+            <View className="flex-row flex-wrap">{children}</View>
+        </View>
+    );
+}
+
 export type LensScopeBarProps = {
     lens: LedgerLens;
     onLensChange: (lens: LedgerLens) => void;
@@ -60,23 +90,9 @@ export function LensScopeBar({
     openOnly,
     onToggleOpenOnly,
 }: LensScopeBarProps) {
-    const isDark = themeStore((s) => s.theme === 'dark');
-    const colors = isDark ? COLORS.dark : COLORS.light;
-
     return (
         <View>
-            <AppText
-                variant="caption-xs"
-                className="mb-2 font-bold uppercase tracking-wider"
-                style={{color: colors.text.lighter}}
-            >
-                Amount lens
-            </AppText>
-            <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                className="mb-4"
-            >
+            <FilterSection title="Amount lens">
                 <Chip
                     label="Your share"
                     active={lens === 'share'}
@@ -92,16 +108,9 @@ export function LensScopeBar({
                     active={lens === 'total'}
                     onPress={() => onLensChange('total')}
                 />
-            </ScrollView>
+            </FilterSection>
 
-            <AppText
-                variant="caption-xs"
-                className="mb-2 font-bold uppercase tracking-wider"
-                style={{color: colors.text.lighter}}
-            >
-                Scope
-            </AppText>
-            <View className="flex-row flex-wrap">
+            <FilterSection title="Scope">
                 <Chip
                     label="Everything"
                     active={scope === 'all'}
@@ -122,6 +131,9 @@ export function LensScopeBar({
                     active={scope === 'goa'}
                     onPress={() => onScopeChange('goa')}
                 />
+            </FilterSection>
+
+            <FilterSection title="Display">
                 <Chip
                     label="Scheduled"
                     active={showUpcoming}
@@ -129,7 +141,7 @@ export function LensScopeBar({
                 />
                 <Chip label="Memories" active={showMemory} onPress={onToggleMemory} />
                 <Chip label="Open only" active={openOnly} onPress={onToggleOpenOnly} />
-            </View>
+            </FilterSection>
         </View>
     );
 }

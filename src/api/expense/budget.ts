@@ -3,6 +3,8 @@ import {PaginationResponse, SuccessResponse} from "@/src/api/dto/ApiResponse";
 import {
     AddBudgetRuleRequest,
     AddBudgetRuleResponse,
+    ApplicableBudgetItem,
+    ApplicableBudgetsRequest,
     BudgetMemberItem,
     BudgetRuleDetails,
     BudgetRuleListItem,
@@ -126,6 +128,28 @@ export const replaceBudgetMembersApi = async (ruleId: number, data: ReplaceBudge
     try {
         const res = await axiosUserInstance.put<SuccessResponse<BudgetMemberItem[]>>(
             `${BASE_PATH}/rules/${ruleId}/members`,
+            data
+        );
+
+        if (res.data && res.data.success) {
+            return {
+                message: res.data.message,
+                data: res.data.data,
+            };
+        }
+        throw new Error("Invalid Response Schema");
+    } catch (error: any) {
+        return handleApiError(error);
+    }
+};
+
+/**
+ * Budgets that would apply to a draft expense (date + optional scope fields).
+ */
+export const listApplicableBudgetsApi = async (data: ApplicableBudgetsRequest) => {
+    try {
+        const res = await axiosUserInstance.post<SuccessResponse<ApplicableBudgetItem[]>>(
+            `${BASE_PATH}/rules/applicable`,
             data
         );
 

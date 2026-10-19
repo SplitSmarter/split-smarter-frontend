@@ -7,6 +7,7 @@ import {
     GestureResponderEvent,
     ActivityIndicator,
     ViewStyle,
+    TextStyle,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { AppText } from "@/src/components/common/AppText";
@@ -23,8 +24,8 @@ interface AppButtonProps extends PressableProps {
     hasBorder?: boolean;
     hasShadow?: boolean;
     vibrate?: boolean;
-    loading?: boolean;      // New Prop
-    loadingText?: string;   // New Prop
+    loading?: boolean;
+    loadingText?: string;
 }
 
 export const AppButton = ({
@@ -38,8 +39,8 @@ export const AppButton = ({
                               hasBorder = false,
                               hasShadow = false,
                               vibrate = false,
-                              loading = false,      // Default to false
-                              loadingText,           // Optional
+                              loading = false,
+                              loadingText,
                               ...props
                           }: AppButtonProps) => {
 
@@ -67,7 +68,8 @@ export const AppButton = ({
         return colors.icon.primary;
     };
 
-    // Force fill via COLORS — NativeWind bg-bg-secondary can linger as emerald after theme flips
+    // Force fill via COLORS on the INNER surface — never put bg on Pressable className
+    // (NativeWind can override style and leave a dark CTA on a dark sheet).
     const variantSurfaceStyle: ViewStyle =
         variant === 'primary'
             ? {backgroundColor: colors.brand.primary}
@@ -75,7 +77,6 @@ export const AppButton = ({
 
     const labelColor = variant === 'primary' ? colors.text.contrast : colors.text.primary;
 
-    // StyleSheet shadows — avoid NativeWind shadow-* during theme flips (nav-context race)
     const getShadowStyle = (isPressed: boolean): ViewStyle | undefined => {
         if (!hasShadow || isInteractionDisabled) return undefined;
 
@@ -86,7 +87,7 @@ export const AppButton = ({
         if (isPressed) {
             return {
                 shadowColor: COLORS.light.brand.primary,
-                shadowOffset: {width: 0, height: 1},
+                shadowOffset: { width: 0, height: 1 },
                 shadowOpacity: 0.15,
                 shadowRadius: 2,
                 opacity: 0.8,
@@ -96,13 +97,13 @@ export const AppButton = ({
         return isDark
             ? {
                 shadowColor: COLORS.dark.text.primary,
-                shadowOffset: {width: 0, height: 4},
+                shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.1,
                 shadowRadius: 8,
             }
             : {
                 shadowColor: COLORS.light.brand.primary,
-                shadowOffset: {width: 0, height: 4},
+                shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.3,
                 shadowRadius: 8,
             };
@@ -116,12 +117,20 @@ export const AppButton = ({
     const sizes = { sm: "py-2 px-4", md: "py-3 px-6", lg: "py-4 px-8" };
     const textVariants = { sm: "body-small" as const, md: "body-base" as const, lg: "body-large" as const };
     const iconSizes = { sm: 16, md: 20, lg: 24 };
+    const iconSize = iconSizes[size];
+    const labelStyle: TextStyle = {
+        color: labelColor,
+        lineHeight: iconSize + 4,
+        includeFontPadding: false,
+        textAlignVertical: 'center',
+    };
 
     return (
         <Pressable
             onPress={handlePress}
             disabled={isInteractionDisabled}
-            className={className}
+            // Outer only: positioning / caller overrides. Center so h-* still looks balanced.
+            className={`w-full items-center justify-center ${className}`}
             {...props}
         >
             {({ pressed }) => (
@@ -137,7 +146,7 @@ export const AppButton = ({
                             : undefined,
                     ]}
                     className={`
-                        flex-row gap-x-2 rounded-full items-center justify-center border w-full
+                        w-full flex-row items-center justify-center gap-x-2 rounded-full border
                         ${getBorderStyle()}
                         ${sizes[size]}
                         ${isInteractionDisabled ? 'opacity-60' : ''}
@@ -149,29 +158,40 @@ export const AppButton = ({
                                 size="small"
                                 color={getIconColor()}
                             />
-                            {loadingText && (
+                            {loadingText ? (
                                 <AppText
                                     variant={textVariants[size]}
                                     className="font-bold"
-                                    style={{color: labelColor}}
+                                    style={labelStyle}
                                 >
                                     {loadingText}
                                 </AppText>
-                            )}
+                            ) : null}
                         </>
                     ) : (
                         <>
-                            {renderIcon && renderIcon(getIconColor(), iconSizes[size])}
+                            {renderIcon ? (
+                                <View
+                                    style={{
+                                        width: iconSize,
+                                        height: iconSize,
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}
+                                >
+                                    {renderIcon(getIconColor(), iconSize)}
+                                </View>
+                            ) : null}
                             <AppText
                                 variant={textVariants[size]}
                                 className="font-bold"
-                                style={{color: labelColor}}
+                                style={labelStyle}
                             >
                                 {children}
                             </AppText>
                         </>
                     )}
-            </View>
+                </View>
             )}
         </Pressable>
     );

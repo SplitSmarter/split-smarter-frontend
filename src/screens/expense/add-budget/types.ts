@@ -10,6 +10,10 @@ export type BudgetScopeEntity = {
     name: string;
     iconUrl?: string | null;
     iconId?: string | null;
+    /** COICOP catalog ref when selected from multi-level picker */
+    categoryRef?: string | null;
+    /** True when budget matching expands this SYSTEM category to subcategories */
+    coversDescendants?: boolean;
 };
 
 export type BudgetWindowPreset = 'forever' | 'this_month' | 'next_90' | 'custom';
@@ -43,6 +47,9 @@ export type AddBudgetFormState = {
 export type AddBudgetRouteParams = {
     placeId?: string | string[];
     placeName?: string | string[];
+    /** Prefill audience = group when opening from group details */
+    groupId?: string | string[];
+    groupName?: string | string[];
 };
 
 export const PERIOD_OPTIONS: {value: BudgetPeriod; label: string}[] = [

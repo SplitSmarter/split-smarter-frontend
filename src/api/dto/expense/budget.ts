@@ -117,3 +117,22 @@ export interface BudgetRuleDetails extends BudgetRuleListItem {
     created_at: string; // ISO datetime
     updated_at: string; // ISO datetime
 }
+
+/** Body for POST /budget/v1/rules/applicable */
+export interface ApplicableBudgetsRequest {
+    expense_date: string; // ISO datetime
+    group_id?: number | null;
+    category_id?: number | null;
+    place_id?: number | null;
+    memory_ids?: number[];
+    amount?: number | null;
+    currency?: string | null;
+}
+
+/** Matching budget rule for a draft expense, with progress + hard-cap projection */
+export interface ApplicableBudgetItem extends BudgetRuleListItem {
+    current_instance: BudgetInstanceDetails;
+    progress: BudgetProgressDetails;
+    projected_spent?: number | null;
+    would_exceed_hard: boolean;
+}

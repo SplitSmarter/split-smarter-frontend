@@ -124,19 +124,28 @@ export const sharesToLineAmounts = (
     });
 };
 
-/** Sum of all item-level sharedBetween amounts across expense items. */
-export const sumAllItemAttributions = (items: ExpenseItem[]): number =>
+/** Which per-line assignee list to aggregate (split vs paid-by floors). */
+export type ItemAttributionField = 'sharedBetween' | 'paidBetween';
+
+/** Sum of all item-level attribution amounts across expense items. */
+export const sumAllItemAttributions = (
+    items: ExpenseItem[],
+    field: ItemAttributionField = 'sharedBetween',
+): number =>
     items.reduce(
         (sum, item) =>
-            sum + (item.sharedBetween || []).reduce((s, sh) => s + (sh.amount || 0), 0),
-        0
+            sum + (item[field] || []).reduce((s, sh) => s + (sh.amount || 0), 0),
+        0,
     );
 
 /** Per-user item attribution totals keyed by `${id}-${user_type}`. */
-export const itemAttrByUser = (items: ExpenseItem[]): Map<ParticipantKey, number> => {
+export const itemAttrByUser = (
+    items: ExpenseItem[],
+    field: ItemAttributionField = 'sharedBetween',
+): Map<ParticipantKey, number> => {
     const map = new Map<ParticipantKey, number>();
     for (const item of items) {
-        for (const sh of item.sharedBetween || []) {
+        for (const sh of item[field] || []) {
             const key = participantKey(sh.user_id, sh.user_type);
             map.set(key, (map.get(key) || 0) + (sh.amount || 0));
         }
@@ -147,12 +156,17 @@ export const itemAttrByUser = (items: ExpenseItem[]): Map<ParticipantKey, number
 export const getUserItemAttr = (
     items: ExpenseItem[],
     userId: number | string,
-    userType: RelationWithUserType | string | undefined | null
-): number => itemAttrByUser(items).get(participantKey(userId, userType)) || 0;
+    userType: RelationWithUserType | string | undefined | null,
+    field: ItemAttributionField = 'sharedBetween',
+): number => itemAttrByUser(items, field).get(participantKey(userId, userType)) || 0;
 
-/** Pool available for Split Between UI: expense total minus all item attributions. */
-export const computePoolTotal = (expenseTotal: number, items: ExpenseItem[]): number =>
-    Math.max(0, Math.round((expenseTotal - sumAllItemAttributions(items)) * 100) / 100);
+/** Pool available for Split/Paid UI: expense total minus item attributions. */
+export const computePoolTotal = (
+    expenseTotal: number,
+    items: ExpenseItem[],
+    field: ItemAttributionField = 'sharedBetween',
+): number =>
+    Math.max(0, Math.round((expenseTotal - sumAllItemAttributions(items, field)) * 100) / 100);
 
 export const toPoolAmount = (settlementAmount: number, itemAttr: number): number =>
     Math.max(0, Math.round((settlementAmount - itemAttr) * 100) / 100);
@@ -168,9 +182,15 @@ export interface SplitBreakdownRow {
 
 export const buildSplitBreakdown = (
     participant: PayerUser,
-    items: ExpenseItem[]
+    items: ExpenseItem[],
+    field: ItemAttributionField = 'sharedBetween',
 ): SplitBreakdownRow => {
-    const attributed = getUserItemAttr(items, participant.id, participant.user_type);
+    const attributed = getUserItemAttr(
+        items,
+        participant.id,
+        participant.user_type,
+        field,
+    );
     const total = participant.amount || 0;
     return {
         items: attributed,
@@ -180,16 +200,17 @@ export const buildSplitBreakdown = (
 };
 
 /**
- * Redistribute expense total across split participants while keeping each user's
+ * Redistribute expense total across participants while keeping each user's
  * item-attribution floor. Unlocked users share the remaining pool by shares.
  */
 export const redistributeSplitPreservingItemFloors = (
     participants: PayerUser[],
     items: ExpenseItem[],
-    expenseTotal: number
+    expenseTotal: number,
+    field: ItemAttributionField = 'sharedBetween',
 ): PayerUser[] => {
     if (participants.length === 0) return participants;
-    const attrs = itemAttrByUser(items);
+    const attrs = itemAttrByUser(items, field);
 
     const withFloors = participants.map((p) => {
         const attr = attrs.get(participantKey(p.id, p.user_type)) || 0;
@@ -206,18 +227,19 @@ export const redistributeSplitPreservingItemFloors = (
 };
 
 /**
- * After item sharedBetween changes: preserve each user's prior pool share,
- * then set settlement = pool + newItemAttr. Over-limit users (itemAttr > old settlement)
- * are locked at itemAttr with pool 0.
+ * After item sharedBetween / paidBetween changes: preserve each user's prior pool
+ * share, then set settlement = pool + newItemAttr. Over-limit users are locked at
+ * itemAttr with pool 0.
  */
 export const applyItemAttributionToSettlements = (
     participants: PayerUser[],
     previousItems: ExpenseItem[],
     nextItems: ExpenseItem[],
-    expenseTotal: number
+    expenseTotal: number,
+    field: ItemAttributionField = 'sharedBetween',
 ): {participants: PayerUser[]; overLimitKeys: ParticipantKey[]} => {
-    const prevAttr = itemAttrByUser(previousItems);
-    const nextAttr = itemAttrByUser(nextItems);
+    const prevAttr = itemAttrByUser(previousItems, field);
+    const nextAttr = itemAttrByUser(nextItems, field);
     const overLimitKeys: ParticipantKey[] = [];
 
     let nextParticipants = participants.map((p) => {
@@ -242,7 +264,7 @@ export const applyItemAttributionToSettlements = (
         };
     });
 
-    // Ensure every item assignee exists in split participants
+    // Ensure every item assignee exists on the settlement side
     const existingKeys = new Set(
         nextParticipants.map((p) => participantKey(p.id, p.user_type))
     );
@@ -256,13 +278,14 @@ export const applyItemAttributionToSettlements = (
             shares: 1,
             isLocked: true,
             user_type: (typeStr as RelationWithUserType) || RelationWithUserType.USER,
+            avatar: null,
         });
         overLimitKeys.push(key);
         existingKeys.add(key);
     }
 
     // Rebalance unlocked participants' settlement amounts so pools sum to poolTotal
-    const poolTotal = computePoolTotal(expenseTotal, nextItems);
+    const poolTotal = computePoolTotal(expenseTotal, nextItems, field);
     const lockedPoolSum = nextParticipants.reduce((sum, p) => {
         if (!p.isLocked) return sum;
         const attr = nextAttr.get(participantKey(p.id, p.user_type)) || 0;
@@ -286,6 +309,57 @@ export const applyItemAttributionToSettlements = (
     });
 
     return {participants: nextParticipants, overLimitKeys};
+};
+
+/**
+ * Keep expense total, Paid by, and Split Between aligned with catalog line items
+ * and their per-line assignees (assign-items / item picker).
+ */
+export const syncSettlementsWithItems = (
+    payers: PayerUser[],
+    splitParticipants: PayerUser[],
+    previousItems: ExpenseItem[],
+    nextItems: ExpenseItem[],
+    previousTotal: number,
+): {
+    totalAmount: number;
+    payers: PayerUser[];
+    splitParticipants: PayerUser[];
+} => {
+    const itemsSum = itemCostSum(nextItems);
+    const totalAmount =
+        nextItems.length > 0 && itemsSum > 0.009 ? itemsSum : previousTotal;
+
+    const {participants: nextPayers} = applyItemAttributionToSettlements(
+        payers,
+        previousItems,
+        nextItems,
+        totalAmount,
+        'paidBetween',
+    );
+    const {participants: nextSplit} = applyItemAttributionToSettlements(
+        splitParticipants,
+        previousItems,
+        nextItems,
+        totalAmount,
+        'sharedBetween',
+    );
+
+    return {
+        totalAmount,
+        payers: redistributeSplitPreservingItemFloors(
+            nextPayers,
+            nextItems,
+            totalAmount,
+            'paidBetween',
+        ),
+        splitParticipants: redistributeSplitPreservingItemFloors(
+            nextSplit,
+            nextItems,
+            totalAmount,
+            'sharedBetween',
+        ),
+    };
 };
 
 /** Σ(cost × quantity) for selected expense items. */

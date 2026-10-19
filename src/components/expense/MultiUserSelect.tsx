@@ -8,8 +8,14 @@ import SuggestionsSection from "@/src/components/expense/multi_user_select/Sugge
 import TypeToggleBar, { SplitSelectType } from "@/src/components/expense/multi_user_select/TypeToggleBar";
 import {themeStore} from "@/src/store/themeStore";
 import {userStore} from "@/src/store/userStore";
-import { COLORS } from '@/src/constants/colors';
-import {useExpenseDraftStore, PayerUser as StorePayerUser} from "@/src/store/draft/expenseDraftStore";
+import { COLORS, PLATINUM_HEADER } from '@/src/constants/colors';
+import { PlatinumFormHeader } from '@/src/components/common/PlatinumFormHeader';
+import {
+    useExpenseDraftStore,
+    PayerUser as StorePayerUser,
+    ExpenseItem,
+    DraftSplitMode,
+} from "@/src/store/draft/expenseDraftStore";
 import {DraftValidationErrorKey} from "@/src/interfaces/expense/draft_validation";
 import {
     allocateEqualAmounts,
@@ -34,8 +40,23 @@ import {
     Modal
 } from 'react-native';
 import {Iconify} from "react-native-iconify";
-import {useRouter} from "expo-router";
+import {useNavigation, useRouter} from "expo-router";
 import { ScreenWrapper } from "../common/ScreenWrapper";
+
+/** Deep-enough clone so live draft edits cannot mutate the entry snapshot. */
+function cloneDraftSlice() {
+    const s = useExpenseDraftStore.getState();
+    return {
+        payers: JSON.parse(JSON.stringify(s.payers)) as StorePayerUser[],
+        splitParticipants: JSON.parse(JSON.stringify(s.splitParticipants)) as StorePayerUser[],
+        totalAmount: s.totalAmount,
+        expenseItems: JSON.parse(JSON.stringify(s.expenseItems)) as ExpenseItem[],
+        paidBySplitMode: s.paidBySplitMode as DraftSplitMode,
+        splitBetweenSplitMode: s.splitBetweenSplitMode as DraftSplitMode,
+    };
+}
+
+type DraftEntrySnapshot = ReturnType<typeof cloneDraftSlice>;
 
 export type SplitMode = 'equal' | 'amount' | 'percentage' | 'shares';
 
@@ -68,11 +89,15 @@ const getUserItemKey = (id: string | number, type: RelationWithUserType): string
 const MultiUserSplitSelect = ({type, onSave}: MultiUserSplitSelectProps) => {
     const {theme} = themeStore();
     const router = useRouter();
+    const navigation = useNavigation();
     const {user: currentUser} = userStore();
     const isDark = theme === 'dark';
     const colors = isDark ? COLORS.dark : COLORS.light;
 
     const draft = useExpenseDraftStore();
+    /** Live edits write to the draft; discard on back unless Confirm ran. */
+    const entrySnapshotRef = useRef<DraftEntrySnapshot | null>(null);
+    const didConfirmRef = useRef(false);
     const selectedGroupId = draft.groupId;
     const itemAttrMap = useMemo(
         () => itemAttrByUser(draft.expenseItems),
@@ -137,6 +162,38 @@ const MultiUserSplitSelect = ({type, onSave}: MultiUserSplitSelectProps) => {
     );
     const isTotalLockedRef = useRef<boolean>(true);
     const activeTypeRef = useRef<SplitSelectType>(type);
+
+    useEffect(() => {
+        entrySnapshotRef.current = cloneDraftSlice();
+        didConfirmRef.current = false;
+    }, []);
+
+    const restoreEntrySnapshot = useCallback(() => {
+        const snap = entrySnapshotRef.current;
+        if (!snap || didConfirmRef.current) return;
+        const store = useExpenseDraftStore.getState();
+        store.setPayers(snap.payers);
+        store.setSplitParticipants(snap.splitParticipants);
+        store.setTotalAmount(snap.totalAmount);
+        store.setExpenseItems(snap.expenseItems);
+        store.setPaidBySplitMode(snap.paidBySplitMode);
+        store.setSplitBetweenSplitMode(snap.splitBetweenSplitMode);
+    }, []);
+
+    const commitAndLeave = useCallback(
+        (users: UserItem[]) => {
+            didConfirmRef.current = true;
+            onSave?.(users);
+        },
+        [onSave],
+    );
+
+    useEffect(() => {
+        const unsub = navigation.addListener('beforeRemove', () => {
+            restoreEntrySnapshot();
+        });
+        return unsub;
+    }, [navigation, restoreEntrySnapshot]);
 
     useEffect(() => {
         entryTotalRef.current = draft.totalAmount;
@@ -766,14 +823,32 @@ const MultiUserSplitSelect = ({type, onSave}: MultiUserSplitSelectProps) => {
         dispatchStoreUpdate(balanced, targetGlobalExpense);
     };
 
+    const canvasBg = colors.bg.primary;
+    const heroStatusBar = isDark ? PLATINUM_HEADER.dark : PLATINUM_HEADER.light;
+
     return (
         <ScreenWrapper
             withPadding={false}
-            backgroundColor={colors.bg.primary}
-            statusBarStyle={isDark ? "light-content" : "dark-content"}
-            className="bg-bg-primary"
+            backgroundColor={heroStatusBar}
+            statusBarStyle="light-content"
+            className="relative flex-1"
         >
-            <View className="flex-1">
+            <View className="flex-1" style={{backgroundColor: heroStatusBar}}>
+                <PlatinumFormHeader
+                    title={activeType === 'paidBy' ? 'Paid by' : 'Split between'}
+                    subtitle="People · Amounts · Lock shares"
+                    onBack={() => router.back()}
+                />
+
+                <View
+                    className="flex-1 overflow-hidden"
+                    style={{
+                        marginTop: -20,
+                        borderTopLeftRadius: 28,
+                        borderTopRightRadius: 28,
+                        backgroundColor: canvasBg,
+                    }}
+                >
                 <TypeToggleBar
                     activeType={activeType}
                     isDark={isDark}
@@ -798,7 +873,7 @@ const MultiUserSplitSelect = ({type, onSave}: MultiUserSplitSelectProps) => {
                 />
 
                 {/* Scrollable Selected Participants Section */}
-                <View className="flex-1 px-4 mt-4">
+                <View className="mt-4 flex-1 px-4">
                     <FlatList
                         data={selectedUsers}
                         keyExtractor={item => getUserItemKey(item.id, item.user_type)}
@@ -916,7 +991,7 @@ const MultiUserSplitSelect = ({type, onSave}: MultiUserSplitSelectProps) => {
                                 }
                                 entryTotalRef.current = poolOrPaidSum;
                             }
-                            onSave?.(selectedUsers);
+                            commitAndLeave(selectedUsers);
                         }}
                         style={({pressed}) => [{transform: [{scale: pressed ? 0.98 : 1}]}]}
                         className="h-14 bg-bg-secondary rounded-2xl flex-row items-center justify-center active:opacity-95 shadow-sm"
@@ -924,6 +999,7 @@ const MultiUserSplitSelect = ({type, onSave}: MultiUserSplitSelectProps) => {
                         <AppText className="text-text-secondary font-bold text-lg tracking-wide mr-2">Confirm Selection</AppText>
                         <Iconify icon="heroicons:arrow-right-20-solid" size={20} color={colors.text.contrast}/>
                     </Pressable>
+                </View>
                 </View>
             </View>
 
@@ -1012,7 +1088,7 @@ const MultiUserSplitSelect = ({type, onSave}: MultiUserSplitSelectProps) => {
                                 setTotalDriftModalVisible(false);
                                 setConfirmNextTotal(null);
                                 entryTotalRef.current = nextTotal;
-                                onSave?.(selectedUsersRef.current);
+                                commitAndLeave(selectedUsersRef.current);
                             }}
                         >
                             Update total & redistribute other side

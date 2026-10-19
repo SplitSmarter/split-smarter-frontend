@@ -65,4 +65,23 @@ export const ROUTES = {
         params: { serviceId: String(id) },
     }),
     newGroup: () => "/(authenticated)/groups/new",
+    /** Add expense / transfer — optional group preselect + tab + receipt scan. */
+    expenseAdd: (opts?: {
+        groupId?: string | number;
+        tab?: 'expense' | 'transfer';
+        /** When true, opens the media/receipt picker on arrive. */
+        scan?: boolean;
+    }): {
+        pathname: "/(authenticated)/expense/add";
+        params?: { groupId?: string; tab?: string; scan?: string };
+    } => {
+        const params: { groupId?: string; tab?: string; scan?: string } = {};
+        if (opts?.groupId != null) params.groupId = String(opts.groupId);
+        if (opts?.tab) params.tab = opts.tab;
+        if (opts?.scan) params.scan = '1';
+        return Object.keys(params).length > 0
+            ? { pathname: "/(authenticated)/expense/add", params }
+            : { pathname: "/(authenticated)/expense/add" };
+    },
 };
+

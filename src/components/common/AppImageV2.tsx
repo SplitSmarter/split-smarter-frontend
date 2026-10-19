@@ -5,9 +5,16 @@ import {Image as ExpoImage, ImageProps as ExpoImageProps} from 'expo-image';
 import {Iconify} from 'react-native-iconify';
 import {CACHE_FOLDER} from '@/src/constants/system';
 import {ImageCacheManager} from '@/src/utils/system/ImageCacheManager';
-import {deviceStore} from '@/src/store/deviceStore';
 import {themeStore} from '@/src/store/themeStore';
 import {COLORS} from '@/src/constants/colors';
+
+function isLocalUri(value: string): boolean {
+    return (
+        value.startsWith('file://') ||
+        value.startsWith('content://') ||
+        value.startsWith('ph://')
+    );
+}
 
 interface AppImageV2Props extends ExpoImageProps {
     id: string;
@@ -18,71 +25,64 @@ interface AppImageV2Props extends ExpoImageProps {
     fallbackComponent?: React.ReactNode;
 }
 
+/**
+ * Disk-backed image aligned with AppImage category-icon stability:
+ * paint the remote URI immediately (expo-image memory-disk), no blurhash /
+ * crossfade, warm FileSystem cache in the background without swapping source.
+ */
 export const AppImageV2 = ({
     id,
     url,
     uri,
     expiryInDays = 7,
     fallbackComponent,
-    placeholder = '|rF?hV%2WCj[ayj[a|j[ayjtayj[ayjtayj[ayjtayj[ayjtayj[ayjtayj[ayjtayj[ayjtayj[',
-    transition = 200,
+    placeholder,
+    transition = 0,
     style,
     onError: onErrorProp,
+    cachePolicy = 'memory-disk',
     ...props
 }: AppImageV2Props) => {
     const [source, setSource] = useState<{uri: string} | null>(() => {
-        if (!url && uri) return {uri};
-        if (
-            url &&
-            (url.startsWith('file://') ||
-                url.startsWith('content://') ||
-                url.startsWith('ph://'))
-        ) {
-            return {uri: url};
-        }
+        if (uri && !url) return {uri};
+        if (url) return {uri: url};
         return null;
     });
+    const [error, setError] = useState(() => !url && !uri);
 
-    const [error, setError] = useState(false);
-    const platform = deviceStore((state) => state.platform);
     const isDark = themeStore((state) => state.theme === 'dark');
     const iconColor = isDark ? COLORS.dark.icon.lighter : COLORS.light.icon.lighter;
 
     useEffect(() => {
-        const triggerFallback = () => {
+        if (!url) {
             if (uri) {
                 setError(false);
                 setSource({uri});
             } else {
                 setError(true);
-            }
-        };
-
-        if (
-            !url ||
-            url.startsWith('file://') ||
-            url.startsWith('content://') ||
-            url.startsWith('ph://')
-        ) {
-            if (url) {
-                setError(false);
-                setSource({uri: url});
-            } else {
-                triggerFallback();
+                setSource(null);
             }
             return;
         }
 
-        const processCache = async () => {
+        if (isLocalUri(url)) {
+            setError(false);
+            setSource({uri: url});
+            return;
+        }
+
+        // Paint remote immediately — same stable path as add-expense category AppImage.
+        setError(false);
+        setSource({uri: url});
+
+        const warmDiskCache = async () => {
             const path = `${CACHE_FOLDER}${id}.png`;
-            const localUri = platform === 'android' ? path : `file://${path}`;
 
             try {
                 await ImageCacheManager.ensureCacheDir();
                 const fileInfo = await FileSystem.getInfoAsync(path);
 
                 let shouldDownload = !fileInfo.exists;
-
                 if (fileInfo.exists && fileInfo.modificationTime) {
                     const ageInDays =
                         (Date.now() - fileInfo.modificationTime * 1000) /
@@ -92,43 +92,33 @@ export const AppImageV2 = ({
 
                 if (!shouldDownload) {
                     await ImageCacheManager.updateManifest(id);
-                    setError(false);
-                    setSource({uri: localUri});
-                } else {
-                    const download = await FileSystem.downloadAsync(url, path);
-                    if (download.status === 200) {
-                        const sizeBytes = download.headers['Content-Length']
-                            ? parseInt(download.headers['Content-Length'], 10)
-                            : 0;
-                        await ImageCacheManager.updateManifest(id, sizeBytes);
-                        setError(false);
-                        setSource({uri: download.uri});
-                    } else {
-                        throw new Error('Download failed');
-                    }
+                    return;
                 }
+
+                const download = await FileSystem.downloadAsync(url, path);
+                if (download.status === 200) {
+                    const sizeBytes = download.headers['Content-Length']
+                        ? parseInt(download.headers['Content-Length'], 10)
+                        : 0;
+                    await ImageCacheManager.updateManifest(id, sizeBytes);
+                }
+                // Do not setSource(local) — remote→file swap flashes on remount.
             } catch {
-                const fileInfo = await FileSystem.getInfoAsync(path);
-                if (fileInfo.exists) {
-                    setError(false);
-                    setSource({uri: localUri});
-                } else {
-                    triggerFallback();
-                }
+                // Remote already on screen; disk warm is best-effort.
             } finally {
                 ImageCacheManager.purgeCache();
             }
         };
 
-        void processCache();
-    }, [id, url, uri, expiryInDays, platform]);
+        void warmDiskCache();
+    }, [id, url, uri, expiryInDays]);
 
     const handleImageError = (event: any) => {
         setError(true);
         onErrorProp?.(event);
     };
 
-    if (error) {
+    if (error || !source) {
         return (
             <View
                 style={[
@@ -153,6 +143,7 @@ export const AppImageV2 = ({
             source={source}
             placeholder={placeholder}
             transition={transition}
+            cachePolicy={cachePolicy}
             style={[{width: '100%', height: '100%'}, style]}
             onError={handleImageError}
             {...props}

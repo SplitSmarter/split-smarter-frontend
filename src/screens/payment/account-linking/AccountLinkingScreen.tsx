@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import {LayoutAnimation, SafeAreaView, ScrollView, StatusBar, TouchableOpacity, View,} from 'react-native';
-import {Ionicons, MaterialCommunityIcons} from '@expo/vector-icons';
+import {Iconify} from 'react-native-iconify';
 import {AppText} from "@/src/components/common/AppText";
 
 import {CategoryStepContent} from './components/CategoryStepContent';
@@ -159,7 +159,7 @@ export default function AccountLinkingScreen({
             <View className="h-14 flex-row items-center justify-between px-4 bg-bg-primary">
                 {currentStep > 1 ? (
                     <TouchableOpacity onPress={handleHeaderBack} className="p-2">
-                        <Ionicons name="chevron-back" size={24} className="text-icon-primary"/>
+                        <Iconify icon="heroicons:chevron-left" size={24} color={colors.icon.primary}/>
                     </TouchableOpacity>
                 ) : (
                     <View className="w-10"/>
@@ -184,7 +184,7 @@ export default function AccountLinkingScreen({
                             >
                                 {currentStep > 1 ? (
                                     <View className="w-7 h-7 rounded-full bg-bg-secondary justify-center items-center">
-                                        <Ionicons name="checkmark" size={16} color={colors.text.contrast}/>
+                                        <Iconify icon="heroicons:check" size={16} color={colors.text.contrast}/>
                                     </View>
                                 ) : (
                                     <View
@@ -233,7 +233,7 @@ export default function AccountLinkingScreen({
                             >
                                 {currentStep > 2 ? (
                                     <View className="w-7 h-7 rounded-full bg-bg-secondary justify-center items-center">
-                                        <Ionicons name="checkmark" size={16} color={colors.text.contrast}/>
+                                        <Iconify icon="heroicons:check" size={16} color={colors.text.contrast}/>
                                     </View>
                                 ) : currentStep === 2 ? (
                                     <View
@@ -243,8 +243,7 @@ export default function AccountLinkingScreen({
                                 ) : (
                                     <View
                                         className="w-7 h-7 rounded-full border-[1.5px] border-bg-primary-darker bg-bg-canvas justify-center items-center">
-                                        <MaterialCommunityIcons name="bank-outline" size={16}
-                                                                className="text-icon-primary-lighter"/>
+                                        <Iconify icon="heroicons:building-library" size={16} color={colors.icon.lighter}/>
                                     </View>
                                 )}
                             </TouchableOpacity>
@@ -295,7 +294,7 @@ export default function AccountLinkingScreen({
                                 ) : (
                                     <View
                                         className="w-7 h-7 rounded-full border-[1.5px] border-bg-primary-darker bg-bg-canvas justify-center items-center">
-                                        <Ionicons name="card-outline" size={16} className="text-icon-primary-lighter"/>
+                                        <Iconify icon="heroicons:credit-card" size={16} color={colors.icon.lighter}/>
                                     </View>
                                 )}
                             </TouchableOpacity>

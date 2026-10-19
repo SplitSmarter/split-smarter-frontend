@@ -64,3 +64,24 @@ export interface UserPlaceDetails extends LocationDetails {
 export interface AddPlaceResponse {
     id: number;
 }
+
+/** Address/region components from GET /place/v1/reverse (not a saved place). */
+export interface RegionDetails {
+    formatted_address?: string | null;
+    street_number?: string | null;
+    route?: string | null;
+    subpremise?: string | null;
+    locality?: string | null;
+    administrative_area_level_1?: string | null;
+    administrative_area_level_2?: string | null;
+    postal_code?: string | null;
+    country?: string | null;
+    country_code?: string | null;
+    geo: GeoDetails;
+    types?: string[];
+}
+
+export interface ReverseGeocodeResponse {
+    region: RegionDetails;
+    nearby_places?: LocationDetails[];
+}

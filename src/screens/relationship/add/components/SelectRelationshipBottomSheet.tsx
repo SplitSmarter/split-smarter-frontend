@@ -14,6 +14,7 @@ import { AppButton } from "@/src/components/common/AppButton";
 import { AppImage } from "@/src/components/common/AppImage";
 import { EntityFallbackIcon } from "@/src/components/common/EntityFallbackIcon";
 import { AppInput } from "@/src/components/common/AppInput";
+import { SearchClearButton } from "@/src/components/common/SearchClearButton";
 import { themeStore } from '@/src/store/themeStore';
 import { COLORS } from "@/src/constants/colors";
 import { GetRelationsApi } from "@/src/api/relations/relation";
@@ -127,6 +128,13 @@ export const SelectRelationshipBottomSheet = ({
                             onChangeText={setSearchQuery}
                             renderLeftIcon={(color) => (
                                 <Iconify icon="heroicons:magnifying-glass" size={20} color={color} />
+                            )}
+                            renderRightIcon={(color) => (
+                                <SearchClearButton
+                                    value={searchQuery}
+                                    onClear={() => setSearchQuery('')}
+                                    color={color}
+                                />
                             )}
                         />
                     </View>

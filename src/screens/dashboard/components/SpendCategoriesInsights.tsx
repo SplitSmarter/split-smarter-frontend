@@ -252,6 +252,21 @@ export const SpendCategoriesInsights: React.FC<SpendCategoriesInsightsProps> = (
                                         placeholderTextColor={colors.text.placeholder}
                                         className="ml-2 h-6 flex-1 p-0 text-xs font-medium text-text-primary"
                                     />
+                                    {searchQuery.trim().length > 0 ? (
+                                        <Pressable
+                                            onPress={() => setSearchQuery('')}
+                                            hitSlop={8}
+                                            accessibilityRole="button"
+                                            accessibilityLabel="Clear search"
+                                            className="ml-1 active:opacity-70"
+                                        >
+                                            <Iconify
+                                                icon="heroicons:x-mark"
+                                                size={14}
+                                                color={colors.icon.lighter}
+                                            />
+                                        </Pressable>
+                                    ) : null}
                                 </View>
 
                                 <View className="gap-2">

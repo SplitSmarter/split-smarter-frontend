@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { View, Pressable, ScrollView, StyleSheet, Image } from 'react-native';
 import { Iconify } from 'react-native-iconify';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppInput } from "@/src/components/common/AppInput";
@@ -23,6 +23,12 @@ interface GroupFormProps {
     setDescription: (desc: string) => void;
     selectedUsers: SelectedUserEntity[];
     loading: boolean;
+    localIconUri: string | null;
+    localBackgroundUri: string | null;
+    onPickIcon: () => void;
+    onPickBackground: () => void;
+    onClearIcon: () => void;
+    onClearBackground: () => void;
     onOpenSelect: () => void;
     onSubmit: () => void;
     onCancel: () => void;
@@ -40,6 +46,12 @@ export const GroupForm = React.memo(({
                                          setDescription,
                                          selectedUsers,
                                          loading,
+                                         localIconUri,
+                                         localBackgroundUri,
+                                         onPickIcon,
+                                         onPickBackground,
+                                         onClearIcon,
+                                         onClearBackground,
                                          onOpenSelect,
                                          onSubmit,
                                          onCancel,
@@ -55,6 +67,9 @@ export const GroupForm = React.memo(({
     const currentUser = userStore((state) => state.user);
     const insets = useSafeAreaInsets();
     const [titleError, setTitleError] = useState<string | undefined>();
+    const editChipBg = colors.brand.primary;
+    const editChipIcon = colors.text.contrast;
+    const hasCustomMedia = Boolean(localIconUri || localBackgroundUri);
 
     const handleTitleChange = (value: string) => {
         setTitle(value);
@@ -81,29 +96,98 @@ export const GroupForm = React.memo(({
                 contentContainerStyle={styles.scrollContent}
             >
                 {/* Header Identity Display Banner */}
-                <View className="relative mb-6 rounded-3xl overflow-hidden h-32 bg-bg-primary-darker">
-                    <AppImageV2
-                        id={defaults.defaultGroupBackgroundImage.id || 'group-create-bg'}
-                        url={defaults.defaultGroupBackgroundImage.url}
-                        style={{width: '100%', height: '100%'}}
-                        contentFit="cover"
-                    />
-                    <View className="absolute inset-0 bg-black/20 flex-row items-center px-4">
-                        <View className="w-16 h-16 rounded-full border-2 border-white overflow-hidden shadow-sm">
-                            <AppImageV2
-                                id={defaults.defaultGroupIconImage.id || 'group-create-icon'}
-                                url={defaults.defaultGroupIconImage.url}
-                                style={{width: '100%', height: '100%', borderRadius: 9999}}
-                                contentFit="cover"
-                                fallbackComponent={
-                                    <EntityFallbackIcon kind="group" size={32} color={colors.icon.lighter} />
-                                }
-                            />
+                <View className="relative mb-2 rounded-3xl overflow-hidden h-32 bg-bg-primary-darker">
+                    {localBackgroundUri ? (
+                        <Image
+                            source={{ uri: localBackgroundUri }}
+                            style={{ width: '100%', height: '100%' }}
+                            resizeMode="cover"
+                        />
+                    ) : (
+                        <AppImageV2
+                            id={defaults.defaultGroupBackgroundImage.id || 'group-create-bg'}
+                            url={defaults.defaultGroupBackgroundImage.url}
+                            style={{width: '100%', height: '100%'}}
+                            contentFit="cover"
+                        />
+                    )}
+                    <View className="absolute inset-0 bg-black/20 flex-row items-center px-4 pr-14">
+                        <View className="relative">
+                            <View className="w-16 h-16 rounded-full border-2 border-white overflow-hidden shadow-sm">
+                                {localIconUri ? (
+                                    <Image
+                                        source={{ uri: localIconUri }}
+                                        style={{ width: '100%', height: '100%', borderRadius: 9999 }}
+                                        resizeMode="cover"
+                                    />
+                                ) : (
+                                    <AppImageV2
+                                        id={defaults.defaultGroupIconImage.id || 'group-create-icon'}
+                                        url={defaults.defaultGroupIconImage.url}
+                                        style={{width: '100%', height: '100%', borderRadius: 9999}}
+                                        contentFit="cover"
+                                        fallbackComponent={
+                                            <EntityFallbackIcon kind="group" size={32} color={colors.icon.lighter} />
+                                        }
+                                    />
+                                )}
+                            </View>
+                            <Pressable
+                                accessibilityRole="button"
+                                accessibilityLabel="Change group icon"
+                                onPress={onPickIcon}
+                                disabled={loading}
+                                className="rounded-full border-2 border-white p-1.5 active:opacity-80"
+                                style={{
+                                    position: 'absolute',
+                                    bottom: -4,
+                                    right: -4,
+                                    backgroundColor: editChipBg,
+                                }}
+                            >
+                                <Iconify icon="heroicons:pencil-square" size={12} color={editChipIcon} />
+                            </Pressable>
                         </View>
-                        <AppText variant="h4" className="text-white ml-3 font-bold">
+                        <AppText variant="h4" className="text-white ml-3 font-bold flex-1" numberOfLines={2}>
                             {title.trim() || 'Untitled group'}
                         </AppText>
                     </View>
+                    <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="Change group background"
+                        onPress={onPickBackground}
+                        disabled={loading}
+                        className="rounded-full border-2 border-white p-2 active:opacity-80"
+                        style={{
+                            position: 'absolute',
+                            top: 10,
+                            right: 10,
+                            backgroundColor: editChipBg,
+                        }}
+                    >
+                        <Iconify icon="heroicons:photo" size={14} color={editChipIcon} />
+                    </Pressable>
+                </View>
+                <View className="mb-6 flex-row flex-wrap items-center gap-x-3 gap-y-1">
+                    <AppText variant="caption-xs" className="text-text-primary-lighter">
+                        {hasCustomMedia
+                            ? 'Custom images — upload on save'
+                            : 'Tap photo or pencil to customize'}
+                    </AppText>
+                    {localIconUri ? (
+                        <Pressable onPress={onClearIcon} disabled={loading} className="active:opacity-70">
+                            <AppText variant="caption-xs" className="font-semibold text-accent-sky">
+                                Reset icon
+                            </AppText>
+                        </Pressable>
+                    ) : null}
+                    {localBackgroundUri ? (
+                        <Pressable onPress={onClearBackground} disabled={loading} className="active:opacity-70">
+                            <AppText variant="caption-xs" className="font-semibold text-accent-sky">
+                                Reset background
+                            </AppText>
+                        </Pressable>
+                    ) : null}
                 </View>
 
                 {/* Main Form Fields */}
@@ -248,10 +332,17 @@ export const GroupForm = React.memo(({
                 className="border-t border-border-input"
             >
                 <View className="gap-y-3">
-                    <AppButton variant="primary" className="h-14 rounded-2xl shadow-md" onPress={handleSubmit} loading={loading}>
+                    <AppButton
+                        variant="primary"
+                        className="h-14 rounded-2xl shadow-md"
+                        onPress={handleSubmit}
+                        loading={loading}
+                        loadingText={hasCustomMedia ? 'Uploading…' : 'Saving…'}
+                        disabled={loading}
+                    >
                         Create group
                     </AppButton>
-                    <AppButton variant="secondary" className="h-14 rounded-2xl" onPress={onCancel}>
+                    <AppButton variant="secondary" className="h-14 rounded-2xl" onPress={onCancel} disabled={loading}>
                         Cancel
                     </AppButton>
                 </View>

@@ -17,7 +17,7 @@ import {
     SelectDateBottomSheetProps as BaseSelectDateBottomSheetProps,
 } from '@/src/components/common/types/selectDateBottomSheet.types';
 import {useSelectDateBottomSheet} from '@/src/components/common/hooks/useSelectDateBottomSheet';
-import {DebouncedNumberInput, DebouncedDateInput} from '@/src/components/common/components/DebouncedFormInputs';
+import {DebouncedNumberInput} from '@/src/components/common/components/DebouncedFormInputs';
 
 export interface SelectDateBottomSheetProps extends BaseSelectDateBottomSheetProps {
     allowedModes?: 'single' | 'recurring' | 'both';
@@ -571,33 +571,91 @@ export const SelectDateBottomSheet: React.FC<SelectDateBottomSheetProps> = ({
                                     </AppText>
                                 </Pressable>
 
-                                <Pressable
-                                    className="flex-row items-center gap-2"
-                                    onPress={() => setEndType(EndType.UNTIL)}
-                                >
-                                    <View
-                                        className="w-5 h-5 rounded-full border-2 items-center justify-center"
-                                        style={{
-                                            borderColor:
-                                                endType === EndType.UNTIL ? palette.accentSky : palette.border,
-                                        }}
+                                <View className="gap-3">
+                                    <Pressable
+                                        className="flex-row items-center gap-2 flex-wrap"
+                                        onPress={() => setEndType(EndType.UNTIL)}
                                     >
-                                        {endType === EndType.UNTIL && (
-                                            <View
-                                                className="w-2.5 h-2.5 rounded-full"
-                                                style={{backgroundColor: palette.accentSky}}
+                                        <View
+                                            className="w-5 h-5 rounded-full border-2 items-center justify-center"
+                                            style={{
+                                                borderColor:
+                                                    endType === EndType.UNTIL
+                                                        ? palette.accentSky
+                                                        : palette.border,
+                                            }}
+                                        >
+                                            {endType === EndType.UNTIL && (
+                                                <View
+                                                    className="w-2.5 h-2.5 rounded-full"
+                                                    style={{backgroundColor: palette.accentSky}}
+                                                />
+                                            )}
+                                        </View>
+                                        <AppText className="text-base" style={{color: palette.textPrimary}}>
+                                            Until
+                                        </AppText>
+                                        <View
+                                            className="flex-row items-center gap-1.5 px-3 py-1 rounded-[10px] border"
+                                            style={{
+                                                backgroundColor: palette.canvasBg,
+                                                borderColor:
+                                                    endType === EndType.UNTIL
+                                                        ? palette.accentSky
+                                                        : palette.border,
+                                            }}
+                                        >
+                                            <Iconify
+                                                icon="heroicons:calendar-days"
+                                                size={14}
+                                                color={palette.accentSky}
                                             />
-                                        )}
-                                    </View>
-                                    <AppText className="text-base" style={{color: palette.textPrimary}}>
-                                        Until
-                                    </AppText>
-                                    <DebouncedDateInput
-                                        value={untilDate}
-                                        onChangeValue={setUntilDate}
-                                        placeholder="YYYY-MM-DD"
-                                    />
-                                </Pressable>
+                                            <AppText
+                                                className="text-[13px] font-semibold"
+                                                style={{color: palette.textPrimary}}
+                                            >
+                                                {untilDate}
+                                            </AppText>
+                                        </View>
+                                    </Pressable>
+
+                                    {endType === EndType.UNTIL && (
+                                        <View
+                                            className="rounded-2xl p-1 border overflow-hidden"
+                                            style={{
+                                                backgroundColor: palette.canvasBg,
+                                                borderColor: palette.border,
+                                            }}
+                                        >
+                                            <Calendar
+                                                theme={{
+                                                    calendarBackground: 'transparent',
+                                                    textSectionTitleColor: palette.textLighter,
+                                                    selectedDayBackgroundColor: palette.accentSky,
+                                                    selectedDayTextColor: palette.ctaLabel,
+                                                    todayTextColor: palette.accentSky,
+                                                    dayTextColor: palette.textPrimary,
+                                                    monthTextColor: palette.textPrimary,
+                                                    arrowColor: palette.accentSky,
+                                                    textMonthFontWeight: '700',
+                                                    textDayHeaderFontWeight: '600',
+                                                    textDisabledColor: isDark
+                                                        ? 'rgba(255,255,255,0.25)'
+                                                        : 'rgba(0,0,0,0.25)',
+                                                }}
+                                                current={untilDate}
+                                                minDate={selectedDate}
+                                                onDayPress={(day: DateData) => setUntilDate(day.dateString)}
+                                                markedDates={{
+                                                    [untilDate]: {
+                                                        selected: true,
+                                                        selectedColor: palette.accentSky,
+                                                    },
+                                                }}
+                                            />
+                                        </View>
+                                    )}
+                                </View>
                             </View>
                         </View>
                     )}

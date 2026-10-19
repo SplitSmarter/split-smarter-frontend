@@ -5,6 +5,7 @@ import {AppText} from '@/src/components/common/AppText';
 import {COLORS} from '@/src/constants/colors';
 import {themeStore} from '@/src/store/themeStore';
 import type {DayCellModel} from '@/src/screens/dev/ledger-month/types';
+import {LedgerCalendarLegend} from '@/src/screens/dev/ledger-month/components/LedgerCalendarLegend';
 import {LedgerDayCell} from '@/src/screens/dev/ledger-month/components/LedgerDayCell';
 import {getElevatedCardStyle} from '@/src/screens/dev/ledger-month/styles/elevatedCard';
 
@@ -33,15 +34,18 @@ export function LedgerMonthGrid({
 
     return (
         <View>
-            <View className="mb-2 flex-row items-center justify-between">
-                <AppText
-                    variant="h4"
-                    className="font-bold"
-                    style={{color: colors.text.primary}}
-                >
-                    Calendar
-                </AppText>
-                {onFilterPress ? (
+            <AppText
+                variant="h4"
+                className="mb-2 font-bold"
+                style={{color: colors.text.primary}}
+            >
+                Calendar
+            </AppText>
+
+            <LedgerCalendarLegend />
+
+            {onFilterPress ? (
+                <View className="mb-2 flex-row justify-end">
                     <Pressable
                         onPress={onFilterPress}
                         accessibilityRole="button"
@@ -89,8 +93,9 @@ export function LedgerMonthGrid({
                             </View>
                         ) : null}
                     </Pressable>
-                ) : null}
-            </View>
+                </View>
+            ) : null}
+
             <View className="rounded-3xl border p-2.5" style={getElevatedCardStyle(isDark)}>
                 <View className="mb-1.5 flex-row">
                     {WEEKDAYS.map((label) => (

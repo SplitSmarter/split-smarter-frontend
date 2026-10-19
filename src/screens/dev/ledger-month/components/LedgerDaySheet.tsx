@@ -227,21 +227,28 @@ export function LedgerDaySheet({
                     {events.length > 0 && day != null ? (
                         <Pressable
                             onPress={() => onAddExpense(day)}
-                            className="mt-1 flex-row items-center justify-center rounded-2xl border py-3.5 active:opacity-80"
+                            className="mt-1 flex-row items-center justify-center gap-x-2 rounded-2xl border py-3.5 active:opacity-80"
                             style={{
                                 backgroundColor: colors.bg.lighter,
                                 borderColor: colors.status.border,
                             }}
                         >
-                            <Iconify
-                                icon="heroicons:plus-circle"
-                                size={18}
-                                color={colors.accent.sky}
-                            />
+                            <View className="h-[18px] w-[18px] items-center justify-center">
+                                <Iconify
+                                    icon="heroicons:plus-circle"
+                                    size={18}
+                                    color={colors.accent.sky}
+                                />
+                            </View>
                             <AppText
                                 variant="body-xs"
-                                className="ml-2 font-semibold"
-                                style={{color: colors.text.primary}}
+                                className="font-semibold"
+                                style={{
+                                    color: colors.text.primary,
+                                    lineHeight: 18,
+                                    includeFontPadding: false,
+                                    textAlignVertical: 'center',
+                                }}
                             >
                                 Add expense on this day
                             </AppText>

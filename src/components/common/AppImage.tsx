@@ -1,5 +1,4 @@
 import { CACHE_FOLDER } from "@/src/constants/system";
-import { deviceStore } from "@/src/store/deviceStore";
 import { themeStore } from "@/src/store/themeStore";
 import { ImageCacheManager } from "@/src/utils/system/ImageCacheManager";
 import { toSafeImageCacheId } from "@/src/utils/place/placePhotos";
@@ -50,11 +49,13 @@ export const AppImage = ({
                              overlayPosition = 'bottom-right',
                              expiryInDays = 7,
                              fallbackImage,
-                             placeholder = "|rF?hV%2WCj[ayj[a|j[ayjtayj[ayjtayj[ayjtayj[ayjtayj[ayjtayj[ayjtayj[ayjtayj[",
+                             // No default blurhash — avoids placeholder → bitmap flash on icons/avatars.
+                             placeholder,
                              backgroundColor,
                              size = 'md',
                              variant = 'rounded',
-                             transition = 300,
+                             // Crossfade reads as a flash on small category/avatar icons.
+                             transition = 0,
                              containerStyle,
                              borderEnabled,
                              borderColor,
@@ -63,9 +64,11 @@ export const AppImage = ({
                              onError: onErrorProp,
                              ...props
                          }: AppImageProps) => {
-    const [source, setSource] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
-    const platform = deviceStore((state) => state.platform);
+    const trimmedUrl = typeof url === 'string' ? url.trim() : '';
+    const [source, setSource] = useState<any>(() =>
+        trimmedUrl ? {uri: trimmedUrl} : null,
+    );
+    const [loading, setLoading] = useState(false);
     const { theme } = themeStore();
     const isDark = theme === 'dark';
     const colors = isDark ? COLORS.dark : COLORS.light;
@@ -76,7 +79,7 @@ export const AppImage = ({
     const width = isResponsive ? '100%' : (variant === 'rectangle' ? baseDimension * 1.5 : baseDimension);
     const height = isResponsive ? '100%' : baseDimension;
 
-    const [useIconMode, setUseIconMode] = useState(!!icon || (!url && !!fallbackIcon));
+    const [useIconMode, setUseIconMode] = useState(!!icon || (!trimmedUrl && !!fallbackIcon));
     const [finalSource, setFinalSource] = useState<any>(null);
 
     const applyRemoteFallback = useCallback((remoteUrl: string) => {
@@ -113,13 +116,9 @@ export const AppImage = ({
     useEffect(() => {
         let cancelled = false;
 
-        setSource(null);
-        setFinalSource(null);
-        setLoading(true);
-        setUseIconMode(!!icon || (!url && !!fallbackIcon));
-
         if (providedSource) {
             setFinalSource(providedSource);
+            setSource(null);
             setUseIconMode(false);
             setLoading(false);
             return;
@@ -132,8 +131,6 @@ export const AppImage = ({
         }
 
         const processImage = async () => {
-            const trimmedUrl = typeof url === 'string' ? url.trim() : '';
-
             // Remote-only path (signed place photos, etc.)
             if (skipDiskCache && trimmedUrl) {
                 if (!cancelled) {
@@ -163,14 +160,22 @@ export const AppImage = ({
             if (!trimmedUrl || !id) {
                 if (!cancelled) {
                     setUseIconMode(true);
+                    setSource(null);
+                    setFinalSource(null);
                     setLoading(false);
                 }
                 return;
             }
 
+            // Paint remote immediately (expo-image memory/disk cache makes remounts stable).
+            // Never blank to null first — that was the category/avatar flash.
+            if (!cancelled) {
+                applyRemoteFallback(trimmedUrl);
+                setLoading(false);
+            }
+
             const cacheId = toSafeImageCacheId(String(id));
             const path = `${CACHE_FOLDER}${cacheId}.png`;
-            const localUri = platform === 'android' ? path : `file://${path}`;
 
             try {
                 await ImageCacheManager.ensureCacheDir();
@@ -184,57 +189,38 @@ export const AppImage = ({
 
                 if (fileInfo.exists && !isExpired) {
                     await ImageCacheManager.updateManifest(cacheId);
-                    if (!cancelled) {
-                        setSource({ uri: localUri });
-                        setUseIconMode(false);
-                    }
-                } else {
-                    try {
-                        const download = await FileSystem.downloadAsync(trimmedUrl, path);
-                        const contentType =
-                            download.headers?.['Content-Type'] ||
-                            download.headers?.['content-type'];
+                    // Keep remote on screen — swapping to file:// after paint flashes.
+                    return;
+                }
 
-                        if (download.status === 200 && isImageContentType(contentType)) {
-                            const sizeBytes = download.headers['Content-Length']
-                                ? parseInt(download.headers['Content-Length'], 10)
-                                : 0;
-                            await ImageCacheManager.updateManifest(cacheId, sizeBytes);
-                            if (!cancelled) {
-                                setSource({ uri: download.uri });
-                                setUseIconMode(false);
-                            }
-                        } else {
-                            await FileSystem.deleteAsync(path, { idempotent: true });
-                            throw new Error(
-                                `Download failed status=${download.status} contentType=${contentType ?? 'n/a'}`,
-                            );
-                        }
-                    } catch (downloadError) {
-                        console.warn(`AppImage disk cache miss for ${cacheId}:`, downloadError);
-                        if (fileInfo.exists) {
-                            await ImageCacheManager.updateManifest(cacheId);
-                            if (!cancelled) {
-                                setSource({ uri: localUri });
-                                setUseIconMode(false);
-                            }
-                        } else if (trimmedUrl) {
-                            // Prefer live remote URI over blank icon when disk cache fails
-                            if (!cancelled) applyRemoteFallback(trimmedUrl);
-                        } else if (!cancelled) {
-                            applyTotalFailure();
-                        }
+                try {
+                    const download = await FileSystem.downloadAsync(trimmedUrl, path);
+                    const contentType =
+                        download.headers?.['Content-Type'] ||
+                        download.headers?.['content-type'];
+
+                    if (download.status === 200 && isImageContentType(contentType)) {
+                        const sizeBytes = download.headers['Content-Length']
+                            ? parseInt(download.headers['Content-Length'], 10)
+                            : 0;
+                        await ImageCacheManager.updateManifest(cacheId, sizeBytes);
+                        // Warm disk only; do not swap source while mounted.
+                    } else {
+                        await FileSystem.deleteAsync(path, { idempotent: true });
+                        throw new Error(
+                            `Download failed status=${download.status} contentType=${contentType ?? 'n/a'}`,
+                        );
                     }
+                } catch (downloadError) {
+                    console.warn(`AppImage disk cache miss for ${cacheId}:`, downloadError);
+                    // Remote already shown via applyRemoteFallback.
                 }
             } catch (globalError) {
                 console.error("Image processing error:", globalError);
-                if (!cancelled) {
-                    if (trimmedUrl) applyRemoteFallback(trimmedUrl);
-                    else applyTotalFailure();
-                }
+                if (!cancelled && trimmedUrl) applyRemoteFallback(trimmedUrl);
+                else if (!cancelled) applyTotalFailure();
             } finally {
                 if (!cancelled) {
-                    setLoading(false);
                     ImageCacheManager.purgeCache();
                 }
             }
@@ -247,12 +233,11 @@ export const AppImage = ({
         };
     }, [
         id,
-        url,
+        trimmedUrl,
         icon,
         providedSource,
         expiryInDays,
         skipDiskCache,
-        platform,
         fallbackImage,
         applyRemoteFallback,
         applyTotalFailure,
@@ -291,10 +276,11 @@ export const AppImage = ({
                         transition={transition}
                         style={{ width: '100%', height: '100%', borderRadius: variant === 'circular' ? 999 : 0 }}
                         onError={handleImageError}
-                        cachePolicy={skipDiskCache ? 'memory-disk' : props.cachePolicy}
+                        // Always allow expo-image memory/disk so remounts (tab switches) stay instant.
+                        cachePolicy={props.cachePolicy ?? 'memory-disk'}
                     />
                 ) : null}
-                {loading && !useIconMode && (
+                {loading && !useIconMode && !(finalSource || source) && (
                     <View className="absolute items-center justify-center inset-0">
                         <ActivityIndicator color={colors.icon.primary} size="small" />
                     </View>

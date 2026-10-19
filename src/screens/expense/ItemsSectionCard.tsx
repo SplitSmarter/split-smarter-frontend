@@ -31,7 +31,7 @@ export const ItemsSectionCard = React.memo(({items, currencySymbol = '₹', isDa
                 <AppText variant="h4" className="font-bold" style={{color: colors.text.primary}}>
                     Items
                 </AppText>
-                <Iconify icon="heroicons:pencil-square" size={20} color={colors.icon.primary}/>
+                <Iconify icon="heroicons:chevron-right" size={20} color={colors.icon.primary}/>
             </View>
 
             {items.length > 0 ? (

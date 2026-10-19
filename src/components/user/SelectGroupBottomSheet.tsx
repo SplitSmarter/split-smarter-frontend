@@ -12,22 +12,23 @@ import {AppInput} from "@/src/components/common/AppInput";
 import {SheetEmptyState} from "@/src/components/empty-states/SheetEmptyState";
 import {themeStore} from '@/src/store/themeStore';
 import {COLORS} from '@/src/constants/colors';
-import {GetGroupsApi} from '@/src/api/group/group';
-import {GroupDetails} from '@/src/api/dto/user/group';
+import {GetGroupMembershipsApi, GetGroupsApi} from '@/src/api/group/group';
+import {BaseGroupDetails, GroupMemberDetails} from '@/src/api/dto/user/group';
 import {GroupListContent} from '@/src/components/user/GroupListContent';
 import {PaginationResponse} from '@/src/api/dto/ApiResponse';
 
 const PAGE_SIZE = 20;
+const MEMBER_PREVIEW_LIMIT = 3;
 
 interface SelectGroupBottomSheetProps {
     visible: boolean;
     onClose: () => void;
-    onSelect: (group: GroupDetails) => void;
+    onSelect: (group: BaseGroupDetails) => void;
     selectedId?: number;
 }
 
 function resolveHasMore(
-    pageData: GroupDetails[],
+    pageData: BaseGroupDetails[],
     nextOffset: number,
     pagination?: PaginationResponse,
 ): boolean {
@@ -54,13 +55,38 @@ export const SelectGroupBottomSheet = ({
     const snapPoints = useMemo(() => ['85%'], []);
     const loadingRef = useRef(false);
 
-    const [groups, setGroups] = useState<GroupDetails[]>([]);
+    const [groups, setGroups] = useState<BaseGroupDetails[]>([]);
+    const [memberPreviews, setMemberPreviews] = useState<Record<number, GroupMemberDetails[]>>({});
     const [offset, setOffset] = useState(0);
     const [hasMore, setHasMore] = useState(true);
     const [loading, setLoading] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
+
+    const hydrateMemberPreviews = useCallback(async (page: BaseGroupDetails[]) => {
+        if (page.length === 0) return;
+
+        const results = await Promise.all(
+            page.map(async (group) => {
+                try {
+                    const res = await GetGroupMembershipsApi(group.id);
+                    const members = (res.data ?? []).slice(0, MEMBER_PREVIEW_LIMIT);
+                    return [group.id, members] as const;
+                } catch {
+                    return [group.id, [] as GroupMemberDetails[]] as const;
+                }
+            }),
+        );
+
+        setMemberPreviews((prev) => {
+            const next = {...prev};
+            for (const [id, members] of results) {
+                next[id] = members;
+            }
+            return next;
+        });
+    }, []);
 
     const fetchGroups = useCallback(async (nextOffset: number, append: boolean) => {
         if (loadingRef.current) return;
@@ -75,7 +101,7 @@ export const SelectGroupBottomSheet = ({
 
         try {
             const response = await GetGroupsApi({offset: nextOffset, limit: PAGE_SIZE});
-            const pageData = (response.data ?? []) as GroupDetails[];
+            const pageData = response.data ?? [];
 
             setGroups((prev) => {
                 if (!append) return pageData;
@@ -88,10 +114,13 @@ export const SelectGroupBottomSheet = ({
             if (!append && !response.data && response.message) {
                 setError(response.message);
             }
+
+            void hydrateMemberPreviews(pageData);
         } catch (err: any) {
             console.error("Critical error while collecting group metadata lists:", err);
             if (!append) {
                 setGroups([]);
+                setMemberPreviews({});
                 setOffset(0);
                 setHasMore(false);
                 setError(err?.message || "Couldn't load groups. Check your connection and try again.");
@@ -101,10 +130,11 @@ export const SelectGroupBottomSheet = ({
             setLoading(false);
             setLoadingMore(false);
         }
-    }, []);
+    }, [hydrateMemberPreviews]);
 
     const resetAndLoad = useCallback(() => {
         setGroups([]);
+        setMemberPreviews({});
         setOffset(0);
         setHasMore(true);
         fetchGroups(0, false);
@@ -200,6 +230,7 @@ export const SelectGroupBottomSheet = ({
                 hasMore={hasMore}
                 loadingMore={loadingMore}
                 selectedId={selectedId}
+                memberPreviews={memberPreviews}
                 onSelect={onSelect}
                 onAddNew={handleAddNewGroupPress}
                 onClearSearch={handleClearSearch}

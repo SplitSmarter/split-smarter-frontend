@@ -1,33 +1,40 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { COLORS, PLATINUM_HEADER } from '@/src/constants/colors';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, View, Platform, BackHandler } from 'react-native';
 import { Iconify } from "react-native-iconify";
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Image } from 'expo-image';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { ScreenWrapper } from "@/src/components/common/ScreenWrapper";
 import { AppText } from '@/src/components/common/AppText';
+import { AppImageV2 } from '@/src/components/common/AppImageV2';
+import { EntityFallbackIcon } from '@/src/components/common/EntityFallbackIcon';
 import { themeStore } from "@/src/store/themeStore";
 import { GroupDetails, GroupMemberDetails } from "@/src/api/dto/user/group";
 import { GetGroupByIdApi, GetGroupMembershipsApi, GetGroupSettlementsApi } from "@/src/api/group/group";
 import { listUserExpensesApi } from "@/src/api/expense/expense";
 import { ExpenseDetailsBasicResponse } from "@/src/api/dto/expense/expense";
-import { GroupOverviewTab } from "./components/GroupOverviewTab";
-import { GroupTransactionsTab } from "./components/GroupTransactionsTab";
-import { GroupSettlementsTab } from "./components/GroupSettlementsTab";
+import { BudgetRuleListItem } from "@/src/api/dto/expense/budget";
+import { BudgetAudienceType } from "@/src/api/dto/expense/constant";
+import { listBudgetRulesApi } from "@/src/api/expense/budget";
+import { GroupOverviewTab } from "@/src/screens/group/details/components/GroupOverviewTab";
+import { GroupTransactionsTab } from "@/src/screens/group/details/components/GroupTransactionsTab";
+import { GroupSettlementsTab } from "@/src/screens/group/details/components/GroupSettlementsTab";
+import { GroupMembersTab } from "@/src/screens/group/details/components/GroupMembersTab";
+import { GroupBudgetsTab } from "@/src/screens/group/details/components/GroupBudgetsTab";
 import { listUserTransfersApi } from "@/src/api/expense/transfer";
 import { TransferDetailsBasicResponse } from "@/src/api/dto/expense/transfer";
 import { BaseSettlementDetails } from "@/src/api/dto/expense/settlement";
-import { GroupInfoView } from "./components/GroupInfoView";
-import {logStore} from "@/src/store/logStore";
+import { GroupInfoView } from "@/src/screens/group/details/components/GroupInfoView";
 import {expenseDetailsSheetStore} from '@/src/store/expenseDetailsSheetStore';
+import {ROUTES} from '@/src/constants/routes';
 
-type GroupTab = 'Overview' | 'Transactions' | 'Settlements' | 'Members';
+type GroupTab = 'Overview' | 'Transactions' | 'Settlements' | 'Members' | 'Budgets';
 
 const GroupDetailsScreen = () => {
     const { theme } = themeStore();
     const router = useRouter();
     const isDark = theme === 'dark';
     const colors = isDark ? COLORS.dark : COLORS.light;
+    const headerChrome = isDark ? PLATINUM_HEADER.dark : PLATINUM_HEADER.light;
     const headerIconColor = COLORS.light.text.contrast;
     const { id } = useLocalSearchParams<{ id: string }>();
     const groupId = Number(id);
@@ -51,6 +58,13 @@ const GroupDetailsScreen = () => {
     const [settlementHistory, setSettlementHistory] = useState<BaseSettlementDetails[]>([]);
     const [settlementsLoading, setSettlementsLoading] = useState(true);
 
+    // 4. Budgets Tab States
+    const [budgets, setBudgets] = useState<BudgetRuleListItem[]>([]);
+    const [budgetsLoading, setBudgetsLoading] = useState(true);
+
+    // Pull-to-refresh only — keeps page spinner off while RefreshControl is active
+    const [refreshing, setRefreshing] = useState(false);
+
     useEffect(() => {
         const onBackPress = () => {
             if (showGroupInfo) {
@@ -64,23 +78,25 @@ const GroupDetailsScreen = () => {
         return () => subscription.remove();
     }, [showGroupInfo]);
 
-    const fetchGroupMeta = async () => {
+    const fetchGroupMeta = async (opts?: {isRefresh?: boolean}) => {
         if (!groupId) return;
+        const isRefresh = opts?.isRefresh === true;
         try {
-            setGroupLoading(true);
+            if (!isRefresh) setGroupLoading(true);
             const res = await GetGroupByIdApi(groupId);
             if (res?.data) setGroup(res.data);
         } catch (err) {
             console.error("Failed to fetch group metadata:", err);
         } finally {
-            setGroupLoading(false);
+            if (!isRefresh) setGroupLoading(false);
         }
     };
 
-    const fetchTransactionTabMetrics = async () => {
+    const fetchTransactionTabMetrics = async (opts?: {isRefresh?: boolean}) => {
         if (!groupId) return;
+        const isRefresh = opts?.isRefresh === true;
         try {
-            setTransactionsLoading(true);
+            if (!isRefresh) setTransactionsLoading(true);
             const [expensesRes, transfersRes] = await Promise.all([
                 listUserExpensesApi({ group_id: [groupId], limit: 50 }),
                 listUserTransfersApi({ group_id: [groupId], limit: 50 })
@@ -90,14 +106,15 @@ const GroupDetailsScreen = () => {
         } catch (err) {
             console.error("Failed to fetch transaction data layers:", err);
         } finally {
-            setTransactionsLoading(false);
+            if (!isRefresh) setTransactionsLoading(false);
         }
     };
 
-    const fetchSettlementTabMetrics = async () => {
+    const fetchSettlementTabMetrics = async (opts?: {isRefresh?: boolean}) => {
         if (!groupId) return;
+        const isRefresh = opts?.isRefresh === true;
         try {
-            setSettlementsLoading(true);
+            if (!isRefresh) setSettlementsLoading(true);
             const [membersRes, historyRes] = await Promise.all([
                 GetGroupMembershipsApi(groupId),
                 GetGroupSettlementsApi(groupId, { limit: 50 })
@@ -107,7 +124,25 @@ const GroupDetailsScreen = () => {
         } catch (err) {
             console.error("Failed to fetch settlements layout components:", err);
         } finally {
-            setSettlementsLoading(false);
+            if (!isRefresh) setSettlementsLoading(false);
+        }
+    };
+
+    const fetchBudgetsTabMetrics = async (opts?: {isRefresh?: boolean}) => {
+        if (!groupId) return;
+        const isRefresh = opts?.isRefresh === true;
+        try {
+            if (!isRefresh) setBudgetsLoading(true);
+            const res = await listBudgetRulesApi({
+                group_id: groupId,
+                audience_type: BudgetAudienceType.GROUP,
+                limit: 50,
+            });
+            if (res?.data) setBudgets(res.data);
+        } catch (err) {
+            console.error("Failed to fetch group budgets:", err);
+        } finally {
+            if (!isRefresh) setBudgetsLoading(false);
         }
     };
 
@@ -116,22 +151,59 @@ const GroupDetailsScreen = () => {
             fetchGroupMeta();
             fetchTransactionTabMetrics();
             fetchSettlementTabMetrics();
+            fetchBudgetsTabMetrics();
         }
     }, [groupId]);
 
+    // Soft-refresh budgets when returning to this screen on the Budgets tab (e.g. after create)
+    useFocusEffect(
+        useCallback(() => {
+            if (activeTab === 'Budgets' && groupId) {
+                fetchBudgetsTabMetrics({isRefresh: true});
+            }
+        }, [activeTab, groupId]),
+    );
+
     const handleTabRefresh = async () => {
-        if (activeTab === 'Transactions') {
-            await fetchTransactionTabMetrics();
-        } else if (activeTab === 'Settlements') {
-            await fetchSettlementTabMetrics();
-        } else {
-            await fetchGroupMeta();
+        setRefreshing(true);
+        try {
+            if (activeTab === 'Transactions') {
+                await fetchTransactionTabMetrics({isRefresh: true});
+            } else if (activeTab === 'Settlements' || activeTab === 'Members') {
+                await fetchSettlementTabMetrics({isRefresh: true});
+            } else if (activeTab === 'Budgets') {
+                await fetchBudgetsTabMetrics({isRefresh: true});
+            } else {
+                await fetchGroupMeta({isRefresh: true});
+            }
+        } finally {
+            setRefreshing(false);
         }
     };
 
-    const handleNavigateToUserProfile = () => {
+    const handleCreateBudget = () => {
+        router.push({
+            pathname: '/(authenticated)/expense/budget/add',
+            params: {
+                groupId: String(groupId),
+                groupName: group?.title ?? '',
+            },
+        } as any);
+    };
+
+    const handleNavigateToUserProfile = (_userId: number, _userType: string) => {
         router.push("/(authenticated)/user/details" as any);
     };
+
+    const memberCount = group?.no_of_members ?? 0;
+    const membersLabel =
+        memberCount === 1 ? '1 member' : `${memberCount} members`;
+    const categoryLabel = group?.category?.title?.trim();
+    const headerSubtitle = groupLoading
+        ? 'Loading group…'
+        : categoryLabel
+            ? `${categoryLabel} · ${membersLabel}`
+            : membersLabel;
 
     // --- INTERCEPT ROUTE LAYER IF USER CLICKED ROW SUBSECTION ---
     if (showGroupInfo) {
@@ -148,69 +220,113 @@ const GroupDetailsScreen = () => {
 
     return (
         <ScreenWrapper
-            backgroundColor={isDark ? PLATINUM_HEADER.dark : PLATINUM_HEADER.light}
+            // Slate under status bar + behind sheet corners so rounded-t reads as inverted U in both themes.
+            backgroundColor={headerChrome}
             statusBarStyle="light-content"
             withPadding={false}
         >
-            {/* --- FIXED HEADER — metallic slate (always dark) --- */}
+            {/* Flat-bottom platinum chrome — curve lives on the canvas sheet below (inverted U). */}
             <View
                 className="w-full pb-6 pt-4"
-                style={{backgroundColor: isDark ? PLATINUM_HEADER.dark : PLATINUM_HEADER.light}}
+                style={{backgroundColor: headerChrome}}
             >
-                <View className="mb-6 w-full flex-row items-center justify-between px-4">
-
-                    {/* 👈 FIXED BACK BUTTON: Moved completely out of the inner touch target container */}
-                    <Pressable onPress={() => router.back()} className="z-50 mr-1 p-2 active:opacity-70">
-                        <Iconify icon="heroicons:arrow-left" size={24} color={headerIconColor}/>
+                <View className="mb-5 w-full flex-row items-center px-4">
+                    <Pressable
+                        onPress={() => router.back()}
+                        className="mr-2 h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/15 active:opacity-70"
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back"
+                    >
+                        <Iconify icon="heroicons:chevron-left" size={22} color={headerIconColor}/>
                     </Pressable>
 
-                    {/* TOUCH TARGET INTERCEPTOR LAYER */}
                     <Pressable
                         onPress={() => setShowGroupInfo(true)}
-                        className="mr-4 flex-1 flex-row items-center active:opacity-80"
+                        className="mr-2 min-w-0 flex-1 flex-row items-center active:opacity-80"
+                        accessibilityRole="button"
+                        accessibilityLabel="Open group info"
                     >
-                        <View
-                            className="mr-3 h-12 w-12 items-center justify-center overflow-hidden rounded-full border border-white/30 bg-white/20">
-                            {groupLoading ? (
-                                <ActivityIndicator color={headerIconColor} size="small"/>
-                            ) : (
-                                <Image source={{ uri: group?.icon?.url }} style={{ width: 30, height: 30 }}
-                                       contentFit="contain"/>
-                            )}
+                        <View className="mr-3 h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-white/25 bg-white/15">
+                            <AppImageV2
+                                id={group?.icon?.id ?? `group-icon-${groupId}`}
+                                url={group?.icon?.url}
+                                style={{width: '100%', height: '100%'}}
+                                contentFit="cover"
+                                fallbackComponent={
+                                    <EntityFallbackIcon
+                                        kind="group"
+                                        size={22}
+                                        color={COLORS.light.icon.lighter}
+                                    />
+                                }
+                            />
                         </View>
 
-                        <View className="flex-1">
-                            <AppText variant="h3" className="font-bold leading-tight text-white" numberOfLines={1}>
-                                {groupLoading ? 'Loading metadata...' : (group?.title || 'Group Details')}
+                        <View className="min-w-0 flex-1">
+                            <AppText
+                                variant="h3"
+                                className="font-semibold leading-tight text-white"
+                                numberOfLines={1}
+                            >
+                                {groupLoading ? 'Group' : (group?.title?.trim() || 'Untitled group')}
                             </AppText>
-                            <AppText variant="body-small" className="mt-0.5 text-white/70" numberOfLines={1}>
-                                {groupLoading ? '--' : group?.no_of_members} Members
+                            <AppText
+                                variant="caption-xs"
+                                className="mt-0.5 text-white/70"
+                                numberOfLines={1}
+                            >
+                                {headerSubtitle}
                             </AppText>
                         </View>
+
+                        <Iconify
+                            icon="heroicons:chevron-right"
+                            size={16}
+                            color="rgba(255,255,255,0.55)"
+                        />
                     </Pressable>
 
-                    <View className="flex-row items-center space-x-1">
-                        <Pressable className="p-2">
-                            <Iconify icon="heroicons:camera" size={24} color={headerIconColor}/>
+                    <View className="flex-row items-center">
+                        <Pressable
+                            className="h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/15 active:opacity-70"
+                            accessibilityRole="button"
+                            accessibilityLabel="Group media"
+                        >
+                            <Iconify icon="heroicons:camera" size={20} color={headerIconColor}/>
                         </Pressable>
-                        <Pressable className="p-2">
-                            <Iconify icon="heroicons:ellipsis-vertical" size={24} color={headerIconColor}/>
+                        <Pressable
+                            className="ml-2 h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/15 active:opacity-70"
+                            accessibilityRole="button"
+                            accessibilityLabel="More options"
+                        >
+                            <Iconify icon="heroicons:ellipsis-vertical" size={20} color={headerIconColor}/>
                         </Pressable>
                     </View>
                 </View>
 
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}
-                            contentContainerStyle={{ paddingHorizontal: 24 }}>
-                    {(['Overview', 'Transactions', 'Settlements', 'Members'] as GroupTab[]).map((tab) => {
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{paddingHorizontal: 16}}
+                >
+                    {(['Overview', 'Transactions', 'Settlements', 'Members', 'Budgets'] as GroupTab[]).map((tab) => {
                         const isActive = activeTab === tab;
                         return (
                             <Pressable
                                 key={tab}
                                 onPress={() => setActiveTab(tab)}
-                                className={`mr-3 h-12 justify-center rounded-[20px] px-8 ${isActive ? 'bg-white' : 'bg-white/10'}`}
+                                className={`mr-3 rounded-full px-5 py-2 ${
+                                    isActive ? 'bg-white' : 'bg-white/10'
+                                }`}
+                                accessibilityRole="tab"
+                                accessibilityState={{selected: isActive}}
                             >
-                                <AppText variant="body-base"
-                                         className={`font-bold ${isActive ? 'text-slate-900' : 'text-white'}`}>
+                                <AppText
+                                    variant="body-small"
+                                    className={`font-medium ${
+                                        isActive ? 'text-slate-900' : 'text-white/80'
+                                    }`}
+                                >
                                     {tab}
                                 </AppText>
                             </Pressable>
@@ -219,21 +335,31 @@ const GroupDetailsScreen = () => {
                 </ScrollView>
             </View>
 
-            {/* --- SHEET CANVAS CONTENT WRAPPER --- */}
-            <View className={`flex-1 rounded-t-[20px] ${isDark ? 'bg-black' : 'bg-white'} overflow-hidden`}>
+            {/* Canvas body — inverted U nest under platinum chrome */}
+            <View
+                className="flex-1 overflow-hidden rounded-t-[28px] pt-4"
+                style={{
+                    backgroundColor: colors.bg.primary,
+                    marginTop: -12,
+                }}
+            >
                 <View className="flex-1">
                     {activeTab === 'Transactions' ? (
-                        transactionsLoading ? (
-                            <View className="flex-1 justify-center items-center">
-                                <ActivityIndicator color={COLORS.light.icon.primary} size="large"/>
+                        transactionsLoading && !refreshing ? (
+                            <View className="flex-1 items-center justify-center">
+                                <ActivityIndicator color={colors.icon.primary} size="large"/>
                             </View>
                         ) : (
                             <ScrollView
                                 className="flex-1 px-4 pt-4"
+                                style={{backgroundColor: colors.bg.primary}}
                                 showsVerticalScrollIndicator={false}
                                 refreshControl={
-                                    <RefreshControl refreshing={transactionsLoading} onRefresh={handleTabRefresh}
-                                                    tintColor={isDark ? headerIconColor : COLORS.light.icon.primary}/>
+                                    <RefreshControl
+                                        refreshing={refreshing}
+                                        onRefresh={handleTabRefresh}
+                                        tintColor={colors.icon.primary}
+                                    />
                                 }
                             >
                                 <GroupTransactionsTab
@@ -253,26 +379,35 @@ const GroupDetailsScreen = () => {
                     ) : (
                         <ScrollView
                             className="flex-1 px-4 pt-6"
+                            style={{backgroundColor: colors.bg.primary}}
                             showsVerticalScrollIndicator={false}
                             refreshControl={
                                 <RefreshControl
-                                    refreshing={activeTab === 'Settlements' ? settlementsLoading : groupLoading}
+                                    refreshing={refreshing}
                                     onRefresh={handleTabRefresh}
-                                    tintColor={isDark ? headerIconColor : COLORS.light.icon.primary}
+                                    tintColor={colors.icon.primary}
                                 />
                             }
                         >
                             {activeTab === 'Overview' && (
-                                groupLoading ? (
-                                    <ActivityIndicator color={COLORS.light.icon.primary} size="large" className="mt-8"/>
+                                groupLoading && !refreshing ? (
+                                    <ActivityIndicator
+                                        color={colors.icon.primary}
+                                        size="large"
+                                        className="mt-8"
+                                    />
                                 ) : (
                                     <GroupOverviewTab group={group} isDark={isDark}/>
                                 )
                             )}
 
                             {activeTab === 'Settlements' && (
-                                settlementsLoading ? (
-                                    <ActivityIndicator color={COLORS.light.icon.primary} size="large" className="mt-8"/>
+                                settlementsLoading && !refreshing ? (
+                                    <ActivityIndicator
+                                        color={colors.icon.primary}
+                                        size="large"
+                                        className="mt-8"
+                                    />
                                 ) : (
                                     <GroupSettlementsTab
                                         groupId={groupId}
@@ -282,16 +417,42 @@ const GroupDetailsScreen = () => {
                                     />
                                 )
                             )}
+
+                            {activeTab === 'Members' && (
+                                <GroupMembersTab
+                                    members={members}
+                                    loading={settlementsLoading && !refreshing}
+                                    onMemberChanged={fetchSettlementTabMetrics}
+                                    onNavigateToUserProfile={handleNavigateToUserProfile}
+                                    onAddMember={() => setShowGroupInfo(true)}
+                                />
+                            )}
+
+                            {activeTab === 'Budgets' && (
+                                <GroupBudgetsTab
+                                    budgets={budgets}
+                                    loading={budgetsLoading && !refreshing}
+                                    onCreatePress={handleCreateBudget}
+                                />
+                            )}
                         </ScrollView>
                     )}
                 </View>
             </View>
 
             {/* --- FIXED FLOATING ACTION BUTTON --- */}
-            {activeTab === 'Transactions' && (
+            {(activeTab === 'Transactions' || activeTab === 'Budgets') && (
                 <Pressable
                     className="absolute bottom-10 right-6 w-16 h-16 bg-bg-secondary rounded-full items-center justify-center z-50"
-                    onPress={() => router.push("/expense/add")}
+                    onPress={() => {
+                        if (activeTab === 'Budgets') {
+                            handleCreateBudget();
+                            return;
+                        }
+                        router.push(
+                            ROUTES.expenseAdd({groupId, tab: 'expense'}) as any,
+                        );
+                    }}
                     style={({ pressed }) => [
                         {
                             transform: [{ scale: pressed ? 0.95 : 1 }],
@@ -308,6 +469,10 @@ const GroupDetailsScreen = () => {
                             }),
                         }
                     ]}
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                        activeTab === 'Budgets' ? 'Create budget' : 'Add expense'
+                    }
                 >
                     <Iconify icon="heroicons:plus" size={30} color={colors.text.contrast}/>
                 </Pressable>

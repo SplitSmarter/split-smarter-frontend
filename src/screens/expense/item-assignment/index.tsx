@@ -5,7 +5,8 @@ import { Iconify } from 'react-native-iconify';
 import { AppText } from '@/src/components/common/AppText';
 import { AppButton } from '@/src/components/common/AppButton';
 import { ScreenWrapper } from '@/src/components/common/ScreenWrapper';
-import { COLORS } from '@/src/constants/colors';
+import { PlatinumFormHeader } from '@/src/components/common/PlatinumFormHeader';
+import { COLORS, PLATINUM_HEADER } from '@/src/constants/colors';
 import { themeStore } from '@/src/store/themeStore';
 import {
     useExpenseDraftStore,
@@ -18,6 +19,7 @@ import { RelationWithUserType } from '@/src/api/dto/constants';
 import {
     participantKey,
     sharesToLineAmounts,
+    syncSettlementsWithItems,
 } from '@/src/utils/expense/expenseCalculations';
 import {
     SelectMultiPeopleBottomSheet,
@@ -162,6 +164,26 @@ export default function ItemAssignmentScreen() {
     const setExpenseItems = useExpenseDraftStore((s) => s.setExpenseItems);
     const setPayers = useExpenseDraftStore((s) => s.setPayers);
     const setSplitParticipants = useExpenseDraftStore((s) => s.setSplitParticipants);
+    const setTotalAmount = useExpenseDraftStore((s) => s.setTotalAmount);
+
+    /** Persist items and realign expense total + Paid by + Split with attributions. */
+    const commitItemsAndSyncSettlements = useCallback(
+        (nextItems: ExpenseItem[]) => {
+            const draft = useExpenseDraftStore.getState();
+            const synced = syncSettlementsWithItems(
+                draft.payers,
+                draft.splitParticipants,
+                draft.expenseItems,
+                nextItems,
+                draft.totalAmount,
+            );
+            setExpenseItems(nextItems);
+            setTotalAmount(synced.totalAmount);
+            setPayers(synced.payers);
+            setSplitParticipants(synced.splitParticipants);
+        },
+        [setExpenseItems, setPayers, setSplitParticipants, setTotalAmount],
+    );
 
     const [mode, setMode] = useState<AssignmentMode>('paidBy');
     const [assignItemId, setAssignItemId] = useState<string | null>(null);
@@ -189,42 +211,40 @@ export default function ItemAssignmentScreen() {
     const updateItemSharers = useCallback(
         (itemId: string, next: ExpenseItemSharer[], forMode: AssignmentMode = mode) => {
             const current = useExpenseDraftStore.getState().expenseItems;
-            setExpenseItems(
-                current.map((item) => {
-                    if (item.id !== itemId) return item;
-                    if (forMode === 'paidBy') {
-                        return { ...item, paidBetween: next };
-                    }
-                    return { ...item, sharedBetween: next };
-                }),
-            );
+            const nextItems = current.map((item) => {
+                if (item.id !== itemId) return item;
+                if (forMode === 'paidBy') {
+                    return {...item, paidBetween: next};
+                }
+                return {...item, sharedBetween: next};
+            });
+            commitItemsAndSyncSettlements(nextItems);
         },
-        [mode, setExpenseItems],
+        [mode, commitItemsAndSyncSettlements],
     );
 
     const updateQuantity = useCallback(
         (itemId: string, delta: number) => {
             const current = useExpenseDraftStore.getState().expenseItems;
-            setExpenseItems(
-                current
-                    .map((item) => {
-                        if (item.id !== itemId) return item;
-                        const quantity = Math.max(1, (item.quantity || 1) + delta);
-                        const lineTotal = item.cost * quantity;
-                        const paidBetween = rescaleSharers(
-                            item.paidBetween ?? [],
-                            lineTotal,
-                        );
-                        const sharedBetween = rescaleSharers(
-                            item.sharedBetween ?? [],
-                            lineTotal,
-                        );
-                        return { ...item, quantity, paidBetween, sharedBetween };
-                    })
-                    .filter((item) => item.quantity > 0),
-            );
+            const nextItems = current
+                .map((item) => {
+                    if (item.id !== itemId) return item;
+                    const quantity = Math.max(1, (item.quantity || 1) + delta);
+                    const lineTotal = item.cost * quantity;
+                    const paidBetween = rescaleSharers(
+                        item.paidBetween ?? [],
+                        lineTotal,
+                    );
+                    const sharedBetween = rescaleSharers(
+                        item.sharedBetween ?? [],
+                        lineTotal,
+                    );
+                    return {...item, quantity, paidBetween, sharedBetween};
+                })
+                .filter((item) => item.quantity > 0);
+            commitItemsAndSyncSettlements(nextItems);
         },
-        [setExpenseItems],
+        [commitItemsAndSyncSettlements],
     );
 
     /** Edit line total; unit cost = lineTotal / quantity. Rescales assignee amounts. */
@@ -232,33 +252,31 @@ export default function ItemAssignmentScreen() {
         (itemId: string, lineAmount: number) => {
             const safe = Math.max(0, lineAmount);
             const current = useExpenseDraftStore.getState().expenseItems;
-            setExpenseItems(
-                current.map((item) => {
-                    if (item.id !== itemId) return item;
-                    const quantity = Math.max(1, item.quantity || 1);
-                    const cost = Math.round((safe / quantity) * 100) / 100;
-                    const lineTotal = cost * quantity;
-                    return {
-                        ...item,
-                        cost,
-                        paidBetween: rescaleSharers(item.paidBetween ?? [], lineTotal),
-                        sharedBetween: rescaleSharers(
-                            item.sharedBetween ?? [],
-                            lineTotal,
-                        ),
-                    };
-                }),
-            );
+            const nextItems = current.map((item) => {
+                if (item.id !== itemId) return item;
+                const quantity = Math.max(1, item.quantity || 1);
+                const cost = Math.round((safe / quantity) * 100) / 100;
+                const lineTotal = cost * quantity;
+                return {
+                    ...item,
+                    cost,
+                    paidBetween: rescaleSharers(item.paidBetween ?? [], lineTotal),
+                    sharedBetween: rescaleSharers(item.sharedBetween ?? [], lineTotal),
+                };
+            });
+            commitItemsAndSyncSettlements(nextItems);
         },
-        [setExpenseItems],
+        [commitItemsAndSyncSettlements],
     );
 
     const deleteItem = useCallback(
         (itemId: string) => {
             const current = useExpenseDraftStore.getState().expenseItems;
-            setExpenseItems(current.filter((item) => item.id !== itemId));
+            commitItemsAndSyncSettlements(
+                current.filter((item) => item.id !== itemId),
+            );
         },
-        [setExpenseItems],
+        [commitItemsAndSyncSettlements],
     );
 
     const sanitizedItems: ExpenseItem[] = useMemo(
@@ -316,7 +334,7 @@ export default function ItemAssignmentScreen() {
             const lineTotal = item.cost * Math.max(1, item.quantity || 1);
             const activeMode = mode;
 
-            // Ensure selected people exist on Paid by / Split (backend subset rule).
+            // Ensure selected people exist on Paid by / Split before attributing lines.
             if (activeMode === 'paidBy') {
                 setPayers(ensureParticipantsOnSide(selectedUsers, draft.payers));
             } else {
@@ -343,108 +361,127 @@ export default function ItemAssignmentScreen() {
                             amount: 0,
                         }));
 
+            // updateItemSharers → commitItemsAndSyncSettlements (picks up ensureParticipantsOnSide)
             updateItemSharers(itemId, next, activeMode);
             closePeopleSheet();
         },
         [mode, setPayers, setSplitParticipants, updateItemSharers, closePeopleSheet],
     );
 
+    const canvasBg = colors.bg.primary;
+    const heroStatusBar = isDark ? PLATINUM_HEADER.dark : PLATINUM_HEADER.light;
+
     return (
         <ScreenWrapper
-            backgroundColor={isDark ? COLORS.dark.bg.primary : COLORS.light.bg.primary}
-            statusBarStyle={isDark ? 'light-content' : 'dark-content'}
+            backgroundColor={heroStatusBar}
+            statusBarStyle="light-content"
             withPadding={false}
-            className="flex-1"
+            className="relative flex-1"
         >
-            <View className="flex-row items-center justify-between border-b border-border-input px-4 py-3">
-                <Pressable
-                    onPress={() => router.back()}
-                    hitSlop={10}
-                    accessibilityRole="button"
-                    accessibilityLabel="Go back"
-                    className="p-1"
-                >
-                    <Iconify
-                        icon="heroicons:chevron-left"
-                        size={24}
-                        color={colors.icon.primary}
-                    />
-                </Pressable>
-                <AppText variant="h4" className="font-bold text-text-primary">
-                    Assign items
-                </AppText>
-                <Pressable
-                    onPress={() => {
-                        setExpenseItems(sanitizedItems);
-                        router.back();
+            <View className="flex-1" style={{backgroundColor: heroStatusBar}}>
+                <PlatinumFormHeader
+                    title="Assign items"
+                    subtitle={
+                        mode === 'paidBy'
+                            ? 'Who funded each line'
+                            : 'Who shares each line'
+                    }
+                    onBack={() => router.back()}
+                    right={
+                        <Pressable
+                            onPress={() => {
+                                commitItemsAndSyncSettlements(sanitizedItems);
+                                router.back();
+                            }}
+                            hitSlop={10}
+                            accessibilityRole="button"
+                            accessibilityLabel="Done"
+                            className="h-10 items-center justify-center px-1 active:opacity-70"
+                        >
+                            <AppText
+                                variant="body-small"
+                                className="font-semibold text-white"
+                            >
+                                Done
+                            </AppText>
+                        </Pressable>
+                    }
+                />
+
+                <View
+                    className="flex-1 overflow-hidden"
+                    style={{
+                        marginTop: -20,
+                        borderTopLeftRadius: 28,
+                        borderTopRightRadius: 28,
+                        backgroundColor: canvasBg,
                     }}
-                    hitSlop={10}
-                    accessibilityRole="button"
-                    accessibilityLabel="Done"
-                    className="px-1 py-1"
                 >
-                    <AppText variant="body-small" className="font-semibold text-accent-sky">
-                        Done
-                    </AppText>
-                </Pressable>
-            </View>
+                    <View className="px-4 pt-5">
+                        <AssignmentModeToggle mode={mode} onChange={setMode} />
+                        <AppText
+                            variant="caption-xs"
+                            className="mt-2 text-text-primary-lighter"
+                        >
+                            {mode === 'paidBy'
+                                ? 'Assign who funded each item. Empty = everyone on Paid by.'
+                                : 'Assign who shares each item. Empty = everyone on Split.'}
+                        </AppText>
+                    </View>
 
-            <View className="px-4 pt-4">
-                <AssignmentModeToggle mode={mode} onChange={setMode} />
-                <AppText variant="caption-xs" className="mt-2 text-text-primary-lighter">
-                    {mode === 'paidBy'
-                        ? 'Assign who funded each item. Empty = everyone on Paid by.'
-                        : 'Assign who shares each item. Empty = everyone on Split.'}
-                </AppText>
-            </View>
-
-            <ScrollView
-                className="flex-1 px-4 pt-4"
-                contentContainerStyle={{ paddingBottom: 24 }}
-                showsVerticalScrollIndicator={false}
-            >
-                {expenseItems.length === 0 ? (
-                    <AppText
-                        variant="body-small"
-                        className="py-8 text-center text-text-primary-lighter"
+                    <ScrollView
+                        className="flex-1 px-4 pt-4"
+                        style={{backgroundColor: canvasBg}}
+                        contentContainerStyle={{paddingBottom: 24}}
+                        showsVerticalScrollIndicator={false}
                     >
-                        No items yet. Use Select item below to add catalog lines.
-                    </AppText>
-                ) : (
-                    expenseItems.map((item) => (
-                        <AssignmentItemRow
-                            key={item.id}
-                            item={item}
-                            mode={mode}
-                            participants={participants}
-                            currencySymbol={currencySymbol}
-                            isDark={isDark}
-                            onOpenPeople={() => openAssignSheet(item.id)}
-                            onUpdateSharers={(next) =>
-                                updateItemSharers(item.id, next)
-                            }
-                            onUpdateQuantity={(delta) =>
-                                updateQuantity(item.id, delta)
-                            }
-                            onUpdateLineAmount={(amount) =>
-                                updateLineAmount(item.id, amount)
-                            }
-                            onDelete={() => deleteItem(item.id)}
-                        />
-                    ))
-                )}
-            </ScrollView>
+                        {expenseItems.length === 0 ? (
+                            <AppText
+                                variant="body-small"
+                                className="py-8 text-center text-text-primary-lighter"
+                            >
+                                No items yet. Use Select item below to add catalog lines.
+                            </AppText>
+                        ) : (
+                            expenseItems.map((item) => (
+                                <AssignmentItemRow
+                                    key={item.id}
+                                    item={item}
+                                    mode={mode}
+                                    participants={participants}
+                                    currencySymbol={currencySymbol}
+                                    isDark={isDark}
+                                    onOpenPeople={() => openAssignSheet(item.id)}
+                                    onUpdateSharers={(next) =>
+                                        updateItemSharers(item.id, next)
+                                    }
+                                    onUpdateQuantity={(delta) =>
+                                        updateQuantity(item.id, delta)
+                                    }
+                                    onUpdateLineAmount={(amount) =>
+                                        updateLineAmount(item.id, amount)
+                                    }
+                                    onDelete={() => deleteItem(item.id)}
+                                />
+                            ))
+                        )}
+                    </ScrollView>
 
-            <View className="border-t border-border-input px-4 pb-6 pt-3">
-                <AppButton
-                    variant="secondary"
-                    onPress={() => setItemSheetVisible(true)}
-                    renderIcon={(c) => (
-                        <Iconify icon="heroicons:shopping-bag" size={18} color={c} />
-                    )}
-                >
-                    Select item
-                </AppButton>
+                    <View
+                        className="border-t border-border-input px-4 pb-6 pt-3"
+                        style={{backgroundColor: canvasBg}}
+                    >
+                        <AppButton
+                            variant="secondary"
+                            onPress={() => setItemSheetVisible(true)}
+                            renderIcon={(c) => (
+                                <Iconify icon="heroicons:shopping-bag" size={18} color={c} />
+                            )}
+                        >
+                            Select item
+                        </AppButton>
+                    </View>
+                </View>
             </View>
 
             <SelectMultiPeopleBottomSheet
@@ -465,7 +502,7 @@ export default function ItemAssignmentScreen() {
                 currencySymbol={currencySymbol}
                 expenseTotalAmount={totalAmount}
                 onClose={() => setItemSheetVisible(false)}
-                onSave={(items) => {
+                onSave={(items, opts) => {
                     const resolved =
                         items.length > 0
                             ? items.map((i) => ({
@@ -474,10 +511,14 @@ export default function ItemAssignmentScreen() {
                                   paidBetween: i.paidBetween ?? [],
                               }))
                             : (() => {
-                                  const fallback = getDefaultExpenseItemDraft(totalAmount);
+                                  const amount =
+                                      typeof opts?.syncTotalAmount === 'number'
+                                          ? opts.syncTotalAmount
+                                          : totalAmount;
+                                  const fallback = getDefaultExpenseItemDraft(amount);
                                   return fallback ? [fallback] : [];
                               })();
-                    setExpenseItems(resolved);
+                    commitItemsAndSyncSettlements(resolved);
                     setItemSheetVisible(false);
                 }}
                 onAddNew={() => {

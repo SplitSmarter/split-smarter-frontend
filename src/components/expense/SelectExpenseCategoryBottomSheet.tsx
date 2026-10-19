@@ -1,27 +1,44 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {View, Pressable, ActivityIndicator, StyleSheet, ListRenderItem} from 'react-native';
 import {
-    BottomSheetModal,
+    ActivityIndicator,
+    ListRenderItem,
+    Pressable,
+    StyleSheet,
+    View,
+} from 'react-native';
+import {
     BottomSheetBackdrop,
     BottomSheetBackdropProps,
     BottomSheetFlatList,
+    BottomSheetModal,
 } from '@gorhom/bottom-sheet';
 import {Iconify} from 'react-native-iconify';
 import {useRouter} from 'expo-router';
-import {AppText} from "@/src/components/common/AppText";
-import {AppImage} from "@/src/components/common/AppImage";
-import {EntityFallbackIcon} from "@/src/components/common/EntityFallbackIcon";
-import {AppInput} from "@/src/components/common/AppInput";
-import {SheetEmptyState} from "@/src/components/empty-states/SheetEmptyState";
+import {AppText} from '@/src/components/common/AppText';
+import {AppInput} from '@/src/components/common/AppInput';
+import {SearchClearButton} from '@/src/components/common/SearchClearButton';
+import {AppImageV2} from '@/src/components/common/AppImageV2';
+import {EntityFallbackIcon} from '@/src/components/common/EntityFallbackIcon';
+import {SheetEmptyState} from '@/src/components/empty-states/SheetEmptyState';
+import {
+    canDrillCoicop,
+    formatCategoryCode,
+    isCoicopLeafLevel,
+} from '@/src/components/expense/multi-level-category/coicopRef';
+import {
+    SheetTab,
+    useMultiLevelCategoryBrowse,
+} from '@/src/components/expense/multi-level-category/useMultiLevelCategoryBrowse';
+import {ExpenseCategorySource} from '@/src/api/dto/constants';
+import {
+    ExpenseCategoryDescendantItem,
+    ExpenseCategoryResponse,
+} from '@/src/api/dto/expense/category';
 import {themeStore} from '@/src/store/themeStore';
 import {COLORS} from '@/src/constants/colors';
-import {GetExpenseCategoriesApi} from '@/src/api/expense/categories';
-import {ExpenseCategoryResponse} from '@/src/api/dto/expense/category';
-import {ExpenseCategorySource} from '@/src/api/dto/constants';
-import {PaginationResponse} from '@/src/api/dto/ApiResponse';
+import {useRegisterOverlayDismiss} from '@/src/hooks/useBackDismissStack';
 
-const PAGE_SIZE = 24;
-const CATEGORY_TYPES = [ExpenseCategorySource.DEFAULT, ExpenseCategorySource.CUSTOM];
+type ExpenseSheetTab = Extract<SheetTab, 'levels' | 'list' | 'yours'>;
 
 interface SelectCategoryBottomSheetProps {
     visible: boolean;
@@ -30,18 +47,24 @@ interface SelectCategoryBottomSheetProps {
     onSelect: (category: ExpenseCategoryResponse) => void;
 }
 
-function resolveHasMore(
-    pageData: ExpenseCategoryResponse[],
-    offset: number,
-    pagination?: PaginationResponse,
-): boolean {
-    if (typeof pagination?.has_next === 'boolean') {
-        return pagination.has_next;
-    }
-    if (typeof pagination?.total === 'number') {
-        return offset + pageData.length < pagination.total;
-    }
-    return pageData.length >= PAGE_SIZE;
+function toExpenseCategoryResponse(
+    item: ExpenseCategoryDescendantItem,
+): ExpenseCategoryResponse {
+    const raw = String(item.source_type ?? '').toUpperCase();
+    const source_type =
+        raw === 'CUSTOM' || raw === ExpenseCategorySource.CUSTOM
+            ? ExpenseCategorySource.CUSTOM
+            : ExpenseCategorySource.DEFAULT;
+
+    return {
+        id: item.id,
+        title: item.title,
+        description: item.description ?? undefined,
+        source_type,
+        owner_id: null,
+        expense_count: 0,
+        icon: item.icon ?? null,
+    };
 }
 
 export const SelectExpenseCategoryBottomSheet = ({
@@ -50,127 +73,57 @@ export const SelectExpenseCategoryBottomSheet = ({
     onSelect,
     selectedId,
 }: SelectCategoryBottomSheetProps) => {
-    const theme = themeStore((state) => state.theme);
-    const isDark = theme === 'dark';
+    const isDark = themeStore((s) => s.theme === 'dark');
+    const colors = isDark ? COLORS.dark : COLORS.light;
     const router = useRouter();
 
     const bottomSheetModalRef = useRef<BottomSheetModal>(null);
-    const snapPoints = useMemo(() => ['80%'], []);
-    const loadingRef = useRef(false);
+    const snapPoints = useMemo(() => ['90%'], []);
 
-    const [categories, setCategories] = useState<ExpenseCategoryResponse[]>([]);
-    const [offset, setOffset] = useState(0);
-    const [hasMore, setHasMore] = useState(true);
-    const [loading, setLoading] = useState(false);
-    const [loadingMore, setLoadingMore] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [tab, setTab] = useState<ExpenseSheetTab>('levels');
     const [searchQuery, setSearchQuery] = useState('');
 
-    const fetchCategories = useCallback(async (nextOffset: number, append: boolean) => {
-        if (loadingRef.current) return;
-        loadingRef.current = true;
+    const {
+        stack,
+        current,
+        drillInto,
+        goBack,
+        canGoBack,
+        items,
+        loading,
+        loadingMore,
+        error,
+        loadMore,
+        reload,
+        isSearching,
+    } = useMultiLevelCategoryBrowse(visible, tab, searchQuery);
 
-        if (append) {
-            setLoadingMore(true);
-        } else {
-            setLoading(true);
-            setError(null);
-        }
-
-        try {
-            const response = await GetExpenseCategoriesApi(CATEGORY_TYPES, nextOffset, PAGE_SIZE);
-            const pageData = response.data ?? [];
-
-            setCategories((prev) => {
-                if (!append) return pageData;
-                const existingIds = new Set(prev.map((item) => item.id));
-                return [...prev, ...pageData.filter((item) => !existingIds.has(item.id))];
-            });
-            setOffset(nextOffset + pageData.length);
-            setHasMore(resolveHasMore(pageData, nextOffset, response.pagination));
-
-            if (!append && !response.data && response.message) {
-                setError(response.message);
-            }
-        } catch (err: any) {
-            console.error("Failed fetching expense categories:", err);
-            if (!append) {
-                setCategories([]);
-                setOffset(0);
-                setHasMore(false);
-                setError(err?.message || "Couldn't load categories. Check your connection and try again.");
-            }
-        } finally {
-            loadingRef.current = false;
-            setLoading(false);
-            setLoadingMore(false);
-        }
-    }, []);
-
-    const resetAndLoad = useCallback(() => {
-        setCategories([]);
-        setOffset(0);
-        setHasMore(true);
-        fetchCategories(0, false);
-    }, [fetchCategories]);
+    useRegisterOverlayDismiss(visible, onClose);
 
     useEffect(() => {
-        if (visible) {
-            setSearchQuery('');
-            resetAndLoad();
-            bottomSheetModalRef.current?.present();
-        } else {
-            setSearchQuery('');
-            setError(null);
-            setLoadingMore(false);
+        if (!visible) {
             bottomSheetModalRef.current?.dismiss();
+            return;
         }
-    }, [visible, resetAndLoad]);
+        setTab('levels');
+        setSearchQuery('');
+        bottomSheetModalRef.current?.present();
+    }, [visible]);
 
-    const trimmedQuery = searchQuery.trim();
-    const filteredCategories = useMemo(() => {
-        if (!trimmedQuery) return categories;
-        const query = trimmedQuery.toLowerCase();
-        return categories.filter((cat) => cat.title.toLowerCase().includes(query));
-    }, [categories, trimmedQuery]);
+    const handlePick = useCallback(
+        (item: ExpenseCategoryDescendantItem) => {
+            onSelect(toExpenseCategoryResponse(item));
+            onClose();
+        },
+        [onClose, onSelect],
+    );
 
-    const hasCategories = categories.length > 0;
-    const hasResults = filteredCategories.length > 0;
-    const isSearching = trimmedQuery.length > 0;
-    const showSearch = (hasCategories || isSearching) && !loading && !(error && !hasCategories);
-    const emptyIconColor = isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary;
-    const addIconColor = isDark ? COLORS.dark.icon.primary : COLORS.light.icon.primary;
-
-    const handleAddNewCategoryPress = () => {
+    const handleAddNewCategoryPress = useCallback(() => {
         onClose();
         setTimeout(() => {
             router.push('/(authenticated)/expense/categories/add');
         }, 200);
-    };
-
-    const handleClearSearch = useCallback(() => setSearchQuery(''), []);
-
-    const handleLoadMore = useCallback(() => {
-        if (!hasMore || loadingRef.current || loading || loadingMore) return;
-        fetchCategories(offset, true);
-    }, [hasMore, loading, loadingMore, offset, fetchCategories]);
-
-    // Keep paging while a search has no matches in the pages already loaded.
-    useEffect(() => {
-        if (!visible || !isSearching || hasResults || !hasMore || !hasCategories) return;
-        if (loading || loadingMore || loadingRef.current) return;
-        handleLoadMore();
-    }, [
-        visible,
-        isSearching,
-        hasResults,
-        hasMore,
-        hasCategories,
-        loading,
-        loadingMore,
-        handleLoadMore,
-        categories.length,
-    ]);
+    }, [onClose, router]);
 
     const renderBackdrop = useCallback(
         (props: BottomSheetBackdropProps) => (
@@ -182,164 +135,206 @@ export const SelectExpenseCategoryBottomSheet = ({
                 opacity={isDark ? 0.7 : 0.4}
             />
         ),
-        [isDark]
+        [isDark],
     );
 
-    const renderCategoryItem = useCallback<ListRenderItem<ExpenseCategoryResponse>>(
-        ({item}) => (
-            <Pressable
-                onPress={() => onSelect(item)}
-                style={styles.gridItem}
-                className={`items-center mb-2 p-2 rounded-xl ${
-                    item.id === selectedId ? 'bg-accent-sky-bg border border-accent-sky' : ''
-                }`}
-            >
-                <View className="w-14 h-14 mb-2">
-                    <AppImage
-                        id={item.icon?.id}
-                        url={item.icon?.url}
-                        size="full"
-                        backgroundColor="transparent"
-                        variant="circular"
-                        fallbackIcon={
-                            <EntityFallbackIcon
-                                kind="expenseCategory"
-                                size={28}
-                                color={isDark ? COLORS.dark.icon.lighter : COLORS.light.icon.lighter}
-                            />
-                        }
-                    />
-                </View>
-                <AppText
-                    variant="caption-xs"
-                    className="text-center text-text-primary"
-                    numberOfLines={1}
+    const breadcrumbLabel = useMemo(() => {
+        if (stack.length <= 1) return null;
+        return stack
+            .slice(1)
+            .map((s) => s.title)
+            .join(' · ');
+    }, [stack]);
+
+    /** Mid hierarchy → horizontal rows; leaf / List / Yours → icon-above grid. */
+    const useGridLayout =
+        isSearching ||
+        tab === 'list' ||
+        tab === 'yours' ||
+        (tab === 'levels' && isCoicopLeafLevel(current.level));
+
+    const selectCurrentParent = useCallback(() => {
+        if (current.categoryId == null) return;
+        handlePick({
+            id: current.categoryId,
+            title: current.title,
+            description: current.description,
+            category_ref: current.parentRef,
+            source_type: current.sourceType || 'SYSTEM',
+            level: Math.max(1, current.level - 1),
+            icon: current.iconId
+                ? {id: current.iconId, url: current.iconUrl ?? '', name: '', extension: ''}
+                : null,
+        });
+    }, [current, handlePick]);
+
+    const renderHorizontalItem: ListRenderItem<ExpenseCategoryDescendantItem> = useCallback(
+        ({item}) => {
+            const isSelected = item.id === selectedId;
+            const canDrill =
+                tab === 'levels' &&
+                !isSearching &&
+                canDrillCoicop(item.category_ref, item.level);
+            const code = formatCategoryCode(item.category_ref);
+            const secondary = canDrill
+                ? 'Tap to select · or open for subcategories'
+                : code
+                  ? code
+                  : 'Tap to select';
+
+            return (
+                <View
+                    className={`mb-2 flex-row items-center gap-2 rounded-2xl border px-2 py-2 ${
+                        isSelected
+                            ? 'border-accent-sky bg-accent-sky-bg'
+                            : 'border-border-input bg-bg-primary'
+                    }`}
                 >
-                    {item.title}
-                </AppText>
-            </Pressable>
-        ),
-        [isDark, onSelect, selectedId]
+                    <Pressable
+                        onPress={() => handlePick(item)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Select ${item.title}`}
+                        className="flex-1 flex-row items-center gap-3 px-1 py-1 active:opacity-80"
+                    >
+                        <View className="h-10 w-10 overflow-hidden rounded-full">
+                            <AppImageV2
+                                id={item.icon?.id ?? `exp-cat-${item.id}`}
+                                url={item.icon?.url}
+                                contentFit="cover"
+                                style={{width: '100%', height: '100%'}}
+                                fallbackComponent={
+                                    <EntityFallbackIcon
+                                        kind="expenseCategory"
+                                        size={20}
+                                        color={colors.icon.lighter}
+                                    />
+                                }
+                            />
+                        </View>
+                        <View className="flex-1">
+                            <AppText
+                                className="font-semibold text-text-primary"
+                                numberOfLines={1}
+                            >
+                                {item.title}
+                            </AppText>
+                            <AppText
+                                variant="caption-xs"
+                                className="text-text-primary-lighter"
+                                numberOfLines={1}
+                            >
+                                {secondary}
+                            </AppText>
+                        </View>
+                        {isSelected ? (
+                            <Iconify
+                                icon="heroicons:check-circle-solid"
+                                size={22}
+                                color={colors.accent.sky}
+                            />
+                        ) : (
+                            <Iconify
+                                icon="heroicons:plus-circle"
+                                size={22}
+                                color={colors.icon.lighter}
+                            />
+                        )}
+                    </Pressable>
+                    {canDrill ? (
+                        <Pressable
+                            onPress={() => drillInto(item)}
+                            accessibilityRole="button"
+                            accessibilityLabel="Show subcategories"
+                            hitSlop={8}
+                            className="rounded-xl p-2 active:opacity-60"
+                        >
+                            <Iconify
+                                icon="heroicons:chevron-right"
+                                size={22}
+                                color={colors.icon.primary}
+                            />
+                        </Pressable>
+                    ) : null}
+                </View>
+            );
+        },
+        [
+            colors.accent.sky,
+            colors.icon.lighter,
+            colors.icon.primary,
+            drillInto,
+            handlePick,
+            isSearching,
+            selectedId,
+            tab,
+        ],
     );
 
-    const listHeader = useMemo(() => (
-        <View className="flex-row items-center justify-between mb-3 px-1">
-            <AppText variant="body-base" className="font-bold text-text-primary">
-                {isSearching ? 'Results' : 'All Categories'}
-            </AppText>
-            <AppText variant="caption-xs" className="text-text-primary-lighter">
-                {filteredCategories.length}
-                {hasMore && !isSearching ? '+' : ''} {filteredCategories.length === 1 ? 'item' : 'items'}
-            </AppText>
-        </View>
-    ), [filteredCategories.length, hasMore, isSearching]);
-
-    const listFooter = useMemo(() => {
-        if (!loadingMore) return <View style={styles.footerSpacer}/>;
-        return (
-            <View style={styles.footerLoading}>
-                <ActivityIndicator size="small" color={COLORS.light.icon.primary}/>
-                <AppText variant="caption-xs" className="text-text-primary-lighter mt-2">
-                    Loading more...
-                </AppText>
-            </View>
-        );
-    }, [loadingMore]);
-
-    const listEmpty = useMemo(() => {
-        if (!isSearching) return null;
-        if (hasMore || loadingMore) {
+    const renderGridItem: ListRenderItem<ExpenseCategoryDescendantItem> = useCallback(
+        ({item}) => {
+            const isSelected = item.id === selectedId;
             return (
-                <View style={styles.centeredBody}>
-                    <ActivityIndicator size="small" color={COLORS.light.icon.primary}/>
-                    <AppText variant="caption-xs" className="text-text-primary-lighter mt-3">
-                        Searching loaded categories...
+                <Pressable
+                    onPress={() => handlePick(item)}
+                    style={styles.gridItem}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Select ${item.title}`}
+                    className={`mb-2 items-center rounded-xl p-2 ${
+                        isSelected
+                            ? 'border border-accent-sky bg-accent-sky-bg'
+                            : ''
+                    }`}
+                >
+                    <View className="mb-2 h-14 w-14 overflow-hidden rounded-full">
+                        <AppImageV2
+                            id={item.icon?.id ?? `exp-cat-grid-${item.id}`}
+                            url={item.icon?.url}
+                            contentFit="cover"
+                            style={{width: '100%', height: '100%'}}
+                            fallbackComponent={
+                                <EntityFallbackIcon
+                                    kind="expenseCategory"
+                                    size={28}
+                                    color={colors.icon.lighter}
+                                />
+                            }
+                        />
+                    </View>
+                    <AppText
+                        variant="caption-xs"
+                        className="text-center text-text-primary"
+                        numberOfLines={2}
+                    >
+                        {item.title}
                     </AppText>
-                </View>
+                </Pressable>
             );
-        }
-        return (
-            <SheetEmptyState
-                icon={<Iconify icon="heroicons:magnifying-glass-minus" size={32} color={emptyIconColor}/>}
-                title="No results found"
-                description={`Nothing matched “${trimmedQuery}”. Try a different name or create a new category.`}
-                primaryAction={{
-                    label: "Clear Search",
-                    onPress: handleClearSearch,
-                    renderIcon: (color) => <Iconify icon="heroicons:x-mark" size={18} color={color}/>,
-                }}
-            />
-        );
-    }, [emptyIconColor, handleClearSearch, hasMore, isSearching, loadingMore, trimmedQuery]);
+        },
+        [colors.icon.lighter, handlePick, selectedId],
+    );
 
-    const renderBody = () => {
-        if (loading && !hasCategories) {
-            return (
-                <View style={styles.centeredBody}>
-                    <ActivityIndicator size="large" color={COLORS.light.icon.primary}/>
-                    <AppText variant="caption-xs" className="text-text-primary-lighter mt-3">
-                        Loading categories...
-                    </AppText>
-                </View>
-            );
-        }
+    const emptyTitle =
+        tab === 'levels'
+            ? current.parentRef
+                ? 'No subcategories here'
+                : 'No category groups yet'
+            : tab === 'yours'
+              ? 'No categories of yours yet'
+              : 'No system categories yet';
+    const emptyDescription =
+        tab === 'levels'
+            ? current.parentRef
+                ? 'Try another group or search.'
+                : 'Try search or browse List / Yours.'
+            : tab === 'yours'
+              ? 'Create a category to use it here.'
+              : 'Try search or check Levels.';
 
-        if (error && !hasCategories) {
-            return (
-                <View style={styles.centeredBody}>
-                    <SheetEmptyState
-                        icon={<Iconify icon="heroicons:exclamation-triangle" size={32} color={emptyIconColor}/>}
-                        title="Unable to load categories"
-                        description={error}
-                        primaryAction={{
-                            label: "Try Again",
-                            onPress: resetAndLoad,
-                            renderIcon: (color) => <Iconify icon="heroicons:arrow-path" size={18} color={color}/>,
-                        }}
-                    />
-                </View>
-            );
-        }
-
-        if (!hasCategories) {
-            return (
-                <View style={styles.centeredBody}>
-                    <SheetEmptyState
-                        icon={<Iconify icon="heroicons:squares-2x2" size={32} color={emptyIconColor}/>}
-                        title="No categories yet"
-                        description="Create your first expense category to start organizing transactions."
-                        primaryAction={{
-                            label: "Add New Category",
-                            onPress: handleAddNewCategoryPress,
-                            renderIcon: (color) => <Iconify icon="heroicons:squares-plus" size={18} color={color}/>,
-                        }}
-                    />
-                </View>
-            );
-        }
-
-        return (
-            <View style={styles.listCard} className="bg-bg-primary-lighter border border-border-input">
-                <BottomSheetFlatList
-                    data={filteredCategories}
-                    keyExtractor={(item) => String(item.id)}
-                    numColumns={4}
-                    renderItem={renderCategoryItem}
-                    ListHeaderComponent={listHeader}
-                    ListFooterComponent={listFooter}
-                    ListEmptyComponent={listEmpty}
-                    onEndReached={handleLoadMore}
-                    onEndReachedThreshold={0.4}
-                    showsVerticalScrollIndicator={false}
-                    keyboardShouldPersistTaps="handled"
-                    contentContainerStyle={
-                        filteredCategories.length === 0 ? styles.emptyListContent : styles.listContent
-                    }
-                    style={styles.scroll}
-                />
-            </View>
-        );
-    };
+    const tabs: {key: ExpenseSheetTab; label: string}[] = [
+        {key: 'levels', label: 'Levels'},
+        {key: 'list', label: 'List'},
+        {key: 'yours', label: 'Yours'},
+    ];
 
     return (
         <BottomSheetModal
@@ -353,56 +348,288 @@ export const SelectExpenseCategoryBottomSheet = ({
             keyboardBehavior="interactive"
             keyboardBlurBehavior="restore"
             backgroundStyle={{
-                backgroundColor: isDark ? COLORS.dark.bg.overlay : COLORS.light.bg.overlay,
+                backgroundColor: colors.bg.overlay,
                 borderRadius: 40,
             }}
             handleIndicatorStyle={{
-                backgroundColor: isDark ? COLORS.dark.icon.lighter : COLORS.light.icon.lighter,
+                backgroundColor: colors.icon.lighter,
                 width: 48,
                 height: 6,
             }}
         >
             <View style={styles.container}>
-                <View className="flex-row items-center justify-between py-4 px-6 border-b border-border-input">
-                    <Pressable onPress={onClose} className="p-2 rounded-full active:opacity-60">
-                        <Iconify
-                            icon="heroicons:chevron-left"
-                            size={24}
-                            color={isDark ? COLORS.dark.text.primary : COLORS.light.text.primary}
-                        />
-                    </Pressable>
-                    <AppText variant="h4" className="font-bold text-text-primary">Select Category</AppText>
-                    <Pressable
-                        onPress={handleAddNewCategoryPress}
-                        className="p-2 rounded-full active:opacity-60"
-                        accessibilityLabel="Add new category"
+                <View className="border-b border-border-input px-6 py-4">
+                    <View className="flex-row items-center justify-between">
+                        <Pressable
+                            onPress={onClose}
+                            className="rounded-full p-2 active:opacity-60"
+                        >
+                            <Iconify
+                                icon="heroicons:x-mark"
+                                size={22}
+                                color={colors.icon.primary}
+                            />
+                        </Pressable>
+                        <AppText variant="h4" className="font-bold text-text-primary">
+                            Select category
+                        </AppText>
+                        <Pressable
+                            onPress={handleAddNewCategoryPress}
+                            className="rounded-full p-2 active:opacity-60"
+                            accessibilityLabel="Add new category"
+                        >
+                            <Iconify
+                                icon="heroicons:squares-plus"
+                                size={22}
+                                color={colors.icon.primary}
+                            />
+                        </Pressable>
+                    </View>
+                    <AppText
+                        variant="caption-xs"
+                        className="mt-2 text-center text-text-primary-lighter"
                     >
-                        <Iconify icon="heroicons:squares-plus" size={24} color={addIconColor}/>
-                    </Pressable>
+                        Select any level — or open a group to go deeper
+                    </AppText>
                 </View>
 
-                {showSearch ? (
-                    <View className="px-6 pt-4 pb-2">
-                        <AppInput
-                            placeholder="Type to search"
-                            value={searchQuery}
-                            onChangeText={setSearchQuery}
-                            renderLeftIcon={(color) => (
-                                <Iconify icon="heroicons:magnifying-glass" size={20} color={color}/>
+                <View className="mx-6 mt-3 flex-row rounded-xl border border-border-input bg-bg-canvas p-1">
+                    {tabs.map((t) => {
+                        const active = tab === t.key;
+                        return (
+                            <Pressable
+                                key={t.key}
+                                onPress={() => setTab(t.key)}
+                                className={`flex-1 items-center rounded-lg py-2 ${
+                                    active ? 'bg-accent-sky-bg' : ''
+                                }`}
+                            >
+                                <AppText
+                                    variant="caption-xs"
+                                    className={`font-semibold ${
+                                        active
+                                            ? 'text-accent-sky'
+                                            : 'text-text-primary-lighter'
+                                    }`}
+                                    numberOfLines={1}
+                                >
+                                    {t.label}
+                                </AppText>
+                            </Pressable>
+                        );
+                    })}
+                </View>
+
+                <View className="px-6 pb-2 pt-3">
+                    <AppInput
+                        placeholder="Search categories"
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                        renderLeftIcon={(c) => (
+                            <Iconify icon="heroicons:magnifying-glass" size={18} color={c} />
+                        )}
+                        renderRightIcon={(c) => (
+                            <SearchClearButton
+                                value={searchQuery}
+                                onClear={() => setSearchQuery('')}
+                                color={c}
+                                size={18}
+                            />
+                        )}
+                    />
+                </View>
+
+                {tab === 'levels' && canGoBack && !isSearching ? (
+                    <View className="gap-2 px-6 pb-2">
+                        <View className="flex-row items-center gap-2">
+                            <Pressable
+                                onPress={goBack}
+                                className="flex-row items-center gap-1 rounded-full px-2 py-1 active:opacity-60"
+                                accessibilityRole="button"
+                                accessibilityLabel="Go back"
+                            >
+                                <Iconify
+                                    icon="heroicons:chevron-left"
+                                    size={18}
+                                    color={colors.icon.primary}
+                                />
+                                <AppText
+                                    variant="caption-xs"
+                                    className="font-semibold text-text-primary"
+                                >
+                                    Back
+                                </AppText>
+                            </Pressable>
+                            {!!breadcrumbLabel && (
+                                <AppText
+                                    variant="caption-xs"
+                                    className="flex-1 text-text-primary-lighter"
+                                    numberOfLines={1}
+                                >
+                                    {breadcrumbLabel}
+                                </AppText>
                             )}
-                            renderRightIcon={(color) =>
-                                searchQuery.length > 0 ? (
-                                    <Pressable onPress={handleClearSearch} hitSlop={8}>
-                                        <Iconify icon="heroicons:x-mark" size={20} color={color}/>
-                                    </Pressable>
-                                ) : null
-                            }
-                        />
+                        </View>
+                        {current.categoryId != null ? (
+                            <Pressable
+                                onPress={selectCurrentParent}
+                                accessibilityRole="button"
+                                accessibilityLabel={`Select ${current.title}`}
+                                className={`flex-row items-center gap-2 rounded-2xl border px-3 py-2.5 active:opacity-80 ${
+                                    current.categoryId === selectedId
+                                        ? 'border-accent-sky bg-accent-sky-bg'
+                                        : 'border-border-input bg-bg-primary'
+                                }`}
+                            >
+                                <View className="h-9 w-9 overflow-hidden rounded-full">
+                                    <AppImageV2
+                                        id={current.iconId ?? `exp-parent-${current.categoryId}`}
+                                        url={current.iconUrl}
+                                        contentFit="cover"
+                                        style={{width: '100%', height: '100%'}}
+                                        fallbackComponent={
+                                            <EntityFallbackIcon
+                                                kind="expenseCategory"
+                                                size={18}
+                                                color={colors.icon.lighter}
+                                            />
+                                        }
+                                    />
+                                </View>
+                                <View className="min-w-0 flex-1">
+                                    <AppText
+                                        className="font-semibold text-text-primary"
+                                        numberOfLines={1}
+                                    >
+                                        Use “{current.title}”
+                                    </AppText>
+                                    <AppText
+                                        variant="caption-xs"
+                                        className="text-text-primary-lighter"
+                                        numberOfLines={1}
+                                    >
+                                        Select this group without going deeper
+                                    </AppText>
+                                </View>
+                                {current.categoryId === selectedId ? (
+                                    <Iconify
+                                        icon="heroicons:check-circle-solid"
+                                        size={22}
+                                        color={colors.accent.sky}
+                                    />
+                                ) : (
+                                    <Iconify
+                                        icon="heroicons:plus-circle"
+                                        size={22}
+                                        color={colors.icon.lighter}
+                                    />
+                                )}
+                            </Pressable>
+                        ) : null}
                     </View>
                 ) : null}
 
                 <View style={styles.body}>
-                    {renderBody()}
+                    {loading && items.length === 0 ? (
+                        <View style={styles.centered}>
+                            <ActivityIndicator size="large" color={colors.icon.primary} />
+                        </View>
+                    ) : error && items.length === 0 ? (
+                        <View style={styles.centered}>
+                            <SheetEmptyState
+                                icon={
+                                    <Iconify
+                                        icon="heroicons:exclamation-triangle"
+                                        size={32}
+                                        color={colors.icon.lighter}
+                                    />
+                                }
+                                title="Unable to load"
+                                description={error}
+                                primaryAction={{
+                                    label: 'Try again',
+                                    onPress: reload,
+                                    renderIcon: (c) => (
+                                        <Iconify
+                                            icon="heroicons:arrow-path"
+                                            size={18}
+                                            color={c}
+                                        />
+                                    ),
+                                }}
+                            />
+                        </View>
+                    ) : (
+                        <BottomSheetFlatList
+                            key={useGridLayout ? 'grid' : 'rows'}
+                            data={items}
+                            keyExtractor={(item) => String(item.id)}
+                            numColumns={useGridLayout ? 4 : 1}
+                            renderItem={
+                                useGridLayout ? renderGridItem : renderHorizontalItem
+                            }
+                            onEndReached={loadMore}
+                            onEndReachedThreshold={0.4}
+                            style={styles.list}
+                            contentContainerStyle={
+                                items.length === 0
+                                    ? styles.emptyListContent
+                                    : styles.listContent
+                            }
+                            keyboardShouldPersistTaps="handled"
+                            showsVerticalScrollIndicator={false}
+                            ListFooterComponent={
+                                loadingMore ? (
+                                    <ActivityIndicator
+                                        style={{marginVertical: 12}}
+                                        color={colors.icon.primary}
+                                    />
+                                ) : (
+                                    <View style={{height: 16}} />
+                                )
+                            }
+                            ListEmptyComponent={
+                                <SheetEmptyState
+                                    icon={
+                                        tab === 'yours' ? (
+                                            <Iconify
+                                                icon="heroicons:squares-plus"
+                                                size={32}
+                                                color={colors.icon.lighter}
+                                            />
+                                        ) : (
+                                            <Iconify
+                                                icon="heroicons:magnifying-glass-minus"
+                                                size={32}
+                                                color={colors.icon.lighter}
+                                            />
+                                        )
+                                    }
+                                    title={isSearching ? 'Nothing found' : emptyTitle}
+                                    description={
+                                        isSearching
+                                            ? 'Try a different search.'
+                                            : emptyDescription
+                                    }
+                                    primaryAction={
+                                        tab === 'yours' && !isSearching
+                                            ? {
+                                                  label: 'Add category',
+                                                  onPress: handleAddNewCategoryPress,
+                                                  renderIcon: (c) => (
+                                                      <Iconify
+                                                          icon="heroicons:squares-plus"
+                                                          size={18}
+                                                          color={c}
+                                                      />
+                                                  ),
+                                              }
+                                            : undefined
+                                    }
+                                />
+                            }
+                        />
+                    )}
                 </View>
             </View>
         </BottomSheetModal>
@@ -410,46 +637,23 @@ export const SelectExpenseCategoryBottomSheet = ({
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    body: {
-        flex: 1,
-        paddingHorizontal: 24,
-        paddingBottom: 8,
-    },
-    listCard: {
-        flex: 1,
-        borderRadius: 24,
-        paddingHorizontal: 12,
-        paddingTop: 12,
-        overflow: 'hidden',
-    },
-    scroll: {
-        flex: 1,
-    },
-    listContent: {
-        paddingBottom: 24,
-    },
+    container: {flex: 1},
+    body: {flex: 1},
+    list: {flex: 1},
+    listContent: {paddingHorizontal: 24, paddingBottom: 24},
     emptyListContent: {
         flexGrow: 1,
+        paddingHorizontal: 24,
         paddingBottom: 24,
         justifyContent: 'center',
     },
-    gridItem: {
-        width: '25%',
-    },
-    footerSpacer: {
-        height: 16,
-    },
-    footerLoading: {
-        alignItems: 'center',
-        paddingVertical: 16,
-    },
-    centeredBody: {
+    centered: {
         flex: 1,
+        alignItems: 'center',
         justifyContent: 'center',
+        padding: 24,
     },
+    gridItem: {width: '25%'},
 });
 
 SelectExpenseCategoryBottomSheet.displayName = 'SelectExpenseCategoryBottomSheet';

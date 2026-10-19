@@ -1,6 +1,5 @@
 import React from 'react';
 import {Pressable, View} from 'react-native';
-import {MaterialCommunityIcons, FontAwesome5, Feather} from '@expo/vector-icons';
 import {AppText} from '@/src/components/common/AppText';
 import {AppImageV2} from '@/src/components/common/AppImageV2';
 import {EntityFallbackIcon} from '@/src/components/common/EntityFallbackIcon';
@@ -13,8 +12,6 @@ import {formatCurrency} from '../utils/dashboard.utils';
 
 interface TransactionItemProps {
     transaction: Transaction & {
-        iconType?: 'material' | 'fontawesome' | 'feather';
-        iconName?: string;
         iconColor?: string;
     };
     isLast?: boolean;
@@ -42,34 +39,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({transaction, is
             );
         }
 
-        switch (transaction.iconType) {
-            case 'material':
-                return (
-                    <MaterialCommunityIcons
-                        name={transaction.iconName as any}
-                        size={20}
-                        color={iconColor}
-                    />
-                );
-            case 'fontawesome':
-                return (
-                    <FontAwesome5
-                        name={transaction.iconName as any}
-                        size={18}
-                        color={iconColor}
-                    />
-                );
-            case 'feather':
-                return (
-                    <Feather
-                        name={(transaction.iconName as any) || 'credit-card'}
-                        size={18}
-                        color={iconColor}
-                    />
-                );
-            default:
-                return <EntityFallbackIcon kind="expense" size={18} color={iconColor} />;
-        }
+        return <EntityFallbackIcon kind="expense" size={18} color={iconColor} />;
     };
 
     const isExpense = transaction.type === 'expense';

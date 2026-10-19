@@ -28,7 +28,7 @@ import {GroupShareModal} from "./GroupShareModal";
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const TOP_IMAGE_HEIGHT = SCREEN_HEIGHT * 0.25;
 const STATUS_BAR_PADDING = Platform.OS === 'ios' ? 50 : (StatusBar.currentHeight || 16);
-const GROUP_MEMBER_USER_TYPES = [RelationWithUserType.USER];
+const GROUP_MEMBER_USER_TYPES = [RelationWithUserType.USER, RelationWithUserType.CUSTOM];
 
 interface GroupInfoViewProps {
     onBackPress: () => void;

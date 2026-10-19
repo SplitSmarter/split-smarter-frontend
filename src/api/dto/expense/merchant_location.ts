@@ -5,7 +5,8 @@ import {UserMerchantLocationSource} from "@/src/api/dto/expense/constant";
 // Request DTOs
 export interface UserMerchantLocationCreate {
     user_merchant_id: number;
-    provider_id: number;
+    /** Stable place key: Google place_id or str(custom_places.id). */
+    provider_id: string;
     provider_source: PlaceSource;
 }
 

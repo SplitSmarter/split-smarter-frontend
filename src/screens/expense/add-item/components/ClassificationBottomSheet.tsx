@@ -15,6 +15,7 @@ import {
 import {Iconify} from 'react-native-iconify';
 import {AppText} from '@/src/components/common/AppText';
 import {AppInput} from '@/src/components/common/AppInput';
+import {SearchClearButton} from '@/src/components/common/SearchClearButton';
 import {SheetEmptyState} from '@/src/components/empty-states/SheetEmptyState';
 import {themeStore} from '@/src/store/themeStore';
 import {COLORS} from '@/src/constants/colors';
@@ -244,6 +245,16 @@ export function ClassificationBottomSheet({
                     placeholder={`Search ${taxonomyType} codes…`}
                     value={searchQuery}
                     onChangeText={setSearchQuery}
+                    renderLeftIcon={(c) => (
+                        <Iconify icon="heroicons:magnifying-glass" size={18} color={c} />
+                    )}
+                    renderRightIcon={(c) => (
+                        <SearchClearButton
+                            value={searchQuery}
+                            onClear={() => setSearchQuery('')}
+                            color={c}
+                        />
+                    )}
                 />
             </View>
 

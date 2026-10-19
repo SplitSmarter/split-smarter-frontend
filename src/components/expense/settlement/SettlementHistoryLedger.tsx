@@ -1,11 +1,11 @@
-import React from 'react';
-import { View } from 'react-native';
-import { Iconify } from 'react-native-iconify';
-import { AppText } from '@/src/components/common/AppText';
-import { BaseSettlementDetails } from "@/src/api/dto/expense/settlement";
-import { RelationWithUserType } from "@/src/api/dto/constants";
-import { Currency, CurrencyCode } from '@/src/constants/expense/currency';
-import { COLORS } from '@/src/constants/colors';
+import React, {useMemo} from 'react';
+import {View} from 'react-native';
+import {Iconify} from 'react-native-iconify';
+import {AppText} from '@/src/components/common/AppText';
+import {BaseSettlementDetails} from '@/src/api/dto/expense/settlement';
+import {RelationWithUserType} from '@/src/api/dto/constants';
+import {Currency, CurrencyCode} from '@/src/constants/expense/currency';
+import {COLORS} from '@/src/constants/colors';
 
 interface SettlementHistoryLedgerProps {
     history: BaseSettlementDetails[];
@@ -14,54 +14,101 @@ interface SettlementHistoryLedgerProps {
     isDark: boolean;
 }
 
+function involvesCurrentUser(
+    link: BaseSettlementDetails,
+    currentUserId: number | undefined,
+    currentUserType: RelationWithUserType,
+): boolean {
+    if (currentUserId == null) return true;
+    const isFrom =
+        link.from_user.id === currentUserId &&
+        link.from_user.user_type === currentUserType;
+    const isTo =
+        link.to_user.id === currentUserId &&
+        link.to_user.user_type === currentUserType;
+    return isFrom || isTo;
+}
+
 export const SettlementHistoryLedger = ({
-                                            history,
-                                            currentUserId,
-                                            currentUserType,
-                                            isDark
-                                        }: SettlementHistoryLedgerProps) => {
+    history,
+    currentUserId,
+    currentUserType,
+    isDark,
+}: SettlementHistoryLedgerProps) => {
     const colors = isDark ? COLORS.dark : COLORS.light;
+
+    // Group settlements tab is personal — only links involving the signed-in user.
+    const personalHistory = useMemo(
+        () =>
+            history.filter((link) =>
+                involvesCurrentUser(link, currentUserId, currentUserType),
+            ),
+        [history, currentUserId, currentUserType],
+    );
 
     return (
         <View className="space-y-3">
-            <View className="flex-row items-center justify-between mb-4 px-1">
-                <AppText variant="body-small" className="font-bold text-text-primary-lighter uppercase tracking-wider">
-                    Settlement History
+            <View className="mb-4 flex-row items-center justify-between px-1">
+                <AppText
+                    variant="body-small"
+                    className="font-bold uppercase tracking-wider text-text-primary-lighter"
+                >
+                    Your settlements
                 </AppText>
                 <Iconify icon="heroicons:shield-check" size={16} color={colors.icon.lighter} />
             </View>
 
-            {history.length === 0 ? (
-                <View className="py-8 items-center">
-                    <AppText variant="body-base" className="text-text-primary-lighter font-medium">
-                        No verified historic transfers logged.
+            {personalHistory.length === 0 ? (
+                <View className="items-center py-8">
+                    <AppText variant="body-base" className="font-medium text-text-primary-lighter">
+                        No settlements involving you in this group yet.
                     </AppText>
                 </View>
             ) : (
-                history.map((link) => {
+                personalHistory.map((link) => {
                     const formattedLinkDate = new Date().toLocaleDateString(undefined, {
                         day: 'numeric',
                         month: 'short',
-                        year: 'numeric'
+                        year: 'numeric',
                     });
 
-                    const isToCurrentUser = link.to_user.id === currentUserId && link.to_user.user_type === currentUserType;
+                    const isFromMe =
+                        currentUserId != null &&
+                        link.from_user.id === currentUserId &&
+                        link.from_user.user_type === currentUserType;
+                    const isToMe =
+                        currentUserId != null &&
+                        link.to_user.id === currentUserId &&
+                        link.to_user.user_type === currentUserType;
+
+                    const fromLabel = isFromMe ? 'You' : link.from_user.name;
+                    const toLabel = isToMe ? 'You' : link.to_user.name;
 
                     return (
                         <View
                             key={link.id}
-                            className="p-4 border-b border-border-input bg-bg-primary"
+                            className="border-b border-border-input bg-bg-primary p-4"
                         >
-                            <View className="flex-row justify-between items-start">
-                                <AppText variant="body-base" className="font-semibold text-text-primary flex-1 mr-4">
-                                    {link.from_user.name} settled with {isToCurrentUser ? 'You' : link.to_user.name}
+                            <View className="flex-row items-start justify-between">
+                                <AppText
+                                    variant="body-base"
+                                    className="mr-4 flex-1 font-semibold text-text-primary"
+                                >
+                                    {fromLabel} settled with {toLabel}
                                 </AppText>
-                                <AppText variant="body-small" className="text-text-primary-lighter font-medium">
+                                <AppText
+                                    variant="body-small"
+                                    className="font-medium text-text-primary-lighter"
+                                >
                                     {formattedLinkDate}
                                 </AppText>
                             </View>
-                            <AppText variant="body-large" className="font-extrabold text-green-increase mt-2">
-                                {Currency[link.currency as CurrencyCode]?.symbol || '₹'}{link.amount.toFixed(2)}
+                            <AppText
+                                variant="body-large"
+                                className="mt-2 font-extrabold text-green-increase"
+                            >
+                                {Currency[link.currency as CurrencyCode]?.symbol || '₹'}
+                                {link.amount.toFixed(2)}
                             </AppText>
                         </View>
                     );

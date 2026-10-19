@@ -3,6 +3,7 @@ import {Alert, View} from 'react-native';
 import {useRouter} from 'expo-router';
 import {PlaceSource} from '@/src/api/dto/constants';
 import {useExpenseDraftStore} from '@/src/store/draft/expenseDraftStore';
+import {useLocationStore} from '@/src/store/locationStore';
 import {usePlaceDetails} from '@/src/hooks/usePlaceDetails';
 import type {MapDateRange, PlaceAgg} from '../../types/spatialMap.types';
 import {
@@ -105,6 +106,9 @@ export function SinglePlaceBody({
                 name: saved.name,
             });
             draft.setExpenseLocationMode('place');
+            useLocationStore
+                .getState()
+                .setTempLocationSelection('place', saved.id);
             closeThen(() => router.push('/(authenticated)/expense/add'));
         } catch (e) {
             console.error('Failed saving venue place for expense', e);
